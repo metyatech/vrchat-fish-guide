@@ -35,3 +35,4 @@ All notable changes to this project are documented here.
 - Upgraded `next` and `eslint-config-next` to `15.5.12` to clear published security advisories before release.
 - Upgraded `vitest`, `@vitest/coverage-v8`, and `@vitejs/plugin-react` to current secure releases.
 - Updated `tsconfig.json` to match Next.js 15 recommendations.
+- Split GitHub Pages build detection to `DEPLOY_TARGET=github-pages` so CI verification and Pages deployment no longer conflict.

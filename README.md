@@ -155,6 +155,9 @@ npm run build
 
 その後、`out/` を任意の静的サーバーで配信できます。
 
+GitHub Pages と同じ base path 付き出力をローカルで確認したい場合は、`DEPLOY_TARGET=github-pages` を設定してから `npm run build` を実行します。  
+この環境変数は `deploy-pages.yml` で自動設定され、通常のローカル開発や CI では不要です。
+
 ## ドキュメント
 
 - [CONTRIBUTING.md](./CONTRIBUTING.md)

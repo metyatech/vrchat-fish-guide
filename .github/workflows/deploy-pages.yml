@@ -18,6 +18,8 @@ jobs:
   build:
     name: Build and Upload Pages Artifact
     runs-on: ubuntu-latest
+    env:
+      DEPLOY_TARGET: github-pages
 
     steps:
       - name: Checkout repository
