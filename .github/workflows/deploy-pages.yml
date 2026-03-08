@@ -18,8 +18,6 @@ jobs:
   build:
     name: Build and Upload Pages Artifact
     runs-on: ubuntu-latest
-    env:
-      DEPLOY_TARGET: github-pages
 
     steps:
       - name: Checkout repository
@@ -44,6 +42,11 @@ jobs:
 
       - name: Run full verify
         run: npm run verify
+
+      - name: Build GitHub Pages export
+        env:
+          DEPLOY_TARGET: github-pages
+        run: npm run build
 
       - name: Upload static artifact
         uses: actions/upload-pages-artifact@v3
