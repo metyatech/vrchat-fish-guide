@@ -58,6 +58,18 @@ export function ParameterForm({ params, onChange }: ParameterFormProps) {
     <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <h2 className="border-b pb-3 text-lg font-semibold text-gray-800">⚙️ 計算パラメータ</h2>
 
+      <div className="rounded-xl border border-ocean-100 bg-ocean-50 p-4 text-sm text-ocean-900">
+        <p className="font-semibold">最初はこの順で触ると迷いません。</p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-relaxed text-ocean-900">
+          <li>`釣りエリア` を選ぶ</li>
+          <li>`平均試行時間` と `空振り確率` を自分の感覚に近づける</li>
+          <li>必要なときだけ `時間帯`, `天候`, `Luck` を調整する</li>
+        </ol>
+        <p className="mt-2 text-xs leading-relaxed text-ocean-900">
+          既定値は「まず画面の出方を理解するためのサンプル」です。厳密な自己計測値があるなら、その値を優先してください。
+        </p>
+      </div>
+
       <div>
         <label htmlFor={fieldId.areaId} className="mb-1 block text-sm font-medium text-gray-700">
           釣りエリア
@@ -74,6 +86,9 @@ export function ParameterForm({ params, onChange }: ParameterFormProps) {
             </option>
           ))}
         </select>
+        <p className="mt-1 text-xs text-gray-500">
+          まず決める入力です。ここを変えると候補魚のプールが大きく変わります。
+        </p>
       </div>
 
       <div>

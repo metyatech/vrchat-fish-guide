@@ -7,6 +7,8 @@ test('home page exposes primary navigation links', async ({ page }) => {
     page.getByRole('main').getByRole('heading', { name: 'VRChat Fish! ガイド' }),
   ).toBeVisible();
   await expect(page.getByText('6 エリア対応')).toBeVisible();
+  await expect(page.getByText('はじめて使うときの 3 手順')).toBeVisible();
+  await expect(page.getByText('このサイトで分かること')).toBeVisible();
 
   await Promise.all([
     page.waitForURL(/\/calculator\/$/),
@@ -30,11 +32,11 @@ test('calculator updates summary cards and fish list when filters change', async
   await page.goto('/calculator/');
 
   await expect(page.getByRole('heading', { name: '📊 確率・収益計算機' })).toBeVisible();
+  await expect(page.getByText('このページの見方')).toBeVisible();
+  await expect(page.getByText('最初はこの順で触ると迷いません。')).toBeVisible();
 
   const initialExpectedValuePerHour = await page
-    .locator('text=期待値/時間')
-    .locator('..')
-    .first()
+    .getByTestId('summary-expected-value-per-hour')
     .textContent();
   const initialRowCount = await page.locator('tbody tr').count();
 
@@ -50,9 +52,7 @@ test('calculator updates summary cards and fish list when filters change', async
   await expect(page.getByRole('table').getByText('Albacore Tuna').first()).toBeVisible();
 
   const updatedExpectedValuePerHour = await page
-    .locator('text=期待値/時間')
-    .locator('..')
-    .first()
+    .getByTestId('summary-expected-value-per-hour')
     .textContent();
   const updatedRowCount = await page.locator('tbody tr').count();
 
