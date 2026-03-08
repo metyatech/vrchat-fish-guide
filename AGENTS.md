@@ -92,6 +92,9 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/implementation-and-coding
 
 - Prefer official/standard framework/tooling approaches.
 - Prefer well-maintained dependencies; build in-house only when no suitable option exists.
+- Prefer the latest feasible stable versions of frameworks, dependencies, CI actions, and workflow tooling.
+- When touching a repository, proactively update stale packages/actions to the latest feasible stable versions unless blocked by compatibility, explicit pinning, or disproportionate migration cost.
+- If a dependency, framework, or workflow action is intentionally kept behind the latest stable version, state the blocker explicitly in the change report.
 - Prefer third-party tools/services over custom implementations; prefer OSS/free-tier when feasible and call out tradeoffs.
 - PowerShell: `\` is literal (not escape); avoid shadowing auto variables (`$args`, `$PID`); avoid double-quoted `-Command` strings (prefer `-File`, single quotes, or here-strings).
 - If functionality is reusable, assess reuse first and propose shared module/repo; prefer remote dependencies (never local paths).

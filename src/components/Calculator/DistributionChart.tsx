@@ -54,7 +54,9 @@ export function DistributionChart({ result, mode }: DistributionChartProps) {
             />
             <YAxis tick={{ fontSize: 11 }} unit="%" />
             <Tooltip
-              formatter={(value: number) => [`${value.toFixed(2)}%`, '確率']}
+              formatter={(value) =>
+                value != null ? [`${Number(value).toFixed(2)}%`, '確率'] : ['', '確率']
+              }
               labelStyle={{ fontWeight: 600 }}
             />
             <Bar dataKey="probability" name="確率">
@@ -85,7 +87,9 @@ export function DistributionChart({ result, mode }: DistributionChartProps) {
             />
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip
-              formatter={(value: number) => [`${value.toFixed(1)}G`, '期待値']}
+              formatter={(value) =>
+                value != null ? [`${Number(value).toFixed(1)}G`, '期待値'] : ['', '期待値']
+              }
               labelStyle={{ fontWeight: 600 }}
             />
             <Bar dataKey="expectedValue" name="期待値">
