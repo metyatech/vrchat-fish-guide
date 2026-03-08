@@ -23,14 +23,36 @@ export const SOURCES: DataSource[] = [
       'Values observed directly in VRChat Fish! world. These are the most reliable source for factual numerical data.',
   },
   {
-    id: 'vrchat-fish-wikiwiki',
-    name: 'VRChat Fish! wikiwiki.jp community wiki',
-    url: 'https://wikiwiki.jp/vrchat-fish/',
+    id: 'fish-fandom-index',
+    name: 'Fish! TrickForge Studios Fandom Index',
+    url: 'https://fish-trickforge-studio.fandom.com/wiki/Index',
     sourceStatus: 'community',
     reuseMode: 'fact-only',
-    licenseStatus: 'unclear — wikiwiki.jp default terms apply; expressive content NOT reproduced',
+    licenseStatus:
+      'CC BY-SA via Fandom licensing; only factual area / rarity / condition data extracted',
     notes:
-      'Only numerical facts (prices, weights) extracted. No expressive text, tables, or structure copied. Treat all values as unverified community contributions.',
+      'Used for area fish lists, published rarity tiers, weather tags, and time-of-day tags. The calculator uses the published rarity table as the base probability model.',
+  },
+  {
+    id: 'fish-info-by-snerx',
+    name: 'FISH! Info by Snerx (Google Sheets)',
+    url: 'https://docs.google.com/spreadsheets/d/1SAggImcqOJbcTP0owCrqv13Z71ZnXynYL64OB5I1CSY/edit?usp=sharing',
+    sourceStatus: 'community',
+    reuseMode: 'fact-only',
+    licenseStatus:
+      'unclear — spreadsheet content license not published; only numeric facts extracted',
+    notes:
+      'Used only for numeric price and weight ranges. The sheet itself cites wikiwiki.jp as the origin of those ranges; no expressive spreadsheet content is reproduced.',
+  },
+  {
+    id: 'vrchat-fish-wikiwiki',
+    name: 'VRChat Fish! wikiwiki.jp community wiki',
+    url: 'https://wikiwiki.jp/fish_jp/',
+    sourceStatus: 'community',
+    reuseMode: 'not-used-directly',
+    licenseStatus: 'unclear — treated as upstream cross-check only',
+    notes:
+      'Referenced indirectly because the Snerx sheet cites it as the origin of price and weight ranges. The site does not reproduce wiki text, page structure, or images.',
   },
   {
     id: 'community-datamine',
@@ -39,7 +61,7 @@ export const SOURCES: DataSource[] = [
     reuseMode: 'not-used-directly',
     licenseStatus: 'unclear — distribution rights unknown',
     notes:
-      'Luck, Big Catch, Attraction internal formulas reported by community. NOT used in the main calculator. Kept as user-configurable inputs to avoid hardcoding unverifiable formulas.',
+      'Luck, Big Catch, Attraction, and exact internal formulas remain excluded from the main calculator. Unsupported mechanics stay user-configurable or are omitted.',
   },
 ];
 

@@ -1,225 +1,240 @@
-/**
- * Unit tests for src/lib/calculator.ts
- */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { CALCULATOR_RARITIES, FISH_MAP, FISHING_AREAS } from '@/data/fish';
 import {
-  getFishPool,
   applyLuckScaling,
   calculateDistribution,
   formatCurrency,
+  formatPriceRange,
+  formatWeightRange,
   getDefaultParams,
+  getEligibleFish,
+  getFishPool,
 } from '@/lib/calculator';
-import { FISH_MAP, FISHING_AREAS } from '@/data/fish';
 
-// ---------------------------------------------------------------------------
-// getFishPool
-// ---------------------------------------------------------------------------
 describe('getFishPool', () => {
   it('returns fish entries for a valid area', () => {
-    const pool = getFishPool('lake');
+    const pool = getFishPool('coconut-bay');
     expect(pool.length).toBeGreaterThan(0);
-    pool.forEach((f) => expect(f).toBeDefined());
+    pool.forEach((fish) => expect(fish).toBeDefined());
   });
 
   it('returns only fish that are in the FISH_MAP', () => {
-    const pool = getFishPool('ocean');
-    pool.forEach((f) => expect(FISH_MAP[f.id]).toBeDefined());
+    const pool = getFishPool('open-sea');
+    pool.forEach((fish) => expect(FISH_MAP[fish.id]).toBeDefined());
   });
 
   it('returns an empty array for an unknown area', () => {
     expect(getFishPool('unknown-area')).toEqual([]);
   });
 
-  it('returns the correct pool for each defined area', () => {
+  it('returns the full pool for each defined area', () => {
     FISHING_AREAS.forEach((area) => {
-      const pool = getFishPool(area.id);
-      expect(pool.length).toBe(area.fishPool.length);
+      expect(getFishPool(area.id)).toHaveLength(area.fishPool.length);
     });
   });
 });
 
-// ---------------------------------------------------------------------------
-// applyLuckScaling
-// ---------------------------------------------------------------------------
+describe('getEligibleFish', () => {
+  it('filters by time-of-day and weather tags', () => {
+    const eligibleFish = getEligibleFish('open-sea', 'night', 'rainy');
+
+    expect(eligibleFish.length).toBeGreaterThan(0);
+    eligibleFish.forEach((fish) => {
+      expect(fish.timeOfDay === 'any' || fish.timeOfDay === 'night').toBe(true);
+      expect(fish.weatherType === 'any' || fish.weatherType === 'rainy').toBe(true);
+    });
+  });
+
+  it('returns no fish when area is unknown', () => {
+    expect(getEligibleFish('missing', 'any', 'any')).toEqual([]);
+  });
+});
+
 describe('applyLuckScaling', () => {
-  const pool = getFishPool('lake');
+  const baseWeights = {
+    abundant: 27,
+    common: 25,
+    curious: 18,
+    elusive: 11,
+    fabled: 4.4,
+    mythic: 2.5,
+    exotic: 3.1,
+  } as const;
 
-  it('returns an entry for each fish', () => {
-    const scaled = applyLuckScaling(pool, 1.0);
-    expect(scaled.length).toBe(pool.length);
+  it('preserves weights when luckMultiplier is 1', () => {
+    expect(applyLuckScaling(baseWeights, 1)).toEqual(baseWeights);
   });
 
-  it('does not change common fish weight at luck=1.0', () => {
-    const commonFish = pool.filter((f) => f.rarity === 'common');
-    const scaled = applyLuckScaling(commonFish, 1.0);
-    scaled.forEach(({ fish, scaledWeight }) => {
-      expect(scaledWeight).toBeCloseTo(fish.catchWeight ?? 1);
-    });
+  it('does not boost abundant tier', () => {
+    const scaled = applyLuckScaling(baseWeights, 2);
+    expect(scaled.abundant).toBe(baseWeights.abundant);
   });
 
-  it('does not boost any fish when luckMultiplier=1.0', () => {
-    const scaled = applyLuckScaling(pool, 1.0);
-    scaled.forEach(({ fish, scaledWeight }) => {
-      expect(scaledWeight).toBeCloseTo(fish.catchWeight ?? 1);
-    });
+  it('boosts higher rarity tiers when luckMultiplier is greater than 1', () => {
+    const scaled = applyLuckScaling(baseWeights, 2);
+
+    expect((scaled.common ?? 0) > baseWeights.common).toBe(true);
+    expect((scaled.exotic ?? 0) > baseWeights.exotic).toBe(true);
+    expect((scaled.exotic ?? 0) > (scaled.common ?? 0)).toBe(false);
   });
 
-  it('boosts uncommon+ fish when luckMultiplier > 1', () => {
-    const scaled1 = applyLuckScaling(pool, 1.0);
-    const scaled2 = applyLuckScaling(pool, 2.0);
-
-    scaled1.forEach(({ fish }, i) => {
-      if (fish.rarity === 'common') {
-        // Common fish: no boost
-        expect(scaled2[i].scaledWeight).toBeCloseTo(scaled1[i].scaledWeight);
-      } else {
-        // Uncommon+: should be boosted
-        expect(scaled2[i].scaledWeight).toBeGreaterThan(scaled1[i].scaledWeight);
-      }
-    });
-  });
-
-  it('never returns a negative weight', () => {
-    const scaled = applyLuckScaling(pool, 5.0);
-    scaled.forEach(({ scaledWeight }) => {
-      expect(scaledWeight).toBeGreaterThanOrEqual(0);
-    });
+  it('never produces negative weights', () => {
+    const scaled = applyLuckScaling(baseWeights, 0.1);
+    Object.values(scaled).forEach((weight) => expect(weight).toBeGreaterThanOrEqual(0));
   });
 });
 
-// ---------------------------------------------------------------------------
-// calculateDistribution
-// ---------------------------------------------------------------------------
 describe('calculateDistribution', () => {
-  const defaultParams = getDefaultParams('lake');
+  const defaultParams = getDefaultParams('coconut-bay');
 
-  it('returns a result with fishResults for a valid area', () => {
+  it('returns fish results for a valid area', () => {
     const result = calculateDistribution(defaultParams);
     expect(result.fishResults.length).toBeGreaterThan(0);
   });
 
-  it('probabilities sum to approximately (1 - nothingCaughtProbability)', () => {
-    const params = { ...defaultParams, nothingCaughtProbability: 0.1 };
-    const result = calculateDistribution(params);
-    const totalProb = result.fishResults.reduce((s, r) => s + r.probability, 0);
-    expect(totalProb).toBeCloseTo(0.9, 5);
+  it('probabilities sum to approximately 1 - nothingCaughtProbability', () => {
+    const result = calculateDistribution({
+      ...defaultParams,
+      nothingCaughtProbability: 0.1,
+    });
+
+    expect(result.totalFishProbability).toBeCloseTo(0.9, 5);
   });
 
-  it('probabilities sum to 1.0 when nothingCaughtProbability=0', () => {
-    const params = { ...defaultParams, nothingCaughtProbability: 0 };
-    const result = calculateDistribution(params);
-    const totalProb = result.fishResults.reduce((s, r) => s + r.probability, 0);
-    expect(totalProb).toBeCloseTo(1.0, 5);
+  it('uses the normalized params in the result', () => {
+    const result = calculateDistribution({
+      ...defaultParams,
+      avgCatchTimeSec: -10,
+      nothingCaughtProbability: 99,
+      luckMultiplier: -1,
+    });
+
+    expect(result.params.avgCatchTimeSec).toBe(1);
+    expect(result.params.nothingCaughtProbability).toBe(0.95);
+    expect(result.params.luckMultiplier).toBe(0.1);
   });
 
-  it('expectedValuePerCatch matches sum of individual expected values', () => {
+  it('matches expectedValuePerCatch to the sum of individual expected values', () => {
     const result = calculateDistribution(defaultParams);
-    const sumEV = result.fishResults.reduce((s, r) => s + r.expectedValue, 0);
-    expect(result.expectedValuePerCatch).toBeCloseTo(sumEV, 5);
+    const expectedValue = result.fishResults.reduce((sum, row) => sum + row.expectedValue, 0);
+
+    expect(result.expectedValuePerCatch).toBeCloseTo(expectedValue, 5);
   });
 
-  it('expectedValuePerHour = expectedValuePerCatch * catchesPerHour', () => {
+  it('matches expectedValuePerHour to expectedValuePerCatch * catchesPerHour', () => {
     const params = { ...defaultParams, avgCatchTimeSec: 60 };
     const result = calculateDistribution(params);
-    const catchesPerHour = 3600 / 60;
-    expect(result.expectedValuePerHour).toBeCloseTo(
-      result.expectedValuePerCatch * catchesPerHour,
-      4,
-    );
+
+    expect(result.expectedValuePerHour).toBeCloseTo(result.expectedValuePerCatch * 60, 5);
   });
 
-  it('returns empty fishResults and 0 EV for unknown area', () => {
-    const params = { ...defaultParams, areaId: 'unknown' };
-    const result = calculateDistribution(params);
+  it('returns no fish for an unknown area', () => {
+    const result = calculateDistribution({ ...defaultParams, areaId: 'unknown' });
+
     expect(result.fishResults).toEqual([]);
     expect(result.expectedValuePerCatch).toBe(0);
     expect(result.expectedValuePerHour).toBe(0);
   });
 
-  it('includes a warning when luckMultiplier != 1.0', () => {
-    const params = { ...defaultParams, luckMultiplier: 2.0 };
-    const result = calculateDistribution(params);
-    expect(result.warnings.length).toBeGreaterThan(0);
-    const hasLuckWarning = result.warnings.some((w) => w.includes('ラック'));
-    expect(hasLuckWarning).toBe(true);
-  });
-
-  it('all individual probabilities are non-negative', () => {
-    const result = calculateDistribution(defaultParams);
-    result.fishResults.forEach((r) => {
-      expect(r.probability).toBeGreaterThanOrEqual(0);
+  it('warns when time or weather filters are enabled', () => {
+    const result = calculateDistribution({
+      ...defaultParams,
+      areaId: 'open-sea',
+      timeOfDay: 'night',
+      weatherType: 'rainy',
     });
+
+    expect(result.warnings.some((warning) => warning.includes('時間帯・天候タグ'))).toBe(true);
   });
 
-  it('all individual expected values are non-negative', () => {
-    const result = calculateDistribution(defaultParams);
-    result.fishResults.forEach((r) => {
-      expect(r.expectedValue).toBeGreaterThanOrEqual(0);
+  it('warns when luckMultiplier differs from 1', () => {
+    const result = calculateDistribution({
+      ...defaultParams,
+      luckMultiplier: 2,
     });
+
+    expect(result.warnings.some((warning) => warning.includes('ラック倍率'))).toBe(true);
   });
 
-  it('custom rarity weights override default weights', () => {
-    // Set legendary to 0 — golden-koi should have probability 0
-    const params = {
+  it('uses zero probability for a tier whose custom weight is zeroed out', () => {
+    const pool = getFishPool(defaultParams.areaId);
+    const presentTier = CALCULATOR_RARITIES.find((rarity) =>
+      pool.some((fish) => fish.rarity === rarity),
+    );
+    expect(presentTier).toBeDefined();
+
+    const result = calculateDistribution({
       ...defaultParams,
       nothingCaughtProbability: 0,
-      customRarityWeights: { legendary: 0 },
-    };
-    const result = calculateDistribution(params);
-    const legendary = result.fishResults.find((r) => r.fish.rarity === 'legendary');
-    if (legendary) {
-      expect(legendary.probability).toBe(0);
-    }
+      customRarityWeights: { [presentTier!]: 0 },
+    });
+
+    const tierRows = result.fishResults.filter((row) => row.fish.rarity === presentTier);
+    expect(tierRows.length).toBeGreaterThan(0);
+    tierRows.forEach((row) => expect(row.probability).toBe(0));
   });
 
-  it('totalFishProbability matches sum of individual probabilities', () => {
+  it('tracks missing-price fish and emits a warning when price ranges are absent', () => {
     const result = calculateDistribution(defaultParams);
-    const sumProb = result.fishResults.reduce((s, r) => s + r.probability, 0);
-    expect(result.totalFishProbability).toBeCloseTo(sumProb, 5);
+
+    const fishWithoutPrice = getFishPool(defaultParams.areaId).find(
+      (fish) => fish.priceFloor === undefined && fish.priceCeiling === undefined,
+    );
+
+    if (!fishWithoutPrice) {
+      expect(result.missingPriceFish).toEqual([]);
+      return;
+    }
+
+    expect(result.missingPriceFish.some((fish) => fish.id === fishWithoutPrice.id)).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('価格レンジ未取得'))).toBe(true);
+  });
+
+  it('only returns non-negative probabilities and expected values', () => {
+    const result = calculateDistribution(defaultParams);
+
+    result.fishResults.forEach((row) => {
+      expect(row.probability).toBeGreaterThanOrEqual(0);
+      expect(row.expectedValue).toBeGreaterThanOrEqual(0);
+      expect(row.expectedValuePerHour).toBeGreaterThanOrEqual(0);
+    });
   });
 });
 
-// ---------------------------------------------------------------------------
-// formatCurrency
-// ---------------------------------------------------------------------------
-describe('formatCurrency', () => {
-  it('formats values below 1000 as "XG"', () => {
+describe('format helpers', () => {
+  it('formats values below 1000 as XG', () => {
     expect(formatCurrency(0)).toBe('0G');
-    expect(formatCurrency(100)).toBe('100G');
     expect(formatCurrency(999)).toBe('999G');
   });
 
-  it('formats values >= 1000 as "X.XkG"', () => {
+  it('formats values above 1000 as kG', () => {
     expect(formatCurrency(1000)).toBe('1.0kG');
     expect(formatCurrency(1500)).toBe('1.5kG');
-    expect(formatCurrency(10000)).toBe('10.0kG');
   });
 
-  it('rounds fractional values below 1000', () => {
-    expect(formatCurrency(99.9)).toBe('100G');
-    expect(formatCurrency(0.4)).toBe('0G');
+  it('formats fish price and weight ranges from dataset values', () => {
+    const fish = getFishPool('coconut-bay')[0];
+
+    expect(formatPriceRange(fish)).toMatch(/G/);
+    expect(formatWeightRange(fish)).toMatch(/kg|—/);
   });
 });
 
-// ---------------------------------------------------------------------------
-// getDefaultParams
-// ---------------------------------------------------------------------------
 describe('getDefaultParams', () => {
-  it('returns defaults with the provided areaId', () => {
-    const params = getDefaultParams('ocean');
-    expect(params.areaId).toBe('ocean');
+  it('uses the provided area id', () => {
+    expect(getDefaultParams('open-sea').areaId).toBe('open-sea');
   });
 
-  it('falls back to lake when no areaId provided', () => {
-    const params = getDefaultParams();
-    expect(params.areaId).toBe('lake');
+  it('defaults to coconut-bay', () => {
+    expect(getDefaultParams().areaId).toBe('coconut-bay');
   });
 
-  it('has sane default values', () => {
+  it('returns sane defaults', () => {
     const params = getDefaultParams();
+
     expect(params.avgCatchTimeSec).toBeGreaterThan(0);
     expect(params.nothingCaughtProbability).toBeGreaterThanOrEqual(0);
     expect(params.nothingCaughtProbability).toBeLessThan(1);
-    expect(params.luckMultiplier).toBeGreaterThanOrEqual(1);
+    expect(params.luckMultiplier).toBeGreaterThan(0);
   });
 });

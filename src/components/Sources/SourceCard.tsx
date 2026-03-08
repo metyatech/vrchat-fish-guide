@@ -34,7 +34,16 @@ export function SourceCard({ source }: SourceCardProps) {
           </span>
         </div>
       </div>
-      {source.url && <p className="text-xs text-gray-400 font-mono mb-2 truncate">{source.url}</p>}
+      {source.url && (
+        <a
+          href={source.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mb-2 block truncate font-mono text-xs text-ocean-600 hover:text-ocean-700 hover:underline"
+        >
+          {source.url}
+        </a>
+      )}
       <p className="text-xs text-gray-500 mb-2 leading-relaxed">{source.notes}</p>
       <div className="text-xs">
         <span className="text-gray-400">ライセンス: </span>

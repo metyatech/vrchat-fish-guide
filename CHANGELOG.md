@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- SEO baseline for public Pages deployment: `metadataBase`, Open Graph, Twitter metadata, `sitemap.xml`, and `robots.txt`.
+
+### Changed
+
+- Expanded the calculator dataset from a small placeholder pool to 6 named areas and 100+ fish entries sourced from public community indexes.
+- Switched the calculator model to area/time/weather filtering plus rarity-tier weighting, with sell-price range midpoint used for expected value.
+- Updated calculator UI, table, and chart to show filter conditions, price ranges, and weight ranges from the normalized dataset.
+- Rewrote unit tests and Playwright smoke coverage to match the new calculator model and live source set.
+- Updated source documentation and README to explain the current provenance split and unsupported mechanics more precisely.
+
 ## [0.1.0] - 2026-03-08
 
 ### Added

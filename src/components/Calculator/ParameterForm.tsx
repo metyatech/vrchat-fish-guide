@@ -1,49 +1,72 @@
 'use client';
 
 import React from 'react';
-import { CalculatorParams } from '@/types';
-import { FISHING_AREAS } from '@/data/fish';
-import { Rarity } from '@/types';
+import {
+  CALCULATOR_RARITIES,
+  FISHING_AREAS,
+  RARITY_LABELS,
+  TIME_OF_DAY_LABELS,
+  WEATHER_TYPE_LABELS,
+} from '@/data/fish';
+import { CalculatorParams, Rarity, TimeOfDay, WeatherType } from '@/types';
 
 interface ParameterFormProps {
   params: CalculatorParams;
   onChange: (params: CalculatorParams) => void;
 }
 
-const RARITY_LABELS: Record<Rarity, string> = {
-  common: 'コモン',
-  uncommon: 'アンコモン',
-  rare: 'レア',
-  epic: 'エピック',
-  legendary: 'レジェンダリー',
+const TIME_OF_DAY_HELPER: Record<TimeOfDay, string> = {
+  any: 'Any',
+  morning: 'Morning',
+  day: 'Day',
+  evening: 'Evening',
+  night: 'Night',
 };
 
+const WEATHER_TYPE_HELPER: Record<WeatherType, string> = {
+  any: 'Any',
+  clear: 'Clear',
+  rainy: 'Rainy',
+  moonrain: 'Moonrain',
+  stormy: 'Stormy',
+  foggy: 'Foggy',
+};
+
+function parseNumberInput(value: string, fallback: number, min: number, max: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, parsed));
+}
+
 export function ParameterForm({ params, onChange }: ParameterFormProps) {
-  const handleChange = (field: keyof CalculatorParams, value: unknown) => {
+  const handleChange = <K extends keyof CalculatorParams>(field: K, value: CalculatorParams[K]) => {
     onChange({ ...params, [field]: value });
   };
 
   const fieldId = {
     areaId: 'calc-area',
+    timeOfDay: 'calc-time-of-day',
+    weatherType: 'calc-weather-type',
     avgCatchTimeSec: 'calc-avg-catch-time',
     nothingCaughtProbability: 'calc-nothing-caught-probability',
     luckMultiplier: 'calc-luck-multiplier',
   } as const;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
-      <h2 className="text-lg font-semibold text-gray-800 border-b pb-3">⚙️ 計算パラメータ</h2>
+    <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="border-b pb-3 text-lg font-semibold text-gray-800">⚙️ 計算パラメータ</h2>
 
-      {/* Area selection */}
       <div>
-        <label htmlFor={fieldId.areaId} className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor={fieldId.areaId} className="mb-1 block text-sm font-medium text-gray-700">
           釣りエリア
         </label>
         <select
           id={fieldId.areaId}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
           value={params.areaId}
-          onChange={(e) => handleChange('areaId', e.target.value)}
+          onChange={(event) => handleChange('areaId', event.target.value)}
         >
           {FISHING_AREAS.map((area) => (
             <option key={area.id} value={area.id}>
@@ -53,108 +76,168 @@ export function ParameterForm({ params, onChange }: ParameterFormProps) {
         </select>
       </div>
 
-      {/* Catch time */}
+      <div>
+        <label htmlFor={fieldId.timeOfDay} className="mb-1 block text-sm font-medium text-gray-700">
+          時間帯フィルタ
+        </label>
+        <select
+          id={fieldId.timeOfDay}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          value={params.timeOfDay}
+          onChange={(event) => handleChange('timeOfDay', event.target.value as TimeOfDay)}
+        >
+          {(Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[]).map((timeOfDay) => (
+            <option key={timeOfDay} value={timeOfDay}>
+              {TIME_OF_DAY_HELPER[timeOfDay]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          公開 community index にある条件タグで対象魚を絞り込みます。
+        </p>
+      </div>
+
+      <div>
+        <label
+          htmlFor={fieldId.weatherType}
+          className="mb-1 block text-sm font-medium text-gray-700"
+        >
+          天候フィルタ
+        </label>
+        <select
+          id={fieldId.weatherType}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          value={params.weatherType}
+          onChange={(event) => handleChange('weatherType', event.target.value as WeatherType)}
+        >
+          {(Object.keys(WEATHER_TYPE_LABELS) as WeatherType[]).map((weatherType) => (
+            <option key={weatherType} value={weatherType}>
+              {WEATHER_TYPE_HELPER[weatherType]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          条件一致の魚だけを対象にします。ゲーム内部の倍率ボーナス式は未対応です。
+        </p>
+      </div>
+
       <div>
         <label
           htmlFor={fieldId.avgCatchTimeSec}
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="mb-1 block text-sm font-medium text-gray-700"
         >
-          平均釣り時間（秒/回）
-          <span className="ml-2 text-xs text-gray-400 font-normal">
-            ※ キャスト〜釣り上げまでの時間（自己計測値）
-          </span>
+          平均試行時間（秒/回）
         </label>
         <input
           id={fieldId.avgCatchTimeSec}
           type="number"
-          min={5}
+          min={1}
           max={600}
           step={5}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
           value={params.avgCatchTimeSec}
-          onChange={(e) => handleChange('avgCatchTimeSec', Number(e.target.value))}
+          onChange={(event) =>
+            handleChange(
+              'avgCatchTimeSec',
+              parseNumberInput(event.target.value, params.avgCatchTimeSec, 1, 600),
+            )
+          }
         />
+        <p className="mt-1 text-xs text-gray-500">
+          キャスト開始から売却可能な釣果確定までの平均時間を入れてください。
+        </p>
       </div>
 
-      {/* Nothing caught probability */}
       <div>
         <label
           htmlFor={fieldId.nothingCaughtProbability}
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="mb-1 block text-sm font-medium text-gray-700"
         >
-          空振り確率（0〜0.9）
-          <span className="ml-2 text-xs text-gray-400 font-normal">
-            ※ 何も釣れない確率（推定値）
-          </span>
+          空振り確率
         </label>
         <input
           id={fieldId.nothingCaughtProbability}
           type="number"
           min={0}
-          max={0.9}
+          max={0.95}
           step={0.05}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
           value={params.nothingCaughtProbability}
-          onChange={(e) => handleChange('nothingCaughtProbability', Number(e.target.value))}
+          onChange={(event) =>
+            handleChange(
+              'nothingCaughtProbability',
+              parseNumberInput(event.target.value, params.nothingCaughtProbability, 0, 0.95),
+            )
+          }
         />
+        <p className="mt-1 text-xs text-gray-500">
+          何も釣れずに試行が終わる割合です。自己計測値があればそれを優先してください。
+        </p>
       </div>
 
-      {/* Luck multiplier */}
       <div>
         <label
           htmlFor={fieldId.luckMultiplier}
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="mb-1 block text-sm font-medium text-gray-700"
         >
-          ラック倍率（実験的）
-          <span className="ml-2 text-xs text-orange-500 font-normal">⚠️ 非公式近似モデル</span>
+          Luck 近似倍率
         </label>
         <input
           id={fieldId.luckMultiplier}
           type="number"
-          min={1}
+          min={0.1}
           max={5}
           step={0.1}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
           value={params.luckMultiplier}
-          onChange={(e) => handleChange('luckMultiplier', Number(e.target.value))}
+          onChange={(event) =>
+            handleChange(
+              'luckMultiplier',
+              parseNumberInput(event.target.value, params.luckMultiplier, 0.1, 5),
+            )
+          }
         />
         <p className="mt-1 text-xs text-orange-600">
-          実際のラック計算式は非公開のため、簡略化モデルを使用しています。参考値としてのみご利用ください。
+          実ゲームの内部式ではなく、高 rarity tier に重みを寄せる近似です。
         </p>
       </div>
 
-      {/* Custom rarity weights */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          レアリティ別確率カスタム（オプション）
+        <label className="mb-2 block text-sm font-medium text-gray-700">
+          レアリティ相対重みの上書き
         </label>
-        <p className="text-xs text-gray-500 mb-3">
-          空欄の場合はデフォルトの相対重みを使用します。値を入力すると上書きされます（合計1.0推奨）。
+        <p className="mb-3 text-xs text-gray-500">
+          空欄なら公開 rarity table ベースの既定相対重みを使います。入力した tier
+          だけ上書きされます。
         </p>
         <div className="space-y-2">
-          {(Object.keys(RARITY_LABELS) as Rarity[]).map((rarity) => (
+          {CALCULATOR_RARITIES.map((rarity) => (
             <div key={rarity} className="flex items-center gap-2">
-              <label htmlFor={`calc-rarity-${rarity}`} className="text-xs w-20 text-gray-600">
+              <label htmlFor={`calc-rarity-${rarity}`} className="w-24 text-xs text-gray-600">
                 {RARITY_LABELS[rarity]}
               </label>
               <input
                 id={`calc-rarity-${rarity}`}
                 type="number"
                 min={0}
-                max={1}
-                step={0.01}
-                placeholder="自動"
-                className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ocean-500"
+                step={0.1}
+                placeholder="既定値"
+                className="flex-1 rounded border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-ocean-500"
                 value={params.customRarityWeights?.[rarity] ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? undefined : Number(e.target.value);
+                onChange={(event) => {
+                  const value =
+                    event.target.value === ''
+                      ? undefined
+                      : parseNumberInput(event.target.value, 0, 0, 9999);
                   const current = params.customRarityWeights ?? {};
-                  const updated = { ...current };
-                  if (val === undefined) {
+                  const updated: Partial<Record<Rarity, number>> = { ...current };
+
+                  if (value === undefined) {
                     delete updated[rarity];
                   } else {
-                    updated[rarity] = val;
+                    updated[rarity] = value;
                   }
+
                   handleChange(
                     'customRarityWeights',
                     Object.keys(updated).length > 0 ? updated : undefined,

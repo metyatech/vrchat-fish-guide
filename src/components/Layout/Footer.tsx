@@ -19,7 +19,7 @@ export function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-2">免責事項</h3>
             <ul className="text-gray-400 text-xs space-y-1">
-              <li>• 掲載データはコミュニティ報告に基づく推定値です</li>
+              <li>• 掲載データは公開 community source に基づく推定値を含みます</li>
               <li>• ゲームアップデートにより情報が古くなる場合があります</li>
               <li>• 計算結果は参考値であり実際の結果を保証しません</li>
             </ul>
@@ -32,7 +32,7 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t border-gray-700 mt-6 pt-4 text-center text-xs text-gray-500">
-          © 2024 VRChat Fish! ガイド — コミュニティ非公式サイト
+          © 2026 VRChat Fish! ガイド — コミュニティ非公式サイト
         </div>
       </div>
     </footer>
