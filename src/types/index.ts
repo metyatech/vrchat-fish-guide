@@ -67,19 +67,92 @@ export interface FishingArea {
   sourceIds: string[];
 }
 
+export interface StatBlock {
+  luck: number;
+  strength: number;
+  expertise: number;
+  attractionPct: number;
+  bigCatch: number;
+  maxWeightKg: number;
+}
+
+export type EquipmentCategory = 'rod' | 'line' | 'bobber' | 'enchant';
+export type TimeModelMode = 'observed' | 'estimated';
+export type EnchantActivationTime = 'day' | 'night';
+export type EnchantActivationWeather = 'rainy' | 'foggy';
+export type EquipmentEffectType =
+  | 'extra-catch-multiplier'
+  | 'value-multiplier'
+  | 'unsupported-special';
+
+export interface EquipmentEffect {
+  type: EquipmentEffectType;
+  value?: number;
+  note: string;
+}
+
+export interface EquipmentItem extends StatBlock {
+  id: string;
+  category: EquipmentCategory;
+  nameEn: string;
+  price: number;
+  location: string;
+  sourceIds: string[];
+}
+
+export interface EnchantItem extends EquipmentItem {
+  category: 'enchant';
+  rarityLabel: string;
+  specialEffect: string;
+  activationTime?: EnchantActivationTime;
+  activationWeather?: EnchantActivationWeather;
+  effects: EquipmentEffect[];
+}
+
+export interface EquipmentLoadout {
+  rodId: string;
+  lineId: string;
+  bobberId: string;
+  enchantId: string;
+}
+
 /** User-configurable parameters for the calculator */
 export interface CalculatorParams {
   areaId: string;
   weatherType: WeatherType;
   timeOfDay: TimeOfDay;
-  /** Average seconds per catch attempt (user-specified) */
-  avgCatchTimeSec: number;
+  loadout: EquipmentLoadout;
+  timeModelMode: TimeModelMode;
+  /** Average seconds per attempt after gear effects are already reflected */
+  observedAvgCatchTimeSec: number;
+  /** Miss rate after gear effects are already reflected */
+  observedMissRate: number;
+  /** Player baseline bite wait before experimental Attraction scaling */
+  baseBiteTimeSec: number;
+  /** Player baseline minigame duration before experimental Strength/Expertise scaling */
+  baseMinigameTimeSec: number;
+  /** Player baseline miss rate before experimental Strength/Expertise scaling */
+  baseMissRate: number;
   /** Optional: custom rarity-tier relative weight override */
   customRarityWeights?: Partial<Record<Rarity, number>>;
-  /** Whether to include "nothing caught" probability */
-  nothingCaughtProbability: number;
-  /** Luck multiplier (user-specified, default 1.0; formula is unsupported) */
-  luckMultiplier: number;
+}
+
+export interface DerivedModelSummary {
+  loadout: EquipmentLoadout;
+  totalStats: StatBlock;
+  enchantActive: boolean;
+  inactiveEnchantReason?: string;
+  effectiveLuckMultiplier: number;
+  effectiveAvgCatchTimeSec: number;
+  effectiveMissRate: number;
+  effectiveBiteTimeSec?: number;
+  effectiveMinigameTimeSec?: number;
+  weightPercentile: number;
+  directValueMultiplier: number;
+  directCatchMultiplier: number;
+  supportedNotes: string[];
+  experimentalNotes: string[];
+  unsupportedNotes: string[];
 }
 
 /** Result per fish type */
@@ -94,6 +167,7 @@ export interface FishResult {
 /** Distribution result */
 export interface DistributionResult {
   params: CalculatorParams;
+  model: DerivedModelSummary;
   fishResults: FishResult[];
   /** Expected value per catch (weighted average) */
   expectedValuePerCatch: number;

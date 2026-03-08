@@ -42,10 +42,10 @@ export default function HomePage() {
         >
           <div className="mb-3 text-3xl">📊</div>
           <h2 className="mb-2 text-lg font-semibold text-gray-800 transition-colors group-hover:text-ocean-700">
-            確率・収益計算機
+            Equipment-aware 計算機
           </h2>
           <p className="text-sm leading-relaxed text-gray-600">
-            エリア、時間帯、天候、平均試行時間、空振り率、Luck 近似倍率を設定して、 1回あたりと
+            Rod / Line / Bobber / Enchant、Time of Day、Weather、時間モデルを設定して、 1回あたりと
             1時間あたりの期待値を比較できます。
           </p>
           <div className="mt-4 text-sm font-medium text-ocean-600 transition-colors group-hover:text-ocean-700">
@@ -88,8 +88,8 @@ export default function HomePage() {
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <div className="mb-2 text-sm font-semibold text-ocean-700">1. 条件を入れる</div>
             <p className="text-sm leading-relaxed text-gray-600">
-              `確率計算機`
-              でエリア、時間帯、天候、平均試行時間、空振り率を設定します。最初は既定値のままでも動きます。
+              `Equipment-aware 計算機` で Fishing Area、Loadout、Time model
+              を設定します。最初は既定値のままでも動きます。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -146,11 +146,15 @@ export default function HomePage() {
         <h2 className="mb-3 font-semibold">⚠️ データについての注意事項</h2>
         <ul className="space-y-2 leading-relaxed">
           <li>• 確率モデルは Fandom Index の公開 rarity table と条件タグを基礎にした近似です。</li>
+          <li>• Rod / Line / Bobber / Enchant の stat は public Fandom gear table を使います。</li>
           <li>
             • 売値・重量レンジは community spreadsheet
             から事実値だけを抽出して独自スキーマ化しています。
           </li>
-          <li>• Luck、Big Catch、Attraction の内部式は未公開のため、完全再現はしていません。</li>
+          <li>
+            • Luck、Big Catch、Attraction、Strength、Expertise の期待値反映は一部 experimental model
+            を含みます。
+          </li>
           <li>
             •
             ゲームアップデートで仕様が変わる可能性があるため、結果は常に参考値として扱ってください。

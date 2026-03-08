@@ -34,6 +34,38 @@ export const SOURCES: DataSource[] = [
       'Used for area fish lists, published rarity tiers, weather tags, and time-of-day tags. The calculator uses the published rarity table as the base probability model.',
   },
   {
+    id: 'fish-fandom-rods',
+    name: 'Fish! TrickForge Studios Fandom Rods',
+    url: 'https://fish-trickforge-studio.fandom.com/wiki/Rods',
+    sourceStatus: 'community',
+    reuseMode: 'fact-only',
+    licenseStatus: 'CC BY-SA via Fandom licensing; only factual rod stat values extracted',
+    notes:
+      'Used for rod stat totals: Luck, Strength, Expertise, Attraction, Big Catch, and Max Weight.',
+  },
+  {
+    id: 'fish-fandom-rod-accessories',
+    name: 'Fish! TrickForge Studios Fandom Rod Accessories',
+    url: 'https://fish-trickforge-studio.fandom.com/wiki/Rod_Accessories',
+    sourceStatus: 'community',
+    reuseMode: 'fact-only',
+    licenseStatus:
+      'CC BY-SA via Fandom licensing; only factual line and bobber stat values extracted',
+    notes:
+      'Used for line and bobber stat totals: Luck, Strength, Expertise, Attraction, and Big Catch.',
+  },
+  {
+    id: 'fish-fandom-enchantments',
+    name: 'Fish! TrickForge Studios Fandom Enchantments',
+    url: 'https://fish-trickforge-studio.fandom.com/wiki/Enchantments',
+    sourceStatus: 'community',
+    reuseMode: 'fact-only',
+    licenseStatus:
+      'CC BY-SA via Fandom licensing; only factual enchant stat values and named effects extracted',
+    notes:
+      'Used for enchant stat totals, conditional activation labels, and the few direct value effects modeled in this build.',
+  },
+  {
     id: 'fish-info-by-snerx',
     name: 'FISH! Info by Snerx (Google Sheets)',
     url: 'https://docs.google.com/spreadsheets/d/1SAggImcqOJbcTP0owCrqv13Z71ZnXynYL64OB5I1CSY/edit?usp=sharing',
@@ -61,7 +93,7 @@ export const SOURCES: DataSource[] = [
     reuseMode: 'not-used-directly',
     licenseStatus: 'unclear — distribution rights unknown',
     notes:
-      'Luck, Big Catch, Attraction, and exact internal formulas remain excluded from the main calculator. Unsupported mechanics stay user-configurable or are omitted.',
+      'Exact in-game formulas for Luck, Big Catch, Attraction, Strength, Expertise, and weight-to-price conversion remain excluded. Experimental mappings in the calculator are independent approximations, not copied formulas.',
   },
 ];
 

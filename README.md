@@ -1,14 +1,16 @@
 # VRChat Fish! ガイド
 
 VRChat ワールド `Fish!` 向けの非公式コミュニティサイトです。  
-現時点では、主要 6 エリア・100 種超の魚データをもとにした確率・収益計算機と、データ出典ポリシーの明示を提供します。
+現時点では、主要 6 エリア・100 種超の魚データと gear data をもとにした equipment-aware 確率・収益計算機と、データ出典ポリシーの明示を提供します。
 
 ## 概要
 
 - 1回あたりの釣果価値分布を可視化
 - 単位時間あたりの期待収益を可視化
+- Rod / Line / Bobber / Enchant の stat を合算
 - エリア、時間帯、天候タグで対象魚を絞り込み
-- 売値レンジ中央値ベースの期待値モデルを採用
+- observed / estimated の 2 つの時間モデルを搭載
+- Big Catch / Max Weight を price model に近似反映
 - データソースを `Source` / `Cross-check` / `Not used directly` の考え方で管理
 - 将来の広告掲載に備えた `AdSlot` 抽象化を用意
 - 実ブラウザ相当の Playwright E2E スモークテストを同梱
@@ -61,9 +63,11 @@ npm run dev
 ## 使い方
 
 1. `確率計算機` ページを開く
-2. 釣りエリア、時間帯、天候、平均試行時間、空振り率、Luck 近似倍率などの入力値を設定する
-3. `1回あたり` と `1時間あたり` を切り替えて分布を確認する
-4. `魚種別詳細` テーブルで各魚の条件、売値レンジ、重量レンジ、確率、期待値を見る
+2. Fishing Area と Rod / Line / Bobber / Enchant を設定する
+3. `Observed values` か `Estimated from equipment` のどちらで時間モデルを組むか選ぶ
+4. `Derived model` で有効 stat と supported / experimental の境界を確認する
+5. `1回あたり` と `1時間あたり` を切り替えて分布を確認する
+6. `魚種別詳細` テーブルで各魚の条件、売値レンジ、重量レンジ、確率、期待値を見る
 
 ## データポリシー
 
@@ -84,6 +88,8 @@ npm run dev
 
 - `Fish! TrickForge Studios Fandom Index`
   - エリアごとの魚プール、rarity tier、時間帯タグ、天候タグ
+- `Fish! TrickForge Studios Fandom Rods / Rod Accessories / Enchantments`
+  - gear stat、条件付き enchant、named special effect
 - `FISH! Info by Snerx`
   - 売値レンジ、重量レンジ
 - `wikiwiki.jp/fish_jp`
@@ -153,7 +159,7 @@ GitHub Actions で以下を回します。
 - `MAJOR`
   - 計算結果の解釈や入力パラメータ互換性を壊す変更
 - `MINOR`
-  - 新しい計算機能、ページ、データ項目の追加
+  - 新しい計算機能、gear / page / data field の追加
 - `PATCH`
   - 既存仕様を壊さない不具合修正、文言修正、データ修正
 

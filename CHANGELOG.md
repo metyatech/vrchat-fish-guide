@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-08
+
+### Added
+
+- Equipment-aware calculator inputs: `Rod`, `Line`, `Bobber`, `Enchant`, active/inactive enchant handling, total stat summary, and derived model summary.
+- Public Fandom gear dataset integration for rods, rod accessories, and enchantments.
+- Supported direct value effects for `Money Maker`, `Pocket Watcher`, and `Double Up!!`.
+- `Observed values` and `Estimated from equipment` time models with explicit supported / experimental labeling in the UI.
+
+### Changed
+
+- Replaced the old manual `Luck` approximation input with gear-driven stat aggregation.
+- Expanded the calculator model to reflect `Luck`, `Strength`, `Expertise`, `Attraction`, `Big Catch`, and `Max Weight` through documented approximation layers.
+- Reworked calculator guidance, sources page, README, and E2E coverage so the site explains the equipment-aware model directly in-product.
+- Rewrote calculator unit tests around loadout stats, conditional enchant activation, direct value effects, and observed/estimated timing modes.
+
 ## [0.2.0] - 2026-03-08
 
 ### Added

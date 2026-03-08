@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import React from 'react';
 import { SourceCard } from '@/components/Sources/SourceCard';
+import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { FISH_DATA, FISHING_AREAS } from '@/data/fish';
 import { SOURCES } from '@/data/sources';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
@@ -29,8 +30,9 @@ export default function SourcesPage() {
         <h2 className="mb-4 text-lg font-semibold text-gray-800">データ・ガバナンスポリシー</h2>
         <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 text-sm leading-relaxed text-gray-700">
           <p>
-            このサイトでは、{FISHING_AREAS.length} エリア / {FISH_DATA.length}{' '}
-            魚種のデータを扱います。ページ本文や表レイアウトを転載せず、必要な事実値のみを独自のデータ構造に正規化しています。
+            このサイトでは、{FISHING_AREAS.length} エリア / {FISH_DATA.length} 魚種 / {RODS.length}{' '}
+            Rod / {LINES.length} Line / {BOBBERS.length} Bobber / {ENCHANTS.length - 1} Enchant
+            のデータを扱います。ページ本文や表レイアウトを転載せず、必要な事実値のみを独自のデータ構造に正規化しています。
           </p>
           <div className="grid grid-cols-1 gap-4 text-xs md:grid-cols-3">
             <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
@@ -72,9 +74,12 @@ export default function SourcesPage() {
           <ul className="space-y-2">
             <li>• エリアごとの魚プール</li>
             <li>• 時間帯タグ / 天候タグによる対象魚の絞り込み</li>
+            <li>• Rod / Line / Bobber / Enchant の stat 合算</li>
+            <li>• 条件付き Enchant の active / inactive 判定</li>
             <li>• rarity tier ごとの既定相対重み</li>
-            <li>• 売値レンジ中央値ベースの期待値計算</li>
-            <li>• 平均試行時間と空振り率を含む時間あたり収益推定</li>
+            <li>• Money Maker / Pocket Watcher / Double Up!! の直接期待値補正</li>
+            <li>• gear を含む modeled price ベースの期待値計算</li>
+            <li>• observed / estimated の時間モデルを含む時間あたり収益推定</li>
           </ul>
         </div>
       </section>
@@ -88,17 +93,20 @@ export default function SourcesPage() {
           </p>
           <ul className="space-y-2 text-red-700">
             <li>
-              • <strong>Luck の正確な内部式</strong>: 現在は高 rarity tier
-              に重みを寄せる近似入力のみ。
+              • <strong>Luck の正確な内部式</strong>: 現在は gear 合計 Luck を高 rarity tier
+              に寄せる multiplier へ変換する近似です。
             </li>
             <li>
-              • <strong>Big Catch Rate</strong>: 発動確率と重量分布への効き方が未確定です。
+              • <strong>Big Catch Rate</strong>: 現在は expected weight percentile
+              への近似変換です。
             </li>
             <li>
-              • <strong>Attraction Rate</strong>: 着水からヒットまでの待ち時間式は未対応です。
+              • <strong>Attraction Rate / Strength / Expertise</strong>: estimated mode では bite
+              wait / minigame time / miss rate への近似変換です。
             </li>
             <li>
-              • <strong>重量から売値への厳密曲線</strong>: 売値レンジ中央値を使う簡略モデルです。
+              • <strong>重量から売値への厳密曲線</strong>: 現在は weight percentile と Max Weight
+              cap を使う線形近似です。
             </li>
             <li>
               • <strong>Secret / Ultimate Secret / Relic</strong>:
