@@ -1,0 +1,17 @@
+# Build outputs
+.next/
+out/
+
+# Test coverage
+coverage/
+
+# Generated rule composition output
+AGENTS.md
+CLAUDE.md
+
+# Generated TypeScript output
+tsconfig.tsbuildinfo
+
+# Dependencies and internal hook helpers
+node_modules/
+.husky/_
