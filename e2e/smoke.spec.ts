@@ -7,12 +7,22 @@ test('home page exposes primary navigation links', async ({ page }) => {
     page.getByRole('main').getByRole('heading', { name: 'VRChat Fish! ガイド' }),
   ).toBeVisible();
 
-  await page.getByRole('link', { name: '確率計算機' }).click();
-  await expect(page).toHaveURL(/\/calculator\/$/);
+  await Promise.all([
+    page.waitForURL(/\/calculator\/$/),
+    page
+      .getByRole('main')
+      .getByRole('link', { name: /確率・収益計算機/ })
+      .click(),
+  ]);
 
   await page.goto('/');
-  await page.getByRole('link', { name: '出典・免責', exact: true }).click();
-  await expect(page).toHaveURL(/\/sources\/$/);
+  await Promise.all([
+    page.waitForURL(/\/sources\/$/),
+    page
+      .getByRole('main')
+      .getByRole('link', { name: /出典・免責事項/ })
+      .click(),
+  ]);
 });
 
 test('calculator updates summary cards and table when inputs change', async ({ page }) => {
