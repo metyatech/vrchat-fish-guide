@@ -124,26 +124,36 @@ GitHub Actions で以下を回します。
   - 依存脆弱性監査
   - secret scan
 
+## バージョン方針
+
+このリポジトリは `SemVer` を使います。
+
+- `MAJOR`
+  - 計算結果の解釈や入力パラメータ互換性を壊す変更
+- `MINOR`
+  - 新しい計算機能、ページ、データ項目の追加
+- `PATCH`
+  - 既存仕様を壊さない不具合修正、文言修正、データ修正
+
 ## リリース / デプロイ
 
-現時点では自動公開フローは未設定です。  
-静的ホスティングへ配置する場合の最小手順:
+GitHub Pages への自動公開を設定しています。  
+`main` ブランチへ push されると `deploy-pages.yml` が `out/` を公開します。
+
+公開 URL:
+
+```text
+https://metyatech.github.io/vrchat-fish-guide/
+```
+
+ローカルで静的出力を確認する最小手順:
 
 ```bash
 npm run verify
 npm run build
 ```
 
-GitHub Pages 運用では、`main` ブランチへの push で `deploy-pages.yml` が `out/` を公開します。  
-公開 URL は `https://metyatech.github.io/vrchat-fish-guide/` を想定しています。
-
-ローカルで Pages 相当の出力を確認したい場合:
-
-```bash
-npm run build
-```
-
-その後、`out/` を任意の静的サーバーで配信してください。
+その後、`out/` を任意の静的サーバーで配信できます。
 
 ## ドキュメント
 

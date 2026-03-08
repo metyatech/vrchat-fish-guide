@@ -4,9 +4,11 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-03-08
+
 ### Added
 
-- Initial repository scaffold: Next.js 14 static export, TypeScript strict, Tailwind CSS, Recharts.
+- Initial repository scaffold: Next.js 15 static export, TypeScript strict, Tailwind CSS, Recharts.
 - `src/types/index.ts` — core TypeScript interfaces (`FishEntry`, `FishingArea`, `CalculatorParams`, `DistributionResult`, `DataSource`).
 - `src/data/fish.ts` — fact-only fish and area data (community-sourced, clearly marked).
 - `src/data/sources.ts` — source governance registry with `sourceStatus` and `reuseMode` classification.
@@ -23,5 +25,13 @@ All notable changes to this project are documented here.
 - `src/test/calculator.test.ts` — unit tests for calculator logic.
 - `src/test/distributions.test.ts` — unit tests for statistical helpers.
 - `.github/workflows/ci.yml` — GitHub Actions CI: format check, lint, typecheck, test, build.
+- `.github/workflows/deploy-pages.yml` — GitHub Pages deployment after passing full verification.
+- `.github/workflows/codeql.yml` / `.github/workflows/security.yml` — static analysis and security scanning workflows.
 - Husky pre-commit hook: lint-staged runs ESLint + Prettier on staged files.
 - `README.md`, `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `CHANGELOG.md`.
+
+### Changed
+
+- Upgraded `next` and `eslint-config-next` to `15.5.12` to clear published security advisories before release.
+- Upgraded `vitest`, `@vitest/coverage-v8`, and `@vitejs/plugin-react` to current secure releases.
+- Updated `tsconfig.json` to match Next.js 15 recommendations.
