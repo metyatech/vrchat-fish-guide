@@ -11,11 +11,13 @@ All notable changes to this project are documented here.
 ### Changed (tooling/dependency updates)
 
 - **React 18 → 19** (`react`, `react-dom`, `@types/react`, `@types/react-dom`): upgraded to React 19.2.x. Existing calculator UI, tests, and Next.js 16 build remain compatible with no app-code changes.
+- **jsdom 26 → 28**: upgraded to `28.1.0`. This raises the effective Node runtime floor for test tooling to `20.19.0 / 22.12.0 / 24.0.0`, so the repo `engines.node` field and CI matrix now validate those exact runtime targets.
 - **Next.js 15 → 16** (`next`, `eslint-config-next`): upgraded to Next.js 16.1.6. Static export, `basePath`, and `assetPrefix` config remain unchanged; GitHub Pages deployment unaffected.
 - **ESLint 8 → 9** + **flat config migration**: deleted `.eslintrc.json`; new `eslint.config.mjs` uses `eslint-config-next/core-web-vitals` native flat-config export. The `--ext` and `--ignore-pattern` CLI flags (removed in ESLint 9) moved into the config file.
 - **Tailwind CSS 3 → 4** (`tailwindcss`, `@tailwindcss/postcss`): migrated from `tailwind.config.js` + `@tailwind` directives to CSS-based config. Custom `ocean-*` palette now declared via `@theme` in `globals.css`. `autoprefixer` removed (built into Tailwind v4 via Lightning CSS).
 - **recharts 2 → 3**: upgraded to 3.8.0. Updated `Tooltip` `formatter` callbacks to handle the new `ValueType | undefined` parameter type.
-- **jsdom 25 → 26**, **lint-staged 15 → 16**: minor major bumps with no config or API changes.
+- **@types/node**: intentionally kept on the latest `20.x` line rather than moving to `25.x`, because this repo still supports Node 20 runtimes and should not typecheck against APIs that only exist on newer Node majors.
+- **lint-staged 15 → 16**: major bump with no config or API changes.
 - **GitHub Actions**: `actions/checkout` v4 → v5 across all workflows; `github/codeql-action/init` and `analyze` v3 → v4 (v3 deprecated).
 
 ### Changed
