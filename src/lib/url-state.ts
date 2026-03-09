@@ -6,6 +6,9 @@
  *
  * Validation strategy: any malformed/invalid payload is silently dropped and
  * the caller falls back to default state.  This ensures the page always loads.
+ *
+ * Use decodeUrlStateWithReason() when the caller needs to show in-product
+ * feedback about why restore failed.
  */
 
 import { BuildConfig, CalculatorParams, EquipmentLoadout, ModifierAssumptions } from '@/types';
@@ -130,20 +133,86 @@ export function encodeUrlState(state: UrlState): string {
  * Returns null when the hash is absent or invalid — caller should use defaults.
  */
 export function decodeUrlState(hash: string): UrlState | null {
+  return decodeUrlStateWithReason(hash).state;
+}
+
+/**
+ * Result from decodeUrlStateWithReason.
+ * `state` is null when restore failed or no share hash was present.
+ * `failureReason` is set (non-empty string) only when a `b=` share param was
+ * present but decoding/validation failed — not when the hash is simply absent.
+ */
+export interface UrlDecodeResult {
+  state: UrlState | null;
+  failureReason?: string;
+}
+
+/**
+ * Parse a raw hash string into URL state, returning a diagnostic reason when
+ * a share link was present but could not be restored.
+ *
+ * - If the `b` URL param is absent (checked via URLSearchParams.has, not
+ *   substring): returns { state: null } (no error — just no share link).
+ * - If `b=` is present but decoding/validation fails: returns { state: null,
+ *   failureReason: "<human-readable reason>" }.
+ * - On success: returns { state: UrlState }.
+ */
+export function decodeUrlStateWithReason(hash: string): UrlDecodeResult {
+  if (!hash) {
+    return { state: null };
+  }
+
   try {
-    if (!hash || !hash.includes(`${HASH_KEY}=`)) return null;
     const params = new URLSearchParams(hash.replace(/^#/, ''));
+    if (!params.has(HASH_KEY)) {
+      return { state: null };
+    }
     const encoded = params.get(HASH_KEY);
-    if (!encoded) return null;
-    const json = base64UrlDecode(encoded);
-    const parsed: unknown = JSON.parse(json);
-    if (!validatePayload(parsed)) return null;
+    if (!encoded) {
+      return { state: null, failureReason: '共有リンクの b= パラメータが空です。' };
+    }
+
+    let json: string;
+    try {
+      json = base64UrlDecode(encoded);
+    } catch {
+      return {
+        state: null,
+        failureReason: '共有リンクのデータをデコードできませんでした（不正な base64）。',
+      };
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      return {
+        state: null,
+        failureReason: '共有リンクのデータを解析できませんでした（不正な JSON）。',
+      };
+    }
+
+    if (!validatePayload(parsed)) {
+      const o = parsed as Record<string, unknown>;
+      if (o && typeof o === 'object' && o.v !== undefined && o.v !== PAYLOAD_VERSION) {
+        return {
+          state: null,
+          failureReason: `共有リンクのバージョン (v${String(o.v)}) は非対応です。最新の URL を使用してください。`,
+        };
+      }
+      return {
+        state: null,
+        failureReason:
+          '共有リンクのビルド設定が不正または古い形式です。デフォルト設定を使用します。',
+      };
+    }
+
     // Ensure activeId refers to an existing build; fall back to first if not.
     const ids = parsed.builds.map((b) => b.id);
     const activeId = ids.includes(parsed.activeId) ? parsed.activeId : ids[0];
-    return { builds: parsed.builds, activeId };
+    return { state: { builds: parsed.builds, activeId } };
   } catch {
-    return null;
+    return { state: null, failureReason: '共有リンクの読み込みに失敗しました。' };
   }
 }
 
@@ -172,8 +241,8 @@ export function createBuildFrom(reference: BuildConfig, existingCount: number): 
   };
 }
 
-/** Duplicate an existing build with a new id and incremented label. */
-export function duplicateBuild(build: BuildConfig, existingCount: number): BuildConfig {
+/** Duplicate an existing build with a new id and a "(copy)" label suffix. */
+export function duplicateBuild(build: BuildConfig): BuildConfig {
   return {
     id: generateBuildId(),
     name: `${build.name} (copy)`,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { getDefaultParams } from '@/lib/calculator';
-import { rankAllSlots, rankSlot } from '@/lib/ranking';
+import { optimizeFullBuild, rankAllSlots, rankSlot } from '@/lib/ranking';
 
 describe('rankSlot', () => {
   const baseParams = getDefaultParams('coconut-bay');
@@ -81,5 +81,74 @@ describe('rankAllSlots', () => {
   it('works for open-sea area', () => {
     const ranked = rankAllSlots(getDefaultParams('open-sea'));
     expect(ranked.rod.length).toBeGreaterThan(0);
+  });
+});
+
+describe('optimizeFullBuild', () => {
+  const baseParams = getDefaultParams('coconut-bay');
+
+  it('returns topBuilds sorted descending by expectedValuePerHour', () => {
+    const result = optimizeFullBuild(baseParams);
+    for (let i = 1; i < result.topBuilds.length; i++) {
+      expect(result.topBuilds[i - 1].expectedValuePerHour).toBeGreaterThanOrEqual(
+        result.topBuilds[i].expectedValuePerHour,
+      );
+    }
+  });
+
+  it('returns at most topNResults entries', () => {
+    const result = optimizeFullBuild(baseParams, 10);
+    expect(result.topBuilds.length).toBeLessThanOrEqual(10);
+  });
+
+  it('searchedCount equals the full equipment combination space', () => {
+    const result = optimizeFullBuild(baseParams);
+    const fullSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
+    expect(result.searchedCount).toBe(fullSpace);
+  });
+
+  it('searchedCount equals totalCombinationSpace (exhaustive search covers everything)', () => {
+    const result = optimizeFullBuild(baseParams);
+    expect(result.searchedCount).toBe(result.totalCombinationSpace);
+  });
+
+  it('totalCombinationSpace equals full equipment product', () => {
+    const result = optimizeFullBuild(baseParams);
+    expect(result.totalCombinationSpace).toBe(
+      RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length,
+    );
+  });
+
+  it('all topBuild entries have non-negative EV/hour', () => {
+    const result = optimizeFullBuild(baseParams);
+    result.topBuilds.forEach((entry) => {
+      expect(entry.expectedValuePerHour).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  it('each topBuild entry has all four item slots populated', () => {
+    const result = optimizeFullBuild(baseParams);
+    result.topBuilds.forEach((entry) => {
+      expect(entry.items.rod).toBeDefined();
+      expect(entry.items.line).toBeDefined();
+      expect(entry.items.bobber).toBeDefined();
+      expect(entry.items.enchant).toBeDefined();
+      expect(entry.loadout.rodId).toBe(entry.items.rod.id);
+      expect(entry.loadout.lineId).toBe(entry.items.line.id);
+      expect(entry.loadout.bobberId).toBe(entry.items.bobber.id);
+      expect(entry.loadout.enchantId).toBe(entry.items.enchant.id);
+    });
+  });
+
+  it('works for open-sea area', () => {
+    const result = optimizeFullBuild(getDefaultParams('open-sea'));
+    expect(result.topBuilds.length).toBeGreaterThan(0);
+  });
+
+  it('topNResults=1 returns exactly 1 topBuild entry', () => {
+    const result = optimizeFullBuild(baseParams, 1);
+    expect(result.topBuilds.length).toBe(1);
+    // But all combinations were still searched
+    expect(result.searchedCount).toBe(result.totalCombinationSpace);
   });
 });

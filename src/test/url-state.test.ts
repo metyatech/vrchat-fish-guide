@@ -3,6 +3,7 @@ import {
   createBuildFrom,
   createDefaultBuild,
   decodeUrlState,
+  decodeUrlStateWithReason,
   duplicateBuild,
   encodeUrlState,
   generateBuildId,
@@ -99,6 +100,15 @@ describe('decodeUrlState', () => {
     expect(decodeUrlState('#foo=bar')).toBeNull();
   });
 
+  // Regression: substring "b=" inside other param names must not trigger restore
+  it('returns null for #tab=2 (substring false positive)', () => {
+    expect(decodeUrlState('#tab=2')).toBeNull();
+  });
+
+  it('returns null for #notb=xyz (substring false positive)', () => {
+    expect(decodeUrlState('#notb=xyz')).toBeNull();
+  });
+
   it('returns null for invalid base64', () => {
     expect(decodeUrlState('#b=!!!notbase64!!!')).toBeNull();
   });
@@ -126,6 +136,92 @@ describe('decodeUrlState', () => {
     const decoded = decodeUrlState(`#b=${encoded}`);
     expect(decoded).not.toBeNull();
     expect(decoded!.activeId).toBe(build.id);
+  });
+});
+
+describe('decodeUrlStateWithReason', () => {
+  it('returns state=null and no failureReason when hash is empty', () => {
+    const result = decodeUrlStateWithReason('');
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeUndefined();
+  });
+
+  it('returns state=null and no failureReason when hash has no b= key', () => {
+    const result = decodeUrlStateWithReason('#foo=bar');
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeUndefined();
+  });
+
+  // Regression: substring "b=" appears inside other param names — must NOT trigger restore/error
+  it('returns state=null and no failureReason for #tab=2 (substring false positive)', () => {
+    const result = decodeUrlStateWithReason('#tab=2');
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeUndefined();
+  });
+
+  it('returns state=null and no failureReason for #notb=xyz (substring false positive)', () => {
+    const result = decodeUrlStateWithReason('#notb=xyz');
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeUndefined();
+  });
+
+  it('returns state=null and no failureReason for #ab=cd&cd=ef (no b key)', () => {
+    const result = decodeUrlStateWithReason('#ab=cd&cd=ef');
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeUndefined();
+  });
+
+  it('returns a failureReason when b= is present but base64 is invalid', () => {
+    const result = decodeUrlStateWithReason('#b=!!!notbase64!!!');
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeDefined();
+    expect(result.failureReason!.length).toBeGreaterThan(0);
+  });
+
+  it('returns a failureReason when b= decodes but payload version is wrong', () => {
+    const build = createDefaultBuild();
+    const payload = { v: 99, builds: [build], activeId: build.id };
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const result = decodeUrlStateWithReason(`#b=${encoded}`);
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeDefined();
+    expect(result.failureReason).toMatch(/99/); // version number should appear in reason
+  });
+
+  it('returns a failureReason when payload is structurally invalid', () => {
+    const bad = Buffer.from(JSON.stringify({ v: 1 })).toString('base64url');
+    const result = decodeUrlStateWithReason(`#b=${bad}`);
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeDefined();
+  });
+
+  // Regression: payloads without a `v` field must not produce "vundefined" messages
+  it('does not produce a "vundefined" message for payloads without a v field', () => {
+    const bad = Buffer.from(JSON.stringify({ builds: [], activeId: 'x' })).toString('base64url');
+    const result = decodeUrlStateWithReason(`#b=${bad}`);
+    expect(result.state).toBeNull();
+    expect(result.failureReason).toBeDefined();
+    expect(result.failureReason).not.toContain('vundefined');
+  });
+
+  it('returns state and no failureReason on a valid round-trip', () => {
+    const build = createDefaultBuild();
+    const encoded = encodeUrlState({ builds: [build], activeId: build.id });
+    const result = decodeUrlStateWithReason(encoded);
+    expect(result.state).not.toBeNull();
+    expect(result.failureReason).toBeUndefined();
+    expect(result.state!.builds[0].id).toBe(build.id);
+  });
+
+  it('decodeUrlState (compat) still returns null for invalid hash', () => {
+    const bad = Buffer.from(JSON.stringify({ v: 1 })).toString('base64url');
+    expect(decodeUrlState(`#b=${bad}`)).toBeNull();
+  });
+
+  it('decodeUrlState (compat) still returns state for valid hash', () => {
+    const build = createDefaultBuild();
+    const encoded = encodeUrlState({ builds: [build], activeId: build.id });
+    expect(decodeUrlState(encoded)).not.toBeNull();
   });
 });
 
@@ -168,7 +264,7 @@ describe('build management helpers', () => {
 
   it('duplicateBuild copies params and assigns a new id', () => {
     const src = baseBuilds[0];
-    const dup = duplicateBuild(src, baseBuilds.length);
+    const dup = duplicateBuild(src);
     expect(dup.id).not.toBe(src.id);
     expect(dup.params).toEqual(src.params);
     expect(dup.name).toContain(src.name);

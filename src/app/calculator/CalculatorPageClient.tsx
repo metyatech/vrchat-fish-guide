@@ -5,6 +5,7 @@ import { AdSlot } from '@/components/AdSlot';
 import { BuildTabs } from '@/components/Calculator/BuildTabs';
 import { ComparisonSummary } from '@/components/Calculator/ComparisonSummary';
 import { DistributionChart } from '@/components/Calculator/DistributionChart';
+import { OptimizerView } from '@/components/Calculator/OptimizerView';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { RankingView } from '@/components/Calculator/RankingView';
 import { ResultTable } from '@/components/Calculator/ResultTable';
@@ -15,7 +16,7 @@ import { calculateDistribution, formatCurrency, getDefaultParams } from '@/lib/c
 import {
   createBuildFrom,
   createDefaultBuild,
-  decodeUrlState,
+  decodeUrlStateWithReason,
   duplicateBuild,
   encodeUrlState,
   removeBuild,
@@ -26,16 +27,20 @@ import { BuildConfig, CalculatorParams, DistributionResult, Rarity } from '@/typ
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function readHashState(): { builds: BuildConfig[]; activeId: string } | null {
-  if (typeof window === 'undefined') return null;
-  return decodeUrlState(window.location.hash);
-}
-
-function initState(): { builds: BuildConfig[]; activeId: string } {
-  const fromHash = readHashState();
-  if (fromHash) return fromHash;
+function initState(): {
+  builds: BuildConfig[];
+  activeId: string;
+  urlRestoreError?: string;
+} {
+  if (typeof window === 'undefined') {
+    const first = createDefaultBuild('coconut-bay');
+    return { builds: [first], activeId: first.id };
+  }
+  const hash = window.location.hash;
+  const { state, failureReason } = decodeUrlStateWithReason(hash);
+  if (state) return { ...state };
   const first = createDefaultBuild('coconut-bay');
-  return { builds: [first], activeId: first.id };
+  return { builds: [first], activeId: first.id, urlRestoreError: failureReason };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -43,10 +48,12 @@ function initState(): { builds: BuildConfig[]; activeId: string } {
 export function CalculatorPageClient() {
   // initState() must only be called ONCE — two separate lazy initialisers would each call
   // generateBuildId(), producing mismatched ids between builds and activeId.
-  const [{ builds: initialBuilds, activeId: initialActiveId }] = useState(initState);
+  const [{ builds: initialBuilds, activeId: initialActiveId, urlRestoreError: initialUrlError }] =
+    useState(initState);
   const [builds, setBuilds] = useState(initialBuilds);
   const [activeId, setActiveId] = useState(initialActiveId);
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
+  const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
 
   // Sync URL hash whenever builds/activeId change
   useEffect(() => {
@@ -61,10 +68,17 @@ export function CalculatorPageClient() {
   // was already applied in SSR — but it also handles browser back/forward.
   useEffect(() => {
     function onHashChange() {
-      const restored = decodeUrlState(window.location.hash);
+      const { state: restored, failureReason } = decodeUrlStateWithReason(window.location.hash);
       if (restored) {
         setBuilds(restored.builds);
         setActiveId(restored.activeId);
+        setUrlRestoreError(undefined);
+      } else if (failureReason) {
+        // A share hash was present but could not be decoded — show feedback.
+        setUrlRestoreError(failureReason);
+      } else {
+        // No b= param — navigated away from a share URL; clear any stale error.
+        setUrlRestoreError(undefined);
       }
     }
     window.addEventListener('hashchange', onHashChange);
@@ -93,7 +107,7 @@ export function CalculatorPageClient() {
     (id: string) => {
       const src = builds.find((b) => b.id === id);
       if (!src) return;
-      const dup = duplicateBuild(src, builds.length);
+      const dup = duplicateBuild(src);
       setBuilds((prev) => {
         const idx = prev.findIndex((b) => b.id === id);
         const next = [...prev];
@@ -146,6 +160,27 @@ export function CalculatorPageClient() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* URL restore failure banner — shown only when a share link was present but invalid */}
+      {urlRestoreError && (
+        <div
+          role="alert"
+          data-testid="url-restore-error"
+          className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          <div>
+            <span className="font-semibold">共有リンクの復元に失敗しました。</span>{' '}
+            {urlRestoreError} デフォルト設定を使用しています。
+          </div>
+          <button
+            onClick={() => setUrlRestoreError(undefined)}
+            className="shrink-0 rounded px-2 py-0.5 text-xs text-red-600 hover:bg-red-100"
+            aria-label="エラーバナーを閉じる"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           📊 Equipment-aware probability calculator
@@ -329,6 +364,9 @@ export function CalculatorPageClient() {
 
           {/* Per-slot ranking */}
           <RankingView baseParams={activeBuild.params} />
+
+          {/* Full-build optimizer */}
+          <OptimizerView baseParams={activeBuild.params} />
 
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">

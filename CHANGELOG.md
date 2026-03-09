@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Full-build optimizer is now exact exhaustive search**: Replaced the two-phase top-K pruned optimizer with a complete enumeration of all rod × line × bobber × enchant combinations (15 × 8 × 8 × 43 = 41,280). All combinations are evaluated; no pruning or candidates excluded. Benchmarked at ~194 ms in Node, well within browser budget.
+- **Removed `topKPerSlot` from optimizer API**: `optimizeFullBuild` no longer accepts a `topKPerSlot` parameter; `FullBuildOptimizerResult` no longer exposes `topKPerSlot`. `searchedCount` now always equals `totalCombinationSpace`.
+- **Updated optimizer UI wording**: Subtitle and warning banner now accurately state full exhaustive search and confirm no equipment is excluded.
+- **Updated optimizer tests**: Tests now validate exact exhaustive search behavior (`searchedCount === totalCombinationSpace`) and remove pruning-specific assertions.
+- **Non-blocking optimizer**: `optimizeFullBuildAsync` added to `ranking.ts`; `OptimizerView` now uses it with a loading state so the main thread is not blocked during the ~194 ms exhaustive search. Exact search semantics preserved.
+- **Optimizer combination count derived, not hardcoded**: `OptimizerView` fallback display count is now computed from the actual equipment arrays (`RODS.length × LINES.length × BOBBERS.length × ENCHANTS.length`) so it stays in sync automatically.
+- **Fix `decodeUrlStateWithReason` `vundefined` message**: Payloads that lack a `v` field no longer produce the misleading `"vundefined"` failure reason; they fall through to the generic structural-validation message instead.
+- **URL restore error banner clears on non-share navigation**: The error banner is now dismissed when the hash changes to a URL that contains no `b=` share parameter, not only on successful restore.
+
 ## [0.4.0] - 2026-03-09
 
 ### Added

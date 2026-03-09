@@ -589,8 +589,26 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               • <strong>P(両方) ≈ 5%</strong>: 外見とサイズの両方が同時に付く割合
             </li>
             <li>• 外見 modifier 23 種の平均倍率 ≈ 2.404x（各種等確率を独立に仮定）</li>
-            <li>• サイズ: Huge ×1.5, Tiny ×1.0（Huge/Tiny 比率 — 50/50 を独立に仮定）</li>
+            <li>
+              • <strong>Huge: 売値 ×1.5（+50% — community observation のみ、内部式未確認）</strong>
+            </li>
+            <li>
+              •{' '}
+              <strong>
+                Tiny: 売値 ×1.0（ボーナスなし・ペナルティなし — community observation
+                のみ、内部式未確認）
+              </strong>
+            </li>
+            <li>
+              • Huge/Tiny 比率は <span className="font-semibold">50/50 を独立に仮定</span>
+              （実際の比率は未確認）
+            </li>
           </ul>
+          <p className="mt-2">
+            なお、各魚の売値レンジ（floor/ceiling）はゲーム内のデータから抽出した固定値です。このモデルは
+            weight percentile を使って floor〜ceiling
+            の範囲内で価格を推定します（実際の価格決定式は未確認）。
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
