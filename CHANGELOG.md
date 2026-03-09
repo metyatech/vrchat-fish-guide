@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-03-09
+
+### Changed
+
+- **Stat colors now match the in-game Fish! UI palette more closely**: Luck, Strength, Expertise, Attraction Rate, Big Catch Rate, and Max Weight now use consistent game-like colors in the calculator, based on public Fish! screenshots.
+- **Selected gear now shows color-coded stat pills immediately under each picker**: After choosing a Rod, Line, Bobber, or Enchant, the current item's six main stats are shown in the same color system as the total-stat area.
+- **Added regression coverage for stat-color rendering**: A new render test and Playwright smoke check now verify the calculator keeps the stat color mapping intact.
+
 ## [0.10.0] - 2026-03-09
 
 ### Changed

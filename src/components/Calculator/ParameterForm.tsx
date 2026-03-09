@@ -10,10 +10,13 @@ import {
 } from '@/data/fish';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { SLOT_THEME } from '@/components/Calculator/slotTheme';
+import { STAT_THEME, StatThemeKey } from '@/components/Calculator/statTheme';
 import { BEST_AREA_ID } from '@/lib/calculator';
 import {
   CalculatorParams,
   DerivedModelSummary,
+  EnchantItem,
+  EquipmentItem,
   ModifierAssumptions,
   Rarity,
   TimeOfDay,
@@ -74,11 +77,65 @@ function formatItemOption(
   }${stats.attractionPct}% | Big Catch Rate ${stats.bigCatch >= 0 ? '+' : ''}${stats.bigCatch} | Max Weight ${stats.maxWeightKg}kg`;
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatChip({ stat, value }: { stat: StatThemeKey; value: string }) {
+  const theme = STAT_THEME[stat];
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
-      <div className="text-xs font-medium text-gray-500">{label}</div>
-      <div className="mt-1 text-sm font-semibold text-gray-800">{value}</div>
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
+      style={{
+        borderColor: theme.cardBorder,
+        backgroundColor: theme.cardBackground,
+        color: theme.accentText,
+      }}
+    >
+      <span
+        className="h-2 w-2 rounded-full"
+        aria-hidden="true"
+        style={{ backgroundColor: theme.accent }}
+      />
+      <span>{theme.label}</span>
+      <span>{value}</span>
+    </span>
+  );
+}
+
+function SelectedItemStats({ item }: { item: EquipmentItem | EnchantItem }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      <StatChip stat="luck" value={formatSignedStat(item.luck)} />
+      <StatChip stat="strength" value={formatSignedStat(item.strength)} />
+      <StatChip stat="expertise" value={formatSignedStat(item.expertise)} />
+      <StatChip stat="attractionRate" value={formatSignedStat(item.attractionPct, '%')} />
+      <StatChip stat="bigCatchRate" value={formatSignedStat(item.bigCatch)} />
+      <StatChip stat="maxWeight" value={`${item.maxWeightKg.toLocaleString()}kg`} />
+    </div>
+  );
+}
+
+function StatCard({ stat, label, value }: { stat: StatThemeKey; label?: string; value: string }) {
+  const theme = STAT_THEME[stat];
+
+  return (
+    <div
+      className="rounded-lg border p-3 text-center"
+      style={{
+        borderColor: theme.cardBorder,
+        backgroundColor: theme.cardBackground,
+      }}
+    >
+      <div className="flex justify-center">
+        <span
+          className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+          style={{
+            backgroundColor: theme.accent,
+            color: theme.accentText,
+          }}
+        >
+          {label ?? theme.label}
+        </span>
+      </div>
+      <div className="mt-2 text-sm font-semibold text-gray-900">{value}</div>
     </div>
   );
 }
@@ -176,6 +233,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">現在: {selectedRod.nameEn}</p>
+            <SelectedItemStats item={selectedRod} />
           </div>
 
           <div className={`rounded-xl border p-3 ${SLOT_THEME.line.panelClassName}`}>
@@ -195,6 +253,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">現在: {selectedLine.nameEn}</p>
+            <SelectedItemStats item={selectedLine} />
           </div>
 
           <div className={`rounded-xl border p-3 ${SLOT_THEME.bobber.panelClassName}`}>
@@ -214,6 +273,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">現在: {selectedBobber.nameEn}</p>
+            <SelectedItemStats item={selectedBobber} />
           </div>
 
           <div className={`rounded-xl border p-3 ${SLOT_THEME.enchant.panelClassName}`}>
@@ -233,6 +293,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">現在: {selectedEnchant.nameEn}</p>
+            <SelectedItemStats item={selectedEnchant} />
           </div>
         </div>
 
@@ -264,16 +325,16 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           ) : null}
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-            <StatCard label="Luck" value={formatSignedStat(model.totalStats.luck)} />
-            <StatCard label="Strength" value={formatSignedStat(model.totalStats.strength)} />
-            <StatCard label="Expertise" value={formatSignedStat(model.totalStats.expertise)} />
+            <StatCard stat="luck" value={formatSignedStat(model.totalStats.luck)} />
+            <StatCard stat="strength" value={formatSignedStat(model.totalStats.strength)} />
+            <StatCard stat="expertise" value={formatSignedStat(model.totalStats.expertise)} />
             <StatCard
-              label="Attraction Rate"
+              stat="attractionRate"
               value={formatSignedStat(model.totalStats.attractionPct, '%')}
             />
-            <StatCard label="Big Catch Rate" value={formatSignedStat(model.totalStats.bigCatch)} />
+            <StatCard stat="bigCatchRate" value={formatSignedStat(model.totalStats.bigCatch)} />
             <StatCard
-              label="Max Weight"
+              stat="maxWeight"
               value={`${model.totalStats.maxWeightKg.toLocaleString()}kg`}
             />
           </div>
@@ -480,24 +541,33 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               上の入力から、このページが実際に計算へ入れている値です。公開情報で確認できている部分と、まだ推定の部分を分けて表示しています。
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <StatCard label="Luck 補正" value={`${model.effectiveLuckMultiplier.toFixed(2)}x`} />
               <StatCard
+                stat="luck"
+                label="Luck 補正"
+                value={`${model.effectiveLuckMultiplier.toFixed(2)}x`}
+              />
+              <StatCard
+                stat="strength"
                 label="逃がしやすさ"
                 value={`${(model.effectiveMissRate * 100).toFixed(1)}%`}
               />
               <StatCard
+                stat="expertise"
                 label="1回にかかる時間"
                 value={`${model.effectiveAvgCatchTimeSec.toFixed(1)}s`}
               />
               <StatCard
+                stat="bigCatchRate"
                 label="重さの寄り方"
                 value={`${(model.weightPercentile * 100).toFixed(0)}%`}
               />
               {model.modifierEvFactor !== 1 ? (
-                <StatCard
-                  label="見た目・サイズ補正"
-                  value={`${model.modifierEvFactor.toFixed(3)}x`}
-                />
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
+                  <div className="text-xs font-medium text-gray-500">見た目・サイズ補正</div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">
+                    {model.modifierEvFactor.toFixed(3)}x
+                  </div>
+                </div>
               ) : null}
             </div>
             <div className="mt-4 space-y-3 text-xs leading-relaxed">

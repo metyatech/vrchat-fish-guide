@@ -47,6 +47,31 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('button', { name: 'Rod を変える' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'まずはこの候補を比較へ追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
+  const totalStatsSection = page
+    .getByText('現在の装備の合計ステータス', { exact: true })
+    .locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
+  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Luck' })).toHaveCSS(
+    'background-color',
+    'rgb(255, 231, 86)',
+  );
+  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Strength' })).toHaveCSS(
+    'background-color',
+    'rgb(254, 108, 109)',
+  );
+  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Expertise' })).toHaveCSS(
+    'background-color',
+    'rgb(75, 188, 224)',
+  );
+  await expect(
+    totalStatsSection.locator('span.rounded-full', { hasText: 'Attraction Rate' }),
+  ).toHaveCSS('background-color', 'rgb(146, 213, 188)');
+  await expect(
+    totalStatsSection.locator('span.rounded-full', { hasText: 'Big Catch Rate' }),
+  ).toHaveCSS('background-color', 'rgb(255, 215, 109)');
+  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Max Weight' })).toHaveCSS(
+    'background-color',
+    'rgb(146, 84, 186)',
+  );
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')
