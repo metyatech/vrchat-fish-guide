@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { STAT_THEME } from '@/components/Calculator/statTheme';
@@ -10,18 +10,11 @@ describe('ParameterForm', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
 
-    const { container } = render(
-      <ParameterForm params={params} model={result.model} onChange={vi.fn()} />,
-    );
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
-    const rodSelect = container.querySelector('#calc-rod');
-    expect(rodSelect).not.toBeNull();
-    const rodPanel = rodSelect?.parentElement;
-    expect(rodPanel).not.toBeNull();
-
-    const rodScope = within(rodPanel as HTMLElement);
-    const rodLuckChip = rodScope.getByText('Luck');
-    expect(rodLuckChip).toHaveStyle({ color: STAT_THEME.luck.accentText });
+    const selectedRodCard = screen.getByRole('button', { name: /Stick and String/ });
+    expect(selectedRodCard).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByText('Luck')[0]).toHaveStyle({ color: STAT_THEME.luck.accentText });
 
     const attractionLabel = screen
       .getAllByText('Attraction Rate')
@@ -34,5 +27,23 @@ describe('ParameterForm', () => {
     expect(bigCatchLabel).toBeDefined();
     expect(attractionLabel).toHaveStyle({ backgroundColor: STAT_THEME.attractionRate.accent });
     expect(bigCatchLabel).toHaveStyle({ backgroundColor: STAT_THEME.bigCatchRate.accent });
+  });
+
+  it('updates loadout when a gear card is clicked', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    const onChange = vi.fn();
+
+    render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Fortunate Rod/ }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      ...params,
+      loadout: {
+        ...params.loadout,
+        rodId: 'fortunate-rod',
+      },
+    });
   });
 });

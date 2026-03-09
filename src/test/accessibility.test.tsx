@@ -50,7 +50,7 @@ describe('accessibility smoke tests', () => {
     await runAxe(<HomePage />);
   });
 
-  test('calculator page has no obvious accessibility violations', async () => {
+  test('calculator page has no obvious accessibility violations', { timeout: 15000 }, async () => {
     await runAxe(<CalculatorPage />);
   });
 

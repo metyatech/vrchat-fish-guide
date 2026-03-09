@@ -77,38 +77,136 @@ function formatItemOption(
   }${stats.attractionPct}% | Big Catch Rate ${stats.bigCatch >= 0 ? '+' : ''}${stats.bigCatch} | Max Weight ${stats.maxWeightKg}kg`;
 }
 
-function StatChip({ stat, value }: { stat: StatThemeKey; value: string }) {
+function StatMiniCard({ stat, value }: { stat: StatThemeKey; value: string }) {
   const theme = STAT_THEME[stat];
 
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold"
+    <div
+      className="rounded-lg border px-2 py-1.5"
       style={{
         borderColor: theme.cardBorder,
         backgroundColor: theme.cardBackground,
-        color: theme.accentText,
       }}
     >
-      <span
-        className="h-2 w-2 rounded-full"
-        aria-hidden="true"
-        style={{ backgroundColor: theme.accent }}
-      />
-      <span>{theme.label}</span>
-      <span>{value}</span>
-    </span>
+      <div className="text-[11px] font-semibold" style={{ color: theme.accentText }}>
+        {theme.label}
+      </div>
+      <div className="mt-0.5 text-xs font-semibold text-gray-900">{value}</div>
+    </div>
   );
 }
 
-function SelectedItemStats({ item }: { item: EquipmentItem | EnchantItem }) {
+function ItemStatGrid({ item }: { item: EquipmentItem | EnchantItem }) {
   return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      <StatChip stat="luck" value={formatSignedStat(item.luck)} />
-      <StatChip stat="strength" value={formatSignedStat(item.strength)} />
-      <StatChip stat="expertise" value={formatSignedStat(item.expertise)} />
-      <StatChip stat="attractionRate" value={formatSignedStat(item.attractionPct, '%')} />
-      <StatChip stat="bigCatchRate" value={formatSignedStat(item.bigCatch)} />
-      <StatChip stat="maxWeight" value={`${item.maxWeightKg.toLocaleString()}kg`} />
+    <div className="mt-3 grid grid-cols-2 gap-2">
+      <StatMiniCard stat="luck" value={formatSignedStat(item.luck)} />
+      <StatMiniCard stat="strength" value={formatSignedStat(item.strength)} />
+      <StatMiniCard stat="expertise" value={formatSignedStat(item.expertise)} />
+      <StatMiniCard stat="attractionRate" value={formatSignedStat(item.attractionPct, '%')} />
+      <StatMiniCard stat="bigCatchRate" value={formatSignedStat(item.bigCatch)} />
+      <StatMiniCard stat="maxWeight" value={`${item.maxWeightKg.toLocaleString()}kg`} />
+    </div>
+  );
+}
+
+function formatItemDetail(item: EquipmentItem | EnchantItem): string {
+  if ('specialEffect' in item) {
+    if (item.id === 'no-enchant') {
+      return '追加効果なし';
+    }
+    const activation =
+      item.activationTime === 'day'
+        ? '昼だけ有効'
+        : item.activationTime === 'night'
+          ? '夜だけ有効'
+          : item.activationWeather === 'rainy'
+            ? 'Rainy で有効'
+            : item.activationWeather === 'foggy'
+              ? 'Foggy で有効'
+              : 'いつでも有効';
+    return `${activation} / ${item.specialEffect}`;
+  }
+
+  if (item.price <= 0) {
+    return item.location;
+  }
+
+  return `${item.location} / ${item.price.toLocaleString()}G`;
+}
+
+function LoadoutOptionCard<T extends EquipmentItem | EnchantItem>({
+  slot,
+  item,
+  selected,
+  onSelect,
+}: {
+  slot: 'rod' | 'line' | 'bobber' | 'enchant';
+  item: T;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const theme = SLOT_THEME[slot];
+
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      aria-label={formatItemOption(item.nameEn, item)}
+      onClick={() => onSelect(item.id)}
+      className={`w-72 shrink-0 snap-start rounded-xl border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-ocean-500 ${
+        selected
+          ? `${theme.panelClassName} border-current shadow-sm`
+          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-gray-900">{item.nameEn}</div>
+          <div className="mt-1 text-xs leading-relaxed text-gray-600">{formatItemDetail(item)}</div>
+        </div>
+        {selected ? (
+          <span
+            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${theme.chipClassName}`}
+          >
+            使用中
+          </span>
+        ) : null}
+      </div>
+      <ItemStatGrid item={item} />
+    </button>
+  );
+}
+
+function LoadoutPickerSection<T extends EquipmentItem | EnchantItem>({
+  slot,
+  label,
+  items,
+  selectedId,
+  onSelect,
+}: {
+  slot: 'rod' | 'line' | 'bobber' | 'enchant';
+  label: string;
+  items: readonly T[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className={`rounded-xl border p-3 ${SLOT_THEME[slot].panelClassName}`}>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <SlotLabelChip slot={slot} label={label} />
+        <span className="text-[11px] text-gray-500">横にスクロールして見比べる</span>
+      </div>
+      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+        {items.map((item) => (
+          <LoadoutOptionCard
+            key={item.id}
+            slot={slot}
+            item={item}
+            selected={item.id === selectedId}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -180,22 +278,12 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
   const fieldId = {
     areaId: 'calc-area',
-    rodId: 'calc-rod',
-    lineId: 'calc-line',
-    bobberId: 'calc-bobber',
-    enchantId: 'calc-enchant',
     timeOfDay: 'calc-time-of-day',
     weatherType: 'calc-weather-type',
     castTimeSec: 'calc-cast-time',
     hookReactionTimeSec: 'calc-hook-reaction-time',
     playerMistakeRate: 'calc-player-mistake-rate',
   } as const;
-
-  const selectedRod = RODS.find((item) => item.id === params.loadout.rodId) ?? RODS[0];
-  const selectedLine = LINES.find((item) => item.id === params.loadout.lineId) ?? LINES[0];
-  const selectedBobber = BOBBERS.find((item) => item.id === params.loadout.bobberId) ?? BOBBERS[0];
-  const selectedEnchant =
-    ENCHANTS.find((item) => item.id === params.loadout.enchantId) ?? ENCHANTS[0];
 
   return (
     <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -211,90 +299,39 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 1</div>
           <h3 className="text-sm font-semibold text-gray-800">まずは今の装備</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            まずここだけ決めれば比較を始められます。候補名の後ろに主要ステータスを並べています。
+            各候補をカードで見比べながら選べます。今の装備に近いものをそのまま押してください。
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className={`rounded-xl border p-3 ${SLOT_THEME.rod.panelClassName}`}>
-            <label htmlFor={fieldId.rodId} className="mb-2 block">
-              <SlotLabelChip slot="rod" label="Rod" />
-            </label>
-            <select
-              id={fieldId.rodId}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              value={params.loadout.rodId}
-              onChange={(event) => updateLoadout('rodId', event.target.value)}
-            >
-              {RODS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {formatItemOption(item.nameEn, item)}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">現在: {selectedRod.nameEn}</p>
-            <SelectedItemStats item={selectedRod} />
-          </div>
-
-          <div className={`rounded-xl border p-3 ${SLOT_THEME.line.panelClassName}`}>
-            <label htmlFor={fieldId.lineId} className="mb-2 block">
-              <SlotLabelChip slot="line" label="Line" />
-            </label>
-            <select
-              id={fieldId.lineId}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              value={params.loadout.lineId}
-              onChange={(event) => updateLoadout('lineId', event.target.value)}
-            >
-              {LINES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {formatItemOption(item.nameEn, item)}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">現在: {selectedLine.nameEn}</p>
-            <SelectedItemStats item={selectedLine} />
-          </div>
-
-          <div className={`rounded-xl border p-3 ${SLOT_THEME.bobber.panelClassName}`}>
-            <label htmlFor={fieldId.bobberId} className="mb-2 block">
-              <SlotLabelChip slot="bobber" label="Bobber" />
-            </label>
-            <select
-              id={fieldId.bobberId}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              value={params.loadout.bobberId}
-              onChange={(event) => updateLoadout('bobberId', event.target.value)}
-            >
-              {BOBBERS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {formatItemOption(item.nameEn, item)}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">現在: {selectedBobber.nameEn}</p>
-            <SelectedItemStats item={selectedBobber} />
-          </div>
-
-          <div className={`rounded-xl border p-3 ${SLOT_THEME.enchant.panelClassName}`}>
-            <label htmlFor={fieldId.enchantId} className="mb-2 block">
-              <SlotLabelChip slot="enchant" label="Enchant" />
-            </label>
-            <select
-              id={fieldId.enchantId}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-              value={params.loadout.enchantId}
-              onChange={(event) => updateLoadout('enchantId', event.target.value)}
-            >
-              {ENCHANTS.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {formatItemOption(item.nameEn, item)}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-gray-500">現在: {selectedEnchant.nameEn}</p>
-            <SelectedItemStats item={selectedEnchant} />
-          </div>
+          <LoadoutPickerSection
+            slot="rod"
+            label="Rod"
+            items={RODS}
+            selectedId={params.loadout.rodId}
+            onSelect={(id) => updateLoadout('rodId', id)}
+          />
+          <LoadoutPickerSection
+            slot="line"
+            label="Line"
+            items={LINES}
+            selectedId={params.loadout.lineId}
+            onSelect={(id) => updateLoadout('lineId', id)}
+          />
+          <LoadoutPickerSection
+            slot="bobber"
+            label="Bobber"
+            items={BOBBERS}
+            selectedId={params.loadout.bobberId}
+            onSelect={(id) => updateLoadout('bobberId', id)}
+          />
+          <LoadoutPickerSection
+            slot="enchant"
+            label="Enchant"
+            items={ENCHANTS}
+            selectedId={params.loadout.enchantId}
+            onSelect={(id) => updateLoadout('enchantId', id)}
+          />
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4">

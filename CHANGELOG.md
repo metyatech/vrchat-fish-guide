@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-03-09
+
+### Changed
+
+- **Step 1 gear selection is now card-based instead of dropdown-based**: Rod, Line, Bobber, and Enchant now appear as swipeable comparison cards so users can scan names, locations/effects, and all six stats before choosing.
+- **Selected gear is now easier to compare at a glance**: Each equipment card shows the same color-coded stat grid used elsewhere in the calculator, with the currently equipped item clearly marked.
+- **Accessibility and E2E coverage updated for the new picker flow**: Tests now exercise card selection directly, and the calculator accessibility smoke test timeout was raised to match the larger Step 1 DOM.
+
 ## [0.10.1] - 2026-03-09
 
 ### Changed
