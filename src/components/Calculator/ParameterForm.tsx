@@ -43,8 +43,8 @@ const WEATHER_TYPE_HELPER: Record<WeatherType, string> = {
 };
 
 const TIME_MODEL_LABELS: Record<TimeModelMode, string> = {
-  observed: 'Observed values',
-  estimated: 'Estimated from equipment',
+  observed: '自分の実測値を使う',
+  estimated: '装備から自動で見積もる',
 };
 
 function parseNumberInput(value: string, fallback: number, min: number, max: number): number {
@@ -115,10 +115,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
       <section className="space-y-4 rounded-xl border border-ocean-100 bg-ocean-50 p-4">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 1</div>
-          <h3 className="text-sm font-semibold text-gray-800">Area と現在の装備</h3>
+          <h3 className="text-sm font-semibold text-gray-800">場所と今の装備</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            まずここだけ決めれば比較を始められます。期待値に一番強く効くのは Fishing Area と Loadout
-            です。
+            まずここだけ決めれば比較を始められます。ゲーム内の名前は英語のまま表示しています。
           </p>
         </div>
 
@@ -223,12 +222,16 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           </div>
         </div>
 
+        <p className="text-xs leading-relaxed text-gray-500">
+          Rod = 竿 / Line = ライン / Bobber = ウキ / Enchant = エンチャント
+        </p>
+
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-gray-800">Total Stats</div>
+              <div className="text-sm font-semibold text-gray-800">現在の装備の合計ステータス</div>
               <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                現在の装備で合算される値です。
+                いま選んでいる装備を全部足した値です。
               </p>
             </div>
             <span
@@ -236,7 +239,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 model.enchantActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
               }`}
             >
-              {model.enchantActive ? 'Enchant active' : 'Enchant inactive'}
+              {model.enchantActive ? 'いま有効' : 'いま無効'}
             </span>
           </div>
 
@@ -268,7 +271,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 2</div>
           <h3 className="text-sm font-semibold text-gray-800">いまの釣り条件</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            Time of Day と Weather は魚の候補と、一部 Enchant の有効判定を変えます。
+            時間帯と天気で、釣れる魚と一部 Enchant の有効・無効が変わります。
           </p>
         </div>
 
@@ -331,7 +334,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             htmlFor={fieldId.timeModelMode}
             className="mb-1 block text-sm font-medium text-gray-700"
           >
-            Time model
+            時間の計算方法
           </label>
           <select
             id={fieldId.timeModelMode}
@@ -354,7 +357,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 htmlFor={fieldId.observedAvgCatchTimeSec}
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Observed average catch time (sec/attempt)
+                1回にかかる平均時間（秒）
               </label>
               <input
                 id={fieldId.observedAvgCatchTimeSec}
@@ -378,7 +381,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 htmlFor={fieldId.observedMissRate}
                 className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Observed miss rate
+                逃がす割合
               </label>
               <input
                 id={fieldId.observedMissRate}
@@ -405,7 +408,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   htmlFor={fieldId.baseBiteTimeSec}
                   className="mb-1 block text-sm font-medium text-gray-700"
                 >
-                  Base bite wait (sec)
+                  魚が掛かるまでの基準時間（秒）
                 </label>
                 <input
                   id={fieldId.baseBiteTimeSec}
@@ -429,7 +432,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   htmlFor={fieldId.baseMinigameTimeSec}
                   className="mb-1 block text-sm font-medium text-gray-700"
                 >
-                  Base minigame time (sec)
+                  ミニゲームの基準時間（秒）
                 </label>
                 <input
                   id={fieldId.baseMinigameTimeSec}
@@ -453,7 +456,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   htmlFor={fieldId.baseMissRate}
                   className="mb-1 block text-sm font-medium text-gray-700"
                 >
-                  Base miss rate
+                  逃がしやすさの基準値
                 </label>
                 <input
                   id={fieldId.baseMissRate}
@@ -474,13 +477,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             </div>
 
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-xs leading-relaxed text-gray-600">
-              <div className="mb-2 font-semibold text-gray-800">この装備での推定値</div>
+              <div className="mb-2 font-semibold text-gray-800">この装備での見積もり</div>
               <ul className="space-y-1">
-                <li>• Effective bite wait: {model.effectiveBiteTimeSec?.toFixed(1) ?? '—'} sec</li>
-                <li>
-                  • Effective minigame time: {model.effectiveMinigameTimeSec?.toFixed(1) ?? '—'} sec
-                </li>
-                <li>• Effective miss rate: {(model.effectiveMissRate * 100).toFixed(1)}%</li>
+                <li>• 魚が掛かるまで: {model.effectiveBiteTimeSec?.toFixed(1) ?? '—'} 秒</li>
+                <li>• ミニゲーム時間: {model.effectiveMinigameTimeSec?.toFixed(1) ?? '—'} 秒</li>
+                <li>• 逃がす割合: {(model.effectiveMissRate * 100).toFixed(1)}%</li>
               </ul>
             </div>
           </div>
@@ -497,37 +498,34 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
         <div className="mt-4 space-y-4">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="text-sm font-semibold text-gray-800">Derived model</h3>
+            <h3 className="text-sm font-semibold text-gray-800">この計算で使う値</h3>
             <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              期待値計算に実際に入る派生係数です。supported と experimental を分けて表示しています。
+              上の入力から、このページが実際に計算へ入れている値です。根拠が強い部分と、まだ推定の部分を分けて表示しています。
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <StatCard label="Luck 補正" value={`${model.effectiveLuckMultiplier.toFixed(2)}x`} />
               <StatCard
-                label="Luck multiplier"
-                value={`${model.effectiveLuckMultiplier.toFixed(2)}x`}
-              />
-              <StatCard
-                label="Effective miss rate"
+                label="逃がす割合"
                 value={`${(model.effectiveMissRate * 100).toFixed(1)}%`}
               />
               <StatCard
-                label="Effective attempt time"
+                label="1回にかかる時間"
                 value={`${model.effectiveAvgCatchTimeSec.toFixed(1)}s`}
               />
               <StatCard
-                label="Weight percentile"
+                label="重さの寄せ方"
                 value={`${(model.weightPercentile * 100).toFixed(0)}%`}
               />
               {model.modifierEvFactor !== 1 ? (
                 <StatCard
-                  label="Modifier EV factor"
+                  label="見た目・サイズ補正"
                   value={`${model.modifierEvFactor.toFixed(3)}x`}
                 />
               ) : null}
             </div>
             <div className="mt-4 space-y-3 text-xs leading-relaxed">
               <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
-                <div className="mb-1 font-semibold">Supported</div>
+                <div className="mb-1 font-semibold">根拠が確認できている部分</div>
                 <ul className="space-y-1">
                   {model.supportedNotes.map((note) => (
                     <li key={note}>• {note}</li>
@@ -535,7 +533,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 </ul>
               </div>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
-                <div className="mb-1 font-semibold">Experimental</div>
+                <div className="mb-1 font-semibold">まだ推定で入れている部分</div>
                 <ul className="space-y-1">
                   {model.experimentalNotes.map((note) => (
                     <li key={note}>• {note}</li>
@@ -544,7 +542,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               </div>
               {model.unsupportedNotes.length > 0 ? (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800">
-                  <div className="mb-1 font-semibold">Ignored special effects</div>
+                  <div className="mb-1 font-semibold">まだ計算に入れていない特殊効果</div>
                   <ul className="space-y-1">
                     {model.unsupportedNotes.map((note) => (
                       <li key={note}>• {note}</li>
@@ -557,23 +555,23 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
           <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-4">
             <div>
-              <h3 className="text-sm font-semibold text-gray-800">Modifier assumptions</h3>
+              <h3 className="text-sm font-semibold text-gray-800">見た目・サイズ補正</h3>
               <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                外見・サイズ modifier の期待値補正を入れるかどうかを調整します。
+                見た目やサイズの追加効果を、期待値に入れるかどうかを決めます。
               </p>
             </div>
 
             <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-              <div className="font-semibold">この項目は experimental です</div>
+              <div className="font-semibold">この項目はまだ推定です</div>
               <p>
-                コミュニティ観測値と、このサイトの近似仮定を組み合わせています。ゲーム内部の公式計算式は確認されていません。
+                コミュニティの観測値と、このサイトの近似を組み合わせています。ゲーム内部の正確式は確認されていません。
               </p>
               <ul className="space-y-1">
-                <li>• P(any modifier) ≈ 22.5%</li>
+                <li>• 何らかの追加効果が付く割合 ≈ 22.5%</li>
                 <li>• P(外見のみ) ≈ 7.5%</li>
                 <li>• P(サイズのみ) ≈ 10%</li>
                 <li>• P(両方) ≈ 5%</li>
-                <li>• 外見 modifier 23 種の平均倍率 ≈ 2.404x</li>
+                <li>• 見た目の追加効果 23 種の平均倍率 ≈ 2.404x</li>
                 <li>• Huge は ×1.5、Tiny は ×1.0 と仮定</li>
               </ul>
             </div>
@@ -591,7 +589,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 }
               />
               <label htmlFor="modifier-include" className="text-sm text-gray-700">
-                Modifier EV を期待値に含める
+                見た目・サイズの補正を期待値に含める
               </label>
             </div>
 
@@ -610,11 +608,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                     }
                   />
                   <label htmlFor="modifier-cursed-to-blessed" className="text-sm text-gray-700">
-                    Cursed → Blessed を適用する
+                    Cursed を Blessed として扱う
                   </label>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
-                  Modifier EV factor:{' '}
+                  見た目・サイズ補正:{' '}
                   <span className="font-semibold text-amber-700">
                     {model.modifierEvFactor.toFixed(3)}x
                   </span>
@@ -625,10 +623,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <label className="mb-2 block text-sm font-medium text-gray-700">
-              Rarity weight override
+              レア度ごとの出やすさを手動で変える
             </label>
             <p className="mb-3 text-xs text-gray-500">
-              空欄なら既定値です。必要な rarity だけ上書きできます。
+              空欄なら標準設定です。必要なレア度だけ変えられます。
             </p>
             <div className="space-y-2">
               {CALCULATOR_RARITIES.map((rarity) => (

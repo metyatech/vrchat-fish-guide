@@ -502,7 +502,7 @@ describe('modifier EV model', () => {
       modifierAssumptions: { includeModifiers: false, assumeCursedToBlessed: true },
     });
 
-    expect(model.unsupportedNotes.some((note) => note.includes('Modifier'))).toBe(true);
+    expect(model.unsupportedNotes.some((note) => note.includes('見た目・サイズ'))).toBe(true);
   });
 
   it('experimentalNotes includes modifier factor when modifiers are enabled', () => {
@@ -511,7 +511,7 @@ describe('modifier EV model', () => {
       modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: true },
     });
 
-    expect(model.experimentalNotes.some((note) => note.includes('Modifier EV factor'))).toBe(true);
+    expect(model.experimentalNotes.some((note) => note.includes('見た目・サイズ補正'))).toBe(true);
   });
 });
 

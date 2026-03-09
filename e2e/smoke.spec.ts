@@ -14,7 +14,7 @@ test('home page exposes primary navigation links', async ({ page }) => {
     page.waitForURL(/\/calculator\/$/),
     page
       .getByRole('main')
-      .getByRole('link', { name: /Equipment-aware 計算機/ })
+      .getByRole('link', { name: /装備を比べる/ })
       .click(),
   ]);
 
@@ -33,15 +33,15 @@ test('calculator updates summary cards and fish list when loadout and filters ch
 }) => {
   await page.goto('/calculator/');
 
-  await expect(
-    page.getByRole('heading', { name: '📊 Equipment-aware probability calculator' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'まず何を比べたいですか？' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '比較ビルド' })).toBeVisible();
-  await expect(page.getByText('Total Stats', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '比べる組み合わせ' })).toBeVisible();
+  await expect(page.getByText('現在の装備の合計ステータス', { exact: true })).toBeVisible();
   await expect(page.locator('summary').getByText('詳細調整')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rod' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'この候補で比較ビルドを作る' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'この候補で比べる組み合わせを追加' }),
+  ).toBeVisible();
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')
@@ -55,14 +55,16 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByLabel('Enchant').selectOption({ label: 'Money Maker' });
   await page.getByLabel('Time of Day').selectOption({ label: 'Night' });
   await page.getByLabel('Weather').selectOption({ label: 'Rainy' });
-  await page.getByLabel('Observed average catch time (sec/attempt)').fill('30');
-  await page.getByLabel('Observed miss rate').fill('0.2');
+  await page.getByLabel('1回にかかる平均時間（秒）').fill('30');
+  await page.getByLabel('逃がす割合').fill('0.2');
 
   await page.getByRole('button', { name: 'Enchant' }).click();
-  await expect(page.getByRole('button', { name: 'この候補で比較ビルドを作る' })).toBeVisible();
-  await page.getByRole('button', { name: 'この候補で比較ビルドを作る' }).click();
-  await expect(page.getByText('2 ビルド')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'ビルド比較' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'この候補で比べる組み合わせを追加' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'この候補で比べる組み合わせを追加' }).click();
+  await expect(page.getByText('比較中 2 件')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '組み合わせを並べて比べる' })).toBeVisible();
 
   await expect(page.getByText('対象魚種:')).toBeVisible();
   await expect(page.getByRole('table').getByText('Abyssal Serpentfish').first()).toBeVisible();
@@ -81,7 +83,7 @@ test('sources page shows data governance and current source set', async ({ page 
   await page.goto('/sources/');
 
   await expect(page.getByRole('heading', { name: '📚 出典・免責事項' })).toBeVisible();
-  await expect(page.getByText('データ・ガバナンスポリシー')).toBeVisible();
+  await expect(page.getByText('このサイトのデータの扱い方')).toBeVisible();
   await expect(page.getByText('Fish! TrickForge Studios Fandom Index')).toBeVisible();
   await expect(page.getByText('Fish! TrickForge Studios Fandom Rods')).toBeVisible();
   await expect(page.getByText('現在の対応範囲')).toBeVisible();

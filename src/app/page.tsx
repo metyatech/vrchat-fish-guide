@@ -19,8 +19,8 @@ export default function HomePage() {
         <div className="mb-4 text-6xl">🎣</div>
         <h1 className="mb-3 text-3xl font-bold text-gray-900">{SITE_NAME}</h1>
         <p className="mx-auto max-w-3xl text-lg text-gray-600">
-          公開 community data を整理し、Fish! の主要 6 エリア・100 種超の魚を対象に、
-          確率分布と期待収益を可視化する非公式攻略サイトです。
+          Fish!
+          で「今の装備から何を変えると一番伸びるか」をすぐ比べられるようにした非公式攻略サイトです。
         </p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-sm">
           <div className="rounded-full border border-ocean-200 bg-ocean-50 px-4 py-1 text-ocean-700">
@@ -42,11 +42,10 @@ export default function HomePage() {
         >
           <div className="mb-3 text-3xl">📊</div>
           <h2 className="mb-2 text-lg font-semibold text-gray-800 transition-colors group-hover:text-ocean-700">
-            Equipment-aware 計算機
+            装備を比べる
           </h2>
           <p className="text-sm leading-relaxed text-gray-600">
-            Rod / Line / Bobber / Enchant、Time of Day、Weather、時間モデルを設定して、 1回あたりと
-            1時間あたりの期待値を比較できます。
+            場所と今の装備を入れると、「次に何を変えると伸びるか」をすぐ見られます。比べたい候補は1クリックで追加できます。
           </p>
           <div className="mt-4 text-sm font-medium text-ocean-600 transition-colors group-hover:text-ocean-700">
             計算してみる →
@@ -82,27 +81,27 @@ export default function HomePage() {
       <section className="mb-12 rounded-2xl border border-ocean-100 bg-white p-6 shadow-sm">
         <h2 className="mb-3 text-xl font-semibold text-gray-900">はじめて使うときの 3 手順</h2>
         <p className="mb-5 text-sm leading-relaxed text-gray-600">
-          外部説明なしでも使い始められるように、このサイトでまず触る場所と見る数字を先にまとめています。
+          初見でもそのまま使えるように、最初にやることだけを先に並べています。
         </p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <div className="mb-2 text-sm font-semibold text-ocean-700">1. 条件を入れる</div>
             <p className="text-sm leading-relaxed text-gray-600">
-              `Equipment-aware 計算機` で Fishing Area、Loadout、Time model
-              を設定します。最初は既定値のままでも動きます。
+              `装備を比べる` で、場所と今の装備を入れます。最初は細かい設定を触らなくても使えます。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-2 text-sm font-semibold text-ocean-700">2. 4つの数字を見る</div>
+            <div className="mb-2 text-sm font-semibold text-ocean-700">2. 何を変えるか選ぶ</div>
             <p className="text-sm leading-relaxed text-gray-600">
-              `期待値/回` と `期待値/時間` で効率を確認し、`試行回数/時間` と `魚が釣れる確率`
-              で条件の重さを見ます。
+              Rod / Line / Bobber / Enchant /
+              全部まとめて、のどれを比べたいか選びます。おすすめ候補が上に出ます。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-2 text-sm font-semibold text-ocean-700">3. 魚ごとの内訳を見る</div>
+            <div className="mb-2 text-sm font-semibold text-ocean-700">3. 伸びる候補を比べる</div>
             <p className="text-sm leading-relaxed text-gray-600">
-              下の表で、どの魚が期待値を押し上げているか、どの条件で対象外になるかを確認します。
+              `期待値/時間`
+              を中心に比べます。気になる候補は、そのまま比較一覧に追加して並べられます。
             </p>
           </div>
         </div>
@@ -145,15 +144,14 @@ export default function HomePage() {
       <section className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
         <h2 className="mb-3 font-semibold">⚠️ データについての注意事項</h2>
         <ul className="space-y-2 leading-relaxed">
-          <li>• 確率モデルは Fandom Index の公開 rarity table と条件タグを基礎にした近似です。</li>
-          <li>• Rod / Line / Bobber / Enchant の stat は public Fandom gear table を使います。</li>
+          <li>• 確率モデルは、Fandom Index の公開レア度表と条件タグを基礎にした近似です。</li>
+          <li>• Rod / Line / Bobber / Enchant のステータスは、公開 Fandom 表を使います。</li>
           <li>
-            • 売値・重量レンジは community spreadsheet
-            から事実値だけを抽出して独自スキーマ化しています。
+            • 売値・重量レンジは、コミュニティの表から数値だけを抜き出して独自データ化しています。
           </li>
           <li>
-            • Luck、Big Catch、Attraction、Strength、Expertise の期待値反映は一部 experimental model
-            を含みます。
+            • Luck、Big Catch、Attraction、Strength、Expertise
+            の期待値反映は、まだ正確式が見つかっていないため一部推定を含みます。
           </li>
           <li>
             •

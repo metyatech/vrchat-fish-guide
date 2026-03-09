@@ -14,13 +14,21 @@ interface OptimizerViewProps {
   baseParams: CalculatorParams;
   /** Expand by default */
   initialExpanded?: boolean;
+  /** Add an optimized combination to the comparison list */
+  onPickBuild?: (entry: FullBuildEntry, rank: number) => void;
 }
 
 function isEnchantItem(item: { category: string }): item is EnchantItem {
   return item.category === 'enchant';
 }
 
-function ResultTable({ result }: { result: FullBuildOptimizerResult }) {
+function ResultTable({
+  result,
+  onPickBuild,
+}: {
+  result: FullBuildOptimizerResult;
+  onPickBuild?: (entry: FullBuildEntry, rank: number) => void;
+}) {
   const best = result.topBuilds[0]?.expectedValuePerHour ?? 0;
 
   return (
@@ -33,8 +41,9 @@ function ResultTable({ result }: { result: FullBuildOptimizerResult }) {
             <th className="pb-2 text-left font-medium text-gray-500">Line</th>
             <th className="pb-2 text-left font-medium text-gray-500">Bobber</th>
             <th className="pb-2 text-left font-medium text-gray-500">Enchant</th>
-            <th className="pb-2 text-right font-medium text-gray-500">EV/時間</th>
-            <th className="pb-2 text-right font-medium text-gray-500">EV/回</th>
+            <th className="pb-2 text-right font-medium text-gray-500">期待値/時間</th>
+            <th className="pb-2 text-right font-medium text-gray-500">期待値/回</th>
+            <th className="pb-2 text-right font-medium text-gray-500">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -74,6 +83,15 @@ function ResultTable({ result }: { result: FullBuildOptimizerResult }) {
                 <td className="py-1.5 text-right text-gray-600">
                   {formatCurrency(entry.expectedValuePerCatch)}
                 </td>
+                <td className="py-1.5 pl-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onPickBuild?.(entry, i)}
+                    className="rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                  >
+                    この組み合わせを追加
+                  </button>
+                </td>
               </tr>
             );
           })}
@@ -83,7 +101,11 @@ function ResultTable({ result }: { result: FullBuildOptimizerResult }) {
   );
 }
 
-export function OptimizerView({ baseParams, initialExpanded = false }: OptimizerViewProps) {
+export function OptimizerView({
+  baseParams,
+  initialExpanded = false,
+  onPickBuild,
+}: OptimizerViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [result, setResult] = useState<FullBuildOptimizerResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -121,10 +143,10 @@ export function OptimizerView({ baseParams, initialExpanded = false }: Optimizer
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-800">フルビルド最適化</h2>
+          <h2 className="text-base font-semibold text-gray-800">全部まとめて比べる</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            全装備 {displayedTotal.toLocaleString()} 通りを完全に総当たりして EV/時間 でランキング。
-            <span className="text-amber-700"> experimental モデル前提</span>の推定値です。
+            Rod / Line / Bobber / Enchant の全組み合わせ {displayedTotal.toLocaleString()}{' '}
+            通りをすべて調べて、伸びやすい順に並べます。まだ正確式が見つかっていない部分を含む推定です。
           </p>
         </div>
         <button
@@ -140,20 +162,18 @@ export function OptimizerView({ baseParams, initialExpanded = false }: Optimizer
       {isExpanded && (
         <div id="optimizer-results" className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-            <strong>⚠ experimental モデル使用中 — 推定値に過ぎません:</strong>
+            <strong>見方:</strong>
             <ul className="mt-1 list-inside list-disc space-y-0.5">
               <li>
-                Luck スケーリング・時間モデル・Big Catch weight percentile
-                などゲーム内部確認がとれていない近似モデルを含みます。
+                Luck や Big Catch
+                など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。
               </li>
               <li>
                 全 <strong>{(result?.searchedCount ?? displayedTotal).toLocaleString()}</strong>{' '}
-                通り（
-                {displayedTotal.toLocaleString()}
-                通り全組み合わせ）を完全に評価しています。除外された装備はありません。
+                通りを すべて評価しています。装備の除外はありません。
               </li>
               <li>
-                複数スロットの統計が加算されるため、単スロット独立ランキングとは順位が異なる場合があります。
+                1欄だけの比較とは結果が変わることがあります。ここでは全部まとめて入れ替えた場合を見ています。
               </li>
             </ul>
           </div>
@@ -165,14 +185,13 @@ export function OptimizerView({ baseParams, initialExpanded = false }: Optimizer
           )}
 
           {!isLoading && result && result.topBuilds.length > 0 ? (
-            <ResultTable result={result} />
+            <ResultTable result={result} onPickBuild={onPickBuild} />
           ) : !isLoading ? (
             <p className="text-xs text-gray-500">結果がありません。</p>
           ) : null}
 
           <p className="text-xs text-gray-400">
-            ※
-            このランキングはフォームの装備設定には自動反映されません。参考にして手動で設定してください。
+            ※ 気になる候補は「この組み合わせを追加」を押すと、上の比較一覧に追加できます。
           </p>
         </div>
       )}

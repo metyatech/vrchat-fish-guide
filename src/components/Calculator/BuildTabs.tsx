@@ -109,14 +109,14 @@ export function BuildTabs({
 
       <button
         onClick={onAdd}
-        title="比較ビルドを追加"
+        title="比べる組み合わせを追加"
         className="flex items-center gap-1 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500 transition-colors hover:border-ocean-400 hover:text-ocean-600"
       >
         <span className="text-base leading-none">+</span>
-        <span>比較ビルドを追加</span>
+        <span>比べる組み合わせを追加</span>
       </button>
 
-      <div className="ml-auto text-xs text-gray-400">{builds.length} ビルド</div>
+      <div className="ml-auto text-xs text-gray-400">比較中 {builds.length} 件</div>
     </div>
   );
 }

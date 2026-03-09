@@ -40,7 +40,7 @@ describe('createDefaultBuild', () => {
   it('has a non-empty id and name', () => {
     const build = createDefaultBuild();
     expect(build.id.length).toBeGreaterThan(0);
-    expect(build.name.length).toBeGreaterThan(0);
+    expect(build.name).toBe('現在の装備');
   });
 });
 
@@ -63,8 +63,8 @@ describe('encodeUrlState / decodeUrlState round-trip', () => {
   });
 
   it('round-trips multiple builds', () => {
-    const b1 = makeBuild('Build 1', 'coconut-bay');
-    const b2 = makeBuild('Build 2', 'open-sea');
+    const b1 = makeBuild('現在の装備', 'coconut-bay');
+    const b2 = makeBuild('比較 2', 'open-sea');
     const state = { builds: [b1, b2], activeId: b2.id };
     const encoded = encodeUrlState(state);
     const decoded = decodeUrlState(encoded);
@@ -227,14 +227,14 @@ describe('decodeUrlStateWithReason', () => {
 
 describe('build management helpers', () => {
   const baseBuilds: BuildConfig[] = [
-    { id: 'a', name: 'Build 1', params: getDefaultParams('coconut-bay') },
-    { id: 'b', name: 'Build 2', params: getDefaultParams('open-sea') },
+    { id: 'a', name: '現在の装備', params: getDefaultParams('coconut-bay') },
+    { id: 'b', name: '比較 2', params: getDefaultParams('open-sea') },
   ];
 
   it('renameBuild updates the name of the target build', () => {
     const result = renameBuild(baseBuilds, 'a', 'Renamed');
     expect(result.find((b) => b.id === 'a')!.name).toBe('Renamed');
-    expect(result.find((b) => b.id === 'b')!.name).toBe('Build 2');
+    expect(result.find((b) => b.id === 'b')!.name).toBe('比較 2');
   });
 
   it('updateBuildParams updates params of the target build only', () => {
@@ -267,7 +267,7 @@ describe('build management helpers', () => {
     const dup = duplicateBuild(src);
     expect(dup.id).not.toBe(src.id);
     expect(dup.params).toEqual(src.params);
-    expect(dup.name).toContain(src.name);
+    expect(dup.name).toBe(`${src.name} のコピー`);
   });
 
   it('createBuildFrom inherits params from reference', () => {
@@ -275,5 +275,6 @@ describe('build management helpers', () => {
     const newBuild = createBuildFrom(ref, baseBuilds.length);
     expect(newBuild.params.areaId).toBe(ref.params.areaId);
     expect(newBuild.id).not.toBe(ref.id);
+    expect(newBuild.name).toBe('比較 2');
   });
 });

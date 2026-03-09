@@ -102,7 +102,7 @@ export const SOURCES: DataSource[] = [
     reuseMode: 'fact-only',
     licenseStatus: 'unclear — numeric facts only; no expressive content reproduced',
     notes:
-      'Used for the optional modifier EV model. Extracted facts: P(any modifier)≈22.5%, P(both size+appearance)≈5%, 23 distinct appearance modifier kinds, mean appearance multiplier ≈2.404x (≈2.487x with Cursed→Blessed conversion), Huge size multiplier 1.5x, Tiny 1.0x. The appearance-only/size-only probability split is an independent symmetric approximation — not from any source.',
+      'Used for the optional modifier EV model. Extracted facts: any effect≈22.5%, appearance-only≈7.5%, size-only≈10%, both≈5%, 23 distinct appearance effects, mean appearance multiplier ≈2.404x (≈2.487x with Cursed→Blessed conversion), Huge 1.5x, Tiny 1.0x.',
   },
 ];
 

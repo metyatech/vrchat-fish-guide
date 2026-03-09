@@ -14,6 +14,8 @@ interface RankingViewProps {
   focusSlot?: RankSlot;
   /** Expand by default */
   initialExpanded?: boolean;
+  /** Create a comparison pattern from a ranked item */
+  onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
 }
 
 const SLOT_LABELS: Record<RankSlot, string> = {
@@ -34,11 +36,13 @@ function SlotTable({
   entries,
   topN,
   activeItemId,
+  onPickItem,
 }: {
   slot: RankSlot;
   entries: SlotRankEntry[];
   topN: number;
   activeItemId: string;
+  onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
 }) {
   const shown = entries.slice(0, topN);
   const best = shown[0]?.expectedValuePerHour ?? 0;
@@ -50,8 +54,9 @@ function SlotTable({
         <thead>
           <tr className="border-b border-gray-100">
             <th className="pb-1.5 text-left font-medium text-gray-500">装備</th>
-            <th className="pb-1.5 text-right font-medium text-gray-500">EV/時間</th>
-            <th className="pb-1.5 text-right font-medium text-gray-500">EV/回</th>
+            <th className="pb-1.5 text-right font-medium text-gray-500">期待値/時間</th>
+            <th className="pb-1.5 text-right font-medium text-gray-500">期待値/回</th>
+            <th className="pb-1.5 text-right font-medium text-gray-500">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -96,6 +101,15 @@ function SlotTable({
                 <td className="py-1.5 text-right text-gray-600">
                   {formatCurrency(entry.expectedValuePerCatch)}
                 </td>
+                <td className="py-1.5 pl-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onPickItem?.(slot, entry.item.id, entry.item.nameEn)}
+                    className="rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                  >
+                    この候補を追加
+                  </button>
+                </td>
               </tr>
             );
           })}
@@ -110,6 +124,7 @@ export function RankingView({
   topN = 5,
   focusSlot = 'rod',
   initialExpanded = false,
+  onPickItem,
 }: RankingViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
@@ -122,10 +137,9 @@ export function RankingView({
         <div>
           <h2 className="text-base font-semibold text-gray-800">スロット別ランキング</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            いま比較したい {SLOT_LABELS[focusSlot]} を先頭に、各スロットの装備を総当たりして EV/時間
-            でランキングします。
-            <span className="text-amber-700">experimental モデル前提</span>
-            の結果です。
+            いま比べたい {SLOT_LABELS[focusSlot]}{' '}
+            を先頭に、この欄だけ変えたときに伸びやすい候補を並べます。
+            まだ正確式が見つかっていない部分を含む推定です。
           </p>
         </div>
         <button
@@ -139,10 +153,10 @@ export function RankingView({
       {isExpanded && (
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-            <strong>注意:</strong> このランキングは「他のスロットを現在の設定のままにして 1
-            スロットだけ変えた場合の EV/時間」です。
-            複数スロットを同時に最適化した結果ではありません。また、Luck・Big Catch など的
-            experimental モデルの影響を含みます。
+            <strong>見方:</strong>{' '}
+            これは「ほかを今のままにして、この欄だけ変えたらどうなるか」です。
+            全部の装備を同時に変えた結果ではありません。全部まとめて比べたいときは下の
+            「全部まとめて比べる」を使ってください。
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -161,6 +175,7 @@ export function RankingView({
                         ? baseParams.loadout.bobberId
                         : baseParams.loadout.enchantId
                 }
+                onPickItem={onPickItem}
               />
             ))}
           </div>

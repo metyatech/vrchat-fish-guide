@@ -24,20 +24,20 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-1 text-base font-semibold text-gray-800">ビルド比較</h2>
+      <h2 className="mb-1 text-base font-semibold text-gray-800">組み合わせを並べて比べる</h2>
       <p className="mb-4 text-xs text-gray-500">
-        全ビルドの主要指標を並べて比較します。
+        いま保存している組み合わせを横並びで比べます。
         <span className="ml-1 inline-block rounded bg-green-100 px-1.5 py-0.5 font-semibold text-green-700">
           緑
         </span>{' '}
-        は各列の最高値です。ビルド名をクリックするとそのビルドをアクティブにします。
+        はその列で一番良い値です。名前を押すと、その組み合わせを左の入力欄に表示します。
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="pb-2 text-left font-medium text-gray-500">ビルド</th>
+              <th className="pb-2 text-left font-medium text-gray-500">組み合わせ</th>
               <th className="pb-2 text-right font-medium text-gray-500">期待値/時間</th>
               <th className="pb-2 text-right font-medium text-gray-500">期待値/回</th>
               <th className="pb-2 text-right font-medium text-gray-500">釣獲確率</th>
@@ -119,8 +119,9 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-gray-500">
-        ※ 同一エリア・条件で比較するためには、ビルド間で Fishing Area、Time of Day、Weather
-        を揃えてください。条件が違う場合、期待値/時間の差はギアだけでなく条件の差も含みます。
+        ※
+        きちんと装備差だけを比べたいときは、場所・時間帯・天気をそろえてください。違う条件が混ざると、
+        差の中に装備以外の影響も入ります。
       </p>
     </div>
   );

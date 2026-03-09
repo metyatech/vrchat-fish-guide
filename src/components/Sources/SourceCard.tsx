@@ -12,9 +12,9 @@ const STATUS_BADGE: Record<string, { label: string; className: string }> = {
 };
 
 const REUSE_BADGE: Record<string, { label: string; className: string }> = {
-  'fact-only': { label: '数値のみ抽出', className: 'bg-yellow-100 text-yellow-700' },
-  'not-used-directly': { label: '直接不使用', className: 'bg-orange-100 text-orange-700' },
-  unsupported: { label: '非サポート', className: 'bg-red-100 text-red-700' },
+  'fact-only': { label: '数値だけ使用', className: 'bg-yellow-100 text-yellow-700' },
+  'not-used-directly': { label: '参考だけ', className: 'bg-orange-100 text-orange-700' },
+  unsupported: { label: '計算に未使用', className: 'bg-red-100 text-red-700' },
 };
 
 export function SourceCard({ source }: SourceCardProps) {

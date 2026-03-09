@@ -227,7 +227,7 @@ export function generateBuildId(): string {
 export function createDefaultBuild(areaId = 'coconut-bay'): BuildConfig {
   return {
     id: generateBuildId(),
-    name: 'Build 1',
+    name: '現在の装備',
     params: getDefaultParams(areaId),
   };
 }
@@ -236,7 +236,7 @@ export function createDefaultBuild(areaId = 'coconut-bay'): BuildConfig {
 export function createBuildFrom(reference: BuildConfig, existingCount: number): BuildConfig {
   return {
     id: generateBuildId(),
-    name: `Build ${existingCount + 1}`,
+    name: `比較 ${existingCount}`,
     params: { ...reference.params },
   };
 }
@@ -245,7 +245,7 @@ export function createBuildFrom(reference: BuildConfig, existingCount: number): 
 export function duplicateBuild(build: BuildConfig): BuildConfig {
   return {
     id: generateBuildId(),
-    name: `${build.name} (copy)`,
+    name: `${build.name} のコピー`,
     params: { ...build.params },
   };
 }

@@ -33,7 +33,7 @@ const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
   line: 'Line',
   bobber: 'Bobber',
   enchant: 'Enchant',
-  'full-build': 'Full build',
+  'full-build': '全部まとめて',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -144,6 +144,37 @@ export function CalculatorPageClient() {
     setBuilds((prev) => renameBuild(prev, id, name));
   }, []);
 
+  const handleCreateSlotComparison = useCallback(
+    (slot: RankSlot, itemId: string, itemName: string) => {
+      if (!activeBuild) return;
+
+      const currentItemId =
+        slot === 'rod'
+          ? activeBuild.params.loadout.rodId
+          : slot === 'line'
+            ? activeBuild.params.loadout.lineId
+            : slot === 'bobber'
+              ? activeBuild.params.loadout.bobberId
+              : activeBuild.params.loadout.enchantId;
+
+      if (itemId === currentItemId) return;
+
+      const nextBuild = createBuildFrom(activeBuild, builds.length);
+      nextBuild.name = `${itemName} を試す`;
+      nextBuild.params = {
+        ...nextBuild.params,
+        loadout: {
+          ...nextBuild.params.loadout,
+          [`${slot}Id`]: itemId,
+        },
+      };
+
+      setBuilds((prev) => [...prev, nextBuild]);
+      setActiveId(nextBuild.id);
+    },
+    [activeBuild, builds.length],
+  );
+
   const handleCreateRecommendationBuild = useCallback(() => {
     if (!activeBuild || compareTarget === 'full-build') return;
     const rankedBySlot = rankAllSlots(activeBuild.params);
@@ -161,19 +192,32 @@ export function CalculatorPageClient() {
 
     if (bestEntry.item.id === currentItemId) return;
 
-    const nextBuild = createBuildFrom(activeBuild, builds.length);
-    nextBuild.name = `${bestEntry.item.nameEn} test`;
-    nextBuild.params = {
-      ...nextBuild.params,
-      loadout: {
-        ...nextBuild.params.loadout,
-        [`${compareTarget}Id`]: bestEntry.item.id,
-      },
-    };
+    handleCreateSlotComparison(compareTarget, bestEntry.item.id, bestEntry.item.nameEn);
+  }, [activeBuild, compareTarget, handleCreateSlotComparison]);
 
-    setBuilds((prev) => [...prev, nextBuild]);
-    setActiveId(nextBuild.id);
-  }, [activeBuild, builds.length, compareTarget]);
+  const handleCreateOptimizedBuild = useCallback(
+    (
+      entry: {
+        loadout: { rodId: string; lineId: string; bobberId: string; enchantId: string };
+      },
+      rank: number,
+    ) => {
+      if (!activeBuild) return;
+      const nextBuild = createBuildFrom(activeBuild, builds.length);
+      nextBuild.name = rank === 0 ? '全部比較のおすすめ' : `全部比較 ${rank + 1}`;
+      nextBuild.params = {
+        ...nextBuild.params,
+        loadout: {
+          ...nextBuild.params.loadout,
+          ...entry.loadout,
+        },
+      };
+
+      setBuilds((prev) => [...prev, nextBuild]);
+      setActiveId(nextBuild.id);
+    },
+    [activeBuild, builds.length],
+  );
 
   // ── Calculations ───────────────────────────────────────────────────────────
 
@@ -256,18 +300,16 @@ export function CalculatorPageClient() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          📊 Equipment-aware probability calculator
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">📊 装備込みの期待値比較</h1>
         <p className="mt-1 text-sm text-gray-500">
-          いまの条件で何を変えると一番伸びるかを、装備ごとの期待値で比べます。
+          いまの装備から何を変えると一番伸びるかを、1回ごと・1時間ごとの期待値で比べます。
         </p>
       </div>
 
       <section className="mb-6 rounded-2xl border border-ocean-100 bg-white p-6 shadow-sm">
         <h2 className="mb-1 text-lg font-semibold text-gray-900">まず何を比べたいですか？</h2>
         <p className="mb-4 text-sm text-gray-500">
-          Area と現在の装備を入れたら、次は 1
+          場所と現在の装備を入れたら、次は 1
           つだけ比べます。目的を選ぶと、次に試す候補を先に出します。
         </p>
 
@@ -287,6 +329,10 @@ export function CalculatorPageClient() {
           ))}
         </div>
 
+        <p className="mb-4 text-xs text-gray-500">
+          ゲーム内の装備欄名です。Rod = 竿 / Line = ライン / Bobber = ウキ / Enchant = エンチャント
+        </p>
+
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
           <div className="rounded-xl border border-ocean-200 bg-ocean-50 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
@@ -295,13 +341,12 @@ export function CalculatorPageClient() {
             {compareTarget === 'full-build' ? (
               <div className="mt-2 space-y-3 text-sm text-ocean-950">
                 <p>
-                  1 スロットずつではなく、全部まとめて最適化したい状態です。下の
-                  <strong>「フルビルド最適化」</strong>{' '}
+                  1 つずつではなく、全部まとめて比べたい状態です。下の
+                  <strong>「全部まとめて比べる」</strong>{' '}
                   を見ると、全組み合わせから上位候補を出します。
                 </p>
                 <p className="text-xs text-ocean-900">
-                  まずは左の入力で
-                  Area・条件・現在の装備を入れてから、最適化結果を確認してください。
+                  まずは左で場所・条件・現在の装備を入れてから、候補一覧を見てください。
                 </p>
               </div>
             ) : bestNextTry ? (
@@ -332,7 +377,7 @@ export function CalculatorPageClient() {
                     onClick={handleCreateRecommendationBuild}
                     className="rounded-lg bg-ocean-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ocean-700"
                   >
-                    この候補で比較ビルドを作る
+                    この候補で比べる組み合わせを追加
                   </button>
                 ) : (
                   <p className="text-xs text-ocean-900">
@@ -342,7 +387,7 @@ export function CalculatorPageClient() {
               </div>
             ) : (
               <p className="mt-2 text-sm text-ocean-950">
-                まず左の入力で Area と現在の装備を入れてください。
+                まず左の入力で場所と現在の装備を入れてください。
               </p>
             )}
           </div>
@@ -352,10 +397,10 @@ export function CalculatorPageClient() {
               使い方
             </div>
             <ol className="space-y-2 text-sm leading-relaxed">
-              <li>1. 左で Area と現在の装備を入れる</li>
+              <li>1. 左で場所と現在の装備を入れる</li>
               <li>2. 上で比べたい枠を 1 つ選ぶ</li>
-              <li>3. おすすめ候補を比較ビルドとして追加する</li>
-              <li>4. 下のビルド比較で期待値/時間を見る</li>
+              <li>3. おすすめ候補を比較一覧に追加する</li>
+              <li>4. 下の一覧で期待値/時間を見る</li>
             </ol>
           </div>
         </div>
@@ -364,13 +409,13 @@ export function CalculatorPageClient() {
       {/* Build tabs */}
       <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">比較ビルド</h2>
+          <h2 className="text-sm font-semibold text-gray-700">比べる組み合わせ</h2>
           <button
             onClick={handleCopyLink}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-            title="現在の全ビルドを URL に保存してコピー"
+            title="今の比較内容を URL で共有"
           >
-            {copied ? '✓ コピー済み' : '🔗 URL をコピー'}
+            {copied ? '✓ コピー済み' : '🔗 この比較を URL で共有'}
           </button>
         </div>
         <BuildTabs
@@ -383,7 +428,7 @@ export function CalculatorPageClient() {
           onRename={handleRenameBuild}
         />
         <p className="mt-2 text-xs text-gray-400">
-          今の装備を基準に、1 枠だけ変えた比較ビルドを増やしていく使い方を想定しています。
+          今の装備を基準に、1 か所だけ変えた組み合わせを増やして比べる使い方を想定しています。
         </p>
       </div>
 
@@ -445,21 +490,19 @@ export function CalculatorPageClient() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">期待値/回</div>
-              rarity、weight、direct value effects を織り込んだ、一投あたりの平均収益です。
+              1回投げたとき、平均するとどれくらい稼げるかです。
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">期待値/時間</div>
-              周回効率の比較用です。実測 `Observed values`
-              を使うと、よりプレイ実感に近い比較になります。
+              周回効率を比べるときに一番見る数字です。実測値を使うと、よりプレイ感に近づきます。
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">試行回数/時間</div>
-              effective attempt time から逆算した、1 時間に何回投げられるかです。
+              1回にかかる時間から逆算した、1 時間に何回投げられるかです。
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">魚が釣れる確率</div>
-              effective miss rate を引いた値です。Double Up!! のような追加 catch
-              効果はこの数字には入りません。
+              逃がす割合を引いた値です。Double Up!! のような追加効果はこの数字には入りません。
             </div>
           </div>
 
@@ -471,13 +514,14 @@ export function CalculatorPageClient() {
               価格レンジ未取得: {activeResult.missingPriceFish.length}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Time of Day: {TIME_OF_DAY_LABELS[activeResult.params.timeOfDay]}
+              時間帯: {TIME_OF_DAY_LABELS[activeResult.params.timeOfDay]}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Weather: {WEATHER_TYPE_LABELS[activeResult.params.weatherType]}
+              天気: {WEATHER_TYPE_LABELS[activeResult.params.weatherType]}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Time model: {activeResult.params.timeModelMode}
+              時間の計算方法:{' '}
+              {activeResult.params.timeModelMode === 'observed' ? '実測値' : '装備から見積もる'}
             </div>
           </div>
 
@@ -495,6 +539,7 @@ export function CalculatorPageClient() {
             baseParams={activeBuild.params}
             focusSlot={compareTarget === 'full-build' ? 'rod' : compareTarget}
             initialExpanded={compareTarget !== 'full-build'}
+            onPickItem={handleCreateSlotComparison}
           />
 
           {/* Full-build optimizer */}
@@ -502,6 +547,7 @@ export function CalculatorPageClient() {
             key={`optimizer-${compareTarget}`}
             baseParams={activeBuild.params}
             initialExpanded={compareTarget === 'full-build'}
+            onPickBuild={handleCreateOptimizedBuild}
           />
 
           <div className="rounded-xl border border-gray-200 bg-white p-6">
@@ -532,8 +578,8 @@ export function CalculatorPageClient() {
             </div>
             <DistributionChart result={activeResult} mode={chartMode} />
             <p className="mt-3 text-xs leading-relaxed text-gray-500">
-              `1回あたり` は一投ごとの寄与、`1時間あたり` は effective attempt time
-              を反映した時給寄与です。比較したい軸に合わせて切り替えてください。
+              `1回あたり` は1投ごとの寄与、`1時間あたり` は1回にかかる時間を反映した時給寄与です。
+              見たい軸に合わせて切り替えてください。
             </p>
           </div>
 
@@ -550,52 +596,51 @@ export function CalculatorPageClient() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-xs leading-relaxed text-gray-600">
-            <h3 className="mb-2 font-semibold text-gray-700">📝 計算方法・前提条件</h3>
-            <ul className="space-y-1.5">
+          <details className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-xs leading-relaxed text-gray-600">
+            <summary className="cursor-pointer list-none font-semibold text-gray-700">
+              📝 この数字の出し方を見る
+            </summary>
+            <ul className="mt-3 space-y-1.5">
               <li>
-                • <strong>対象魚 pool</strong>: Fish! TrickForge Studios Fandom Index の area
-                一覧と条件タグを使います。
+                • <strong>対象魚の絞り込み</strong>:
+                場所ごとの魚一覧と、時間帯・天気の条件タグを使います。
               </li>
               <li>
-                • <strong>装備 stat</strong>: public Fandom の Rod / Rod Accessories / Enchantments
-                table を使います。
+                • <strong>装備のステータス</strong>: 公開されている Rod / Line / Bobber / Enchant
+                の値を合計します。
               </li>
               <li>
-                • <strong>時間帯 / 天候</strong>: 公開タグ一致で対象魚を絞り込み、条件付き enchant
-                の active 判定にも使います。
+                • <strong>レア度の出やすさ</strong>: 公開 rarity table
+                を基準に、同じレア度の中では等分配します。
               </li>
               <li>
-                • <strong>釣獲率</strong>: rarity tier の既定相対重みを使い、同じ tier
-                内では等分配します。
+                • <strong>Luck の扱い</strong>:{' '}
+                {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x
+                の補正として入れています。ここはまだ正確式が分かっていないため推定です。
               </li>
               <li>
-                • <strong>Luck</strong>: {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x の
-                rarity-weight multiplier として experimental に反映しています。
+                • <strong>Big Catch / Max Weight の扱い</strong>:{' '}
+                {(activeResult.model.weightPercentile * 100).toFixed(0)}%
+                ぶん重さを上に寄せる推定で入れています。
               </li>
               <li>
-                • <strong>Big Catch / Max Weight</strong>:{' '}
-                {(activeResult.model.weightPercentile * 100).toFixed(0)}% weight percentile と
-                current Max Weight cap を使う experimental price model です。
-              </li>
-              <li>
-                • <strong>Modifier 期待値補正</strong>:{' '}
+                • <strong>見た目・サイズ補正</strong>:{' '}
                 {activeResult.params.modifierAssumptions.includeModifiers
-                  ? `Modifier EV factor ${activeResult.model.modifierEvFactor.toFixed(3)}x を期待値に反映中 (experimental — community 近似モデル)`
-                  : '現在は無効。左の「Modifier assumptions」でオンにできます (experimental)。'}
+                  ? `${activeResult.model.modifierEvFactor.toFixed(3)}x の補正を入れています。ここも推定です。`
+                  : '現在は入れていません。左の「詳細調整」でオンにできます。'}
               </li>
               <li>
-                • <strong>期待値/回</strong>: 各魚の確率 × modeled value × direct catch effect
+                • <strong>期待値/回</strong>: 各魚の確率 × 推定売値 × 直接効果
                 {activeResult.params.modifierAssumptions.includeModifiers
-                  ? ' × modifier EV factor'
+                  ? ' × 見た目・サイズ補正'
                   : ''}
                 です。
               </li>
               <li>
-                • <strong>期待値/時間</strong>: 期待値/回 × (3600 ÷ effective attempt time) です。
+                • <strong>期待値/時間</strong>: 期待値/回 × (3600 ÷ 1回にかかる時間) です。
               </li>
               <li>
-                • <strong>現在の有効 rarity tier</strong>:{' '}
+                • <strong>いま使っているレア度の重み</strong>:{' '}
                 {Object.entries(activeResult.effectiveRarityWeights)
                   .map(
                     ([rarity, weight]) =>
@@ -604,7 +649,7 @@ export function CalculatorPageClient() {
                   .join(', ') || 'なし'}
               </li>
             </ul>
-          </div>
+          </details>
         </div>
       </div>
     </div>

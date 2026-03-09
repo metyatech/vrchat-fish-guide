@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-09
+
+### Changed
+
+- **Plainer first-use copy across the site**: Rewrote home, calculator, and sources page text so first-time users can follow the comparison flow without internal labels such as "Equipment-aware", "Derived model", "Modifier assumptions", or "Full build".
+- **Comparison actions are now more direct**: Ranking rows and full-combination results now let users add a candidate straight into the comparison list instead of re-entering the same loadout manually.
+- **Comparison naming is simpler**: The default entry is now `現在の装備`; newly created comparisons use plain labels like `比較 2`, `X を試す`, and `全部比較のおすすめ`.
+- **Sources page language simplified**: Replaced site-specific source-governance jargon with plain Japanese wording while keeping the reuse boundaries and uncertainty policy explicit.
+- **Calculator warnings and explanation notes rewritten**: In-product explanation strings now use user-facing Japanese instead of internal modeling terminology.
+- **README and smoke tests updated**: Documentation and E2E expectations now match the simpler wording and the one-click comparison flow.
+
 ## [0.6.0] - 2026-03-09
 
 ### Changed

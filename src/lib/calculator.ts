@@ -323,40 +323,33 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
     : 1.0;
 
   const supportedNotes = [
-    'Rod / Line / Bobber / Enchant stat totals come from the public Fandom gear tables.',
+    'Rod / Line / Bobber / Enchant のステータス合計は公開 Fandom 表を使っています。',
     ...direct.supportedNotes,
   ];
   const experimentalNotes = [
-    `Luck ${totalStats.luck >= 0 ? '+' : ''}${totalStats.luck} is transformed into a rarity-weight multiplier of ${effectiveLuckMultiplier.toFixed(2)}x.`,
-    `Big Catch ${totalStats.bigCatch >= 0 ? '+' : ''}${totalStats.bigCatch} is mapped to a modeled weight percentile of ${(weightPercentile * 100).toFixed(0)}%.`,
-    `Max Weight ${totalStats.maxWeightKg.toLocaleString()}kg caps the top end of each fish's modeled weight range.`,
+    `Luck ${totalStats.luck >= 0 ? '+' : ''}${totalStats.luck} は、レアな魚が出やすくなる補正 ${effectiveLuckMultiplier.toFixed(2)}x として入れています。`,
+    `Big Catch ${totalStats.bigCatch >= 0 ? '+' : ''}${totalStats.bigCatch} は、重い魚が出やすくなる方向へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
+    `Max Weight ${totalStats.maxWeightKg.toLocaleString()}kg は、魚ごとの重さ上限に使っています。`,
   ];
   if (modifierAssumptions.includeModifiers) {
     experimentalNotes.push(
-      `Modifier EV factor: ${modifierEvFactor.toFixed(3)}x applied to expected price (` +
-        `${APPEARANCE_MODIFIER_COUNT} appearance types, mean appearance ~${
-          modifierAssumptions.assumeCursedToBlessed ? '2.487' : '2.404'
-        }x${modifierAssumptions.assumeCursedToBlessed ? ' with Cursed→Blessed' : ''}, ` +
-        `mean size ${MEAN_SIZE_MULTIPLIER.toFixed(2)}x; ` +
-        `P(any)=${(P_ANY_MODIFIER * 100).toFixed(1)}%, P(app-only)=${(P_APPEARANCE_ONLY * 100).toFixed(1)}%, ` +
-        `P(size-only)=${(P_SIZE_ONLY * 100).toFixed(1)}%, P(both)=${(P_BOTH_MODIFIERS * 100).toFixed(1)}% — ` +
-        `Snerx community sheet, approximate).`,
+      `見た目・サイズ補正 ${modifierEvFactor.toFixed(3)}x を推定売値に掛けています（見た目 ${APPEARANCE_MODIFIER_COUNT} 種、見た目平均 ${
+        modifierAssumptions.assumeCursedToBlessed ? '2.487' : '2.404'
+      }x${modifierAssumptions.assumeCursedToBlessed ? '、Cursed→Blessed を含む' : ''}、サイズ平均 ${MEAN_SIZE_MULTIPLIER.toFixed(2)}x、何らかの追加効果 ${(P_ANY_MODIFIER * 100).toFixed(1)}%、見た目だけ ${(P_APPEARANCE_ONLY * 100).toFixed(1)}%、サイズだけ ${(P_SIZE_ONLY * 100).toFixed(1)}%、両方 ${(P_BOTH_MODIFIERS * 100).toFixed(1)}%）。`,
     );
   }
   const unsupportedNotes = [...direct.unsupportedNotes];
   if (!modifierAssumptions.includeModifiers) {
-    unsupportedNotes.push(
-      'Appearance/size modifiers not included in EV — enable under "Modifier assumptions" to opt in (experimental).',
-    );
+    unsupportedNotes.push('見た目・サイズの追加効果は、いまは期待値に入れていません。');
   }
 
   if (enchant.id !== 'no-enchant' && !enchantActivity.active && enchantActivity.reason) {
-    experimentalNotes.push(`Selected enchant is currently inactive: ${enchantActivity.reason}`);
+    experimentalNotes.push(`選んでいる Enchant は今は無効です: ${enchantActivity.reason}`);
   }
 
   if (normalizedParams.timeModelMode === 'observed') {
     experimentalNotes.push(
-      'Observed mode uses your measured average catch time and miss rate directly. Attraction / Strength / Expertise are not auto-applied in this mode.',
+      '実測値を使う設定では、入力した平均時間と逃がす割合をそのまま使います。Attraction / Strength / Expertise の自動補正はここでは足しません。',
     );
     return {
       loadout: normalizedParams.loadout,
@@ -385,7 +378,7 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
   const effectiveMissRate = clamp(normalizedParams.baseMissRate * missScale, 0, 0.95);
 
   experimentalNotes.push(
-    `Estimated mode uses Attraction ${totalStats.attractionPct >= 0 ? '+' : ''}${totalStats.attractionPct}% to scale bite wait, and Strength + Expertise (${controlScore >= 0 ? '+' : ''}${controlScore}) to scale minigame time and miss rate.`,
+    `装備から見積もる設定では、Attraction ${totalStats.attractionPct >= 0 ? '+' : ''}${totalStats.attractionPct}% を魚が掛かるまでの時間へ、Strength + Expertise (${controlScore >= 0 ? '+' : ''}${controlScore}) をミニゲーム時間と逃がす割合へ反映しています。`,
   );
 
   return {
@@ -472,11 +465,11 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
     '各 rarity 内では、公開索引に載っている魚を等確率で割り当てる近似モデルを使用しています。',
   );
   warnings.push(
-    'Luck / Big Catch / Max Weight の期待値反映は experimental model です。詳細は左の Derived model を確認してください。',
+    'Luck / Big Catch / Max Weight の期待値反映には、まだ推定の部分があります。詳細は左の「この計算で使う値」を確認してください。',
   );
   if (normalizedParams.timeModelMode === 'estimated') {
     warnings.push(
-      'Estimated from equipment は Attraction / Strength / Expertise を使う experimental time model です。',
+      '「装備から自動で見積もる」は、Attraction / Strength / Expertise を使った推定です。',
     );
   }
   if (model.inactiveEnchantReason) {

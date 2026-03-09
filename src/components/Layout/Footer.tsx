@@ -19,7 +19,7 @@ export function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-2">免責事項</h3>
             <ul className="text-gray-400 text-xs space-y-1">
-              <li>• 掲載データは公開 community source に基づく推定値を含みます</li>
+              <li>• 掲載データには公開コミュニティ情報に基づく推定値を含みます</li>
               <li>• ゲームアップデートにより情報が古くなる場合があります</li>
               <li>• 計算結果は参考値であり実際の結果を保証しません</li>
             </ul>
