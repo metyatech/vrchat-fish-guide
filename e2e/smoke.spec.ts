@@ -34,14 +34,17 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.goto('/calculator/');
 
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'まず何を比べたいですか？' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '比べる組み合わせ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'まずは場所と今の装備を入れる' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '次に、何を比べたいか選ぶ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '候補を追加する' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '追加した組み合わせを比べる' })).toBeVisible();
   await expect(page.getByText('現在の装備の合計ステータス', { exact: true })).toBeVisible();
   await expect(page.locator('summary').getByText('詳細調整')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rod' })).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'この候補で比べる組み合わせを追加' }),
   ).toBeVisible();
+  await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')

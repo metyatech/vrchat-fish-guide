@@ -10,7 +10,6 @@ import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { RankingView } from '@/components/Calculator/RankingView';
 import { ResultTable } from '@/components/Calculator/ResultTable';
 import { WarningBanner } from '@/components/Calculator/WarningBanner';
-import { Sidebar } from '@/components/Layout/Sidebar';
 import { RARITY_LABELS, TIME_OF_DAY_LABELS, WEATHER_TYPE_LABELS } from '@/data/fish';
 import { calculateDistribution, formatCurrency, getDefaultParams } from '@/lib/calculator';
 import { rankAllSlots, RankSlot } from '@/lib/ranking';
@@ -260,6 +259,8 @@ export function CalculatorPageClient() {
     };
   }, [activeBuild.params, compareTarget, rankedBySlot]);
 
+  const hasComparisons = builds.length > 1;
+
   // ── Share URL ──────────────────────────────────────────────────────────────
 
   const [copied, setCopied] = useState(false);
@@ -304,57 +305,87 @@ export function CalculatorPageClient() {
         <p className="mt-1 text-sm text-gray-500">
           いまの装備から何を変えると一番伸びるかを、1回ごと・1時間ごとの期待値で比べます。
         </p>
+        <ol className="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-4">
+          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+            1. 上から順に、場所と今の装備を入れる
+          </li>
+          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+            2. 次に、何を比べたいかを選ぶ
+          </li>
+          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+            3. 候補を追加して、組み合わせを並べる
+          </li>
+          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+            4. 最後に、期待値/時間で比べる
+          </li>
+        </ol>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-ocean-100 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold text-gray-900">まず何を比べたいですか？</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          場所と現在の装備を入れたら、次は 1
-          つだけ比べます。目的を選ぶと、次に試す候補を先に出します。
-        </p>
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              Step 1-3
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">まずは場所と今の装備を入れる</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              このページは、ここから順に埋めていけば使えます。まだ比べる候補を決めていなくても大丈夫です。
+            </p>
+          </div>
+          <ParameterForm
+            params={activeBuild.params}
+            model={activeResult.model}
+            onChange={handleParamsChange}
+          />
+        </section>
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          {(Object.keys(COMPARE_TARGET_LABELS) as CompareTarget[]).map((target) => (
-            <button
-              key={target}
-              onClick={() => setCompareTarget(target)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                compareTarget === target
-                  ? 'bg-ocean-600 text-white'
-                  : 'border border-gray-200 bg-gray-50 text-gray-700 hover:border-ocean-300 hover:text-ocean-700'
-              }`}
-            >
-              {COMPARE_TARGET_LABELS[target]}
-            </button>
-          ))}
-        </div>
+        <section className="rounded-2xl border border-ocean-100 bg-white p-6 shadow-sm">
+          <div className="mb-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              Step 4
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">次に、何を比べたいか選ぶ</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              1 つだけ変えて比べるか、全部まとめて比べるかを選びます。
+            </p>
+          </div>
 
-        <p className="mb-4 text-xs text-gray-500">
-          ゲーム内の装備欄名です。Rod = 竿 / Line = ライン / Bobber = ウキ / Enchant = エンチャント
-        </p>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {(Object.keys(COMPARE_TARGET_LABELS) as CompareTarget[]).map((target) => (
+              <button
+                key={target}
+                onClick={() => setCompareTarget(target)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                  compareTarget === target
+                    ? 'bg-ocean-600 text-white'
+                    : 'border border-gray-200 bg-gray-50 text-gray-700 hover:border-ocean-300 hover:text-ocean-700'
+                }`}
+              >
+                {COMPARE_TARGET_LABELS[target]}
+              </button>
+            ))}
+          </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
           <div className="rounded-xl border border-ocean-200 bg-ocean-50 p-4">
             <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
               次にやること
             </div>
             {compareTarget === 'full-build' ? (
-              <div className="mt-2 space-y-3 text-sm text-ocean-950">
+              <div className="mt-2 space-y-2 text-sm text-ocean-950">
                 <p>
-                  1 つずつではなく、全部まとめて比べたい状態です。下の
-                  <strong>「全部まとめて比べる」</strong>{' '}
-                  を見ると、全組み合わせから上位候補を出します。
+                  下の <strong>「全部まとめて比べる」</strong>{' '}
+                  で、装備の全組み合わせから伸びやすい候補を探します。
                 </p>
                 <p className="text-xs text-ocean-900">
-                  まずは左で場所・条件・現在の装備を入れてから、候補一覧を見てください。
+                  先に上の入力を埋めてから、候補一覧を見てください。
                 </p>
               </div>
             ) : bestNextTry ? (
               <div className="mt-2 space-y-3 text-sm text-ocean-950">
                 <p>
                   いまの <strong>{COMPARE_TARGET_LABELS[compareTarget]}</strong>{' '}
-                  を比べるなら、次に試す候補は <strong>{bestNextTry.bestEntry.item.nameEn}</strong>{' '}
-                  です。
+                  を比べるなら、最初に試す候補は{' '}
+                  <strong>{bestNextTry.bestEntry.item.nameEn}</strong> です。
                 </p>
                 <div className="rounded-xl border border-white/60 bg-white/80 p-3 text-xs text-gray-700">
                   現在: <strong>{bestNextTry.currentEntry.item.nameEn}</strong>
@@ -381,67 +412,107 @@ export function CalculatorPageClient() {
                   </button>
                 ) : (
                   <p className="text-xs text-ocean-900">
-                    いまの装備がこの枠ではすでに最上位です。別の枠に切り替えて比較してください。
+                    いまの装備がこの欄では一番良い状態です。別の欄に切り替えて比べてください。
                   </p>
                 )}
               </div>
             ) : (
               <p className="mt-2 text-sm text-ocean-950">
-                まず左の入力で場所と現在の装備を入れてください。
+                先に上の入力で場所と今の装備を確認してください。
               </p>
             )}
           </div>
+        </section>
 
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              使い方
+        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              Step 5
             </div>
-            <ol className="space-y-2 text-sm leading-relaxed">
-              <li>1. 左で場所と現在の装備を入れる</li>
-              <li>2. 上で比べたい枠を 1 つ選ぶ</li>
-              <li>3. おすすめ候補を比較一覧に追加する</li>
-              <li>4. 下の一覧で期待値/時間を見る</li>
-            </ol>
+            <h2 className="text-lg font-semibold text-gray-900">候補を追加する</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              ここでは、比べる候補を追加します。まずは 1
+              件だけ追加してから、次の比較結果を見るのがおすすめです。
+            </p>
           </div>
-        </div>
-      </section>
 
-      {/* Build tabs */}
-      <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">比べる組み合わせ</h2>
-          <button
-            onClick={handleCopyLink}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-            title="今の比較内容を URL で共有"
-          >
-            {copied ? '✓ コピー済み' : '🔗 この比較を URL で共有'}
-          </button>
-        </div>
-        <BuildTabs
-          builds={builds}
-          activeId={activeId}
-          onSelect={setActiveId}
-          onAdd={handleAddBuild}
-          onDuplicate={handleDuplicateBuild}
-          onRemove={handleRemoveBuild}
-          onRename={handleRenameBuild}
-        />
-        <p className="mt-2 text-xs text-gray-400">
-          今の装備を基準に、1 か所だけ変えた組み合わせを増やして比べる使い方を想定しています。
-        </p>
-      </div>
+          {compareTarget !== 'full-build' ? (
+            <RankingView
+              key={`ranking-${compareTarget}`}
+              baseParams={activeBuild.params}
+              focusSlot={compareTarget}
+              initialExpanded={true}
+              onPickItem={handleCreateSlotComparison}
+            />
+          ) : null}
 
-      <div className="flex flex-col gap-6 md:flex-row">
-        <Sidebar>
-          <ParameterForm
-            params={activeBuild.params}
-            model={activeResult.model}
-            onChange={handleParamsChange}
+          <OptimizerView
+            key={`optimizer-${compareTarget}`}
+            baseParams={activeBuild.params}
+            initialExpanded={compareTarget === 'full-build'}
+            onPickBuild={handleCreateOptimizedBuild}
           />
-        </Sidebar>
+        </section>
 
-        <div className="flex-1 space-y-6">
+        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+                Step 6
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">追加した組み合わせを比べる</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                候補を追加したら、ここで並べて見ます。気になる組み合わせを押すと、その内容を下に表示します。
+              </p>
+            </div>
+            <button
+              onClick={handleCopyLink}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+              title="今の比較内容を URL で共有"
+            >
+              {copied ? '✓ コピー済み' : '🔗 この比較を URL で共有'}
+            </button>
+          </div>
+
+          <BuildTabs
+            builds={builds}
+            activeId={activeId}
+            onSelect={setActiveId}
+            onAdd={handleAddBuild}
+            onDuplicate={handleDuplicateBuild}
+            onRemove={handleRemoveBuild}
+            onRename={handleRenameBuild}
+          />
+
+          {!hasComparisons ? (
+            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+              まだ比較する候補がありません。上の「この候補を追加」か「この組み合わせを追加」で 1
+              件追加すると、 ここに比較結果が出ます。
+            </div>
+          ) : (
+            <ComparisonSummary
+              builds={builds}
+              results={results}
+              activeId={activeId}
+              onSelect={setActiveId}
+            />
+          )}
+        </section>
+
+        <section className="space-y-6">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              Step 7
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              最後に、選んだ組み合わせの数字を見る
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              いちばん大事なのは <strong>期待値/時間</strong>{' '}
+              です。迷ったら、まずここを比べてください。
+            </p>
+          </div>
+
           <WarningBanner warnings={activeResult.warnings} />
 
           <div className="rounded-xl border border-ocean-100 bg-ocean-50 px-4 py-3 text-xs text-ocean-900">
@@ -524,31 +595,6 @@ export function CalculatorPageClient() {
               {activeResult.params.timeModelMode === 'observed' ? '実測値' : '装備から見積もる'}
             </div>
           </div>
-
-          {/* Multi-build comparison — shown only when there are 2+ builds */}
-          <ComparisonSummary
-            builds={builds}
-            results={results}
-            activeId={activeId}
-            onSelect={setActiveId}
-          />
-
-          {/* Per-slot ranking */}
-          <RankingView
-            key={`ranking-${compareTarget}`}
-            baseParams={activeBuild.params}
-            focusSlot={compareTarget === 'full-build' ? 'rod' : compareTarget}
-            initialExpanded={compareTarget !== 'full-build'}
-            onPickItem={handleCreateSlotComparison}
-          />
-
-          {/* Full-build optimizer */}
-          <OptimizerView
-            key={`optimizer-${compareTarget}`}
-            baseParams={activeBuild.params}
-            initialExpanded={compareTarget === 'full-build'}
-            onPickBuild={handleCreateOptimizedBuild}
-          />
 
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -650,7 +696,7 @@ export function CalculatorPageClient() {
               </li>
             </ul>
           </details>
-        </div>
+        </section>
       </div>
     </div>
   );

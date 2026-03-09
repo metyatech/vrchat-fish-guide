@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-09
+
+### Changed
+
+- **Calculator flow reordered to match first-use behavior**: The calculator now follows a strict top-to-bottom sequence: first enter area/loadout, then choose what to compare, then add candidate combinations, then compare saved combinations, and only after that inspect detailed result cards and tables.
+- **Setup now comes before recommendations and results**: Recommendation cards, ranking tools, and comparison results were moved behind the prerequisite setup steps so the page no longer asks users to interpret outputs before they know what to input.
+- **Comparison area now explains the next visible action**: The page now tells users when they still need to add a candidate before comparison results will appear, instead of showing an empty comparison section with no clear next move.
+- **README and E2E updated for the new order**: Usage documentation and smoke tests now follow the same top-to-bottom flow as the product UI.
+
 ## [0.7.0] - 2026-03-09
 
 ### Changed
