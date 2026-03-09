@@ -1,19 +1,25 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { STAT_THEME } from '@/components/Calculator/statTheme';
 import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
 
 describe('ParameterForm', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('shows color-coded stat summaries for the selected gear and total stats', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
 
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
-    const selectedRodButton = screen.getByRole('button', { name: 'Stick and String は使用中' });
-    expect(selectedRodButton).toHaveAttribute('aria-pressed', 'true');
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    expect(
+      within(currentLoadoutTable).getByRole('button', { name: 'Rod を選び直す' }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByText('Luck')[0]).toHaveStyle({ color: STAT_THEME.luck.surfaceText });
 
     const totalStatsSection = screen.getByTestId('total-stats-section');
@@ -35,6 +41,7 @@ describe('ParameterForm', () => {
 
     render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     fireEvent.click(screen.getByText('Fortunate Rod'));
 
     expect(onChange).toHaveBeenCalledWith({
@@ -62,5 +69,41 @@ describe('ParameterForm', () => {
 
     expect(screen.queryByText(/11\.999999999999/)).not.toBeInTheDocument();
     expect(screen.queryByText(/16\.999999999999/)).not.toBeInTheDocument();
+  });
+
+  it('uses the current loadout table as the entry point and does not auto-scroll on selection', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    const onChange = vi.fn();
+    const scrollIntoViewSpy = vi.fn();
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoViewSpy,
+    });
+
+    render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
+
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const lineRow = within(currentLoadoutTable).getByRole('button', { name: 'Line を選び直す' });
+    fireEvent.click(lineRow);
+
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Line の候補を右から選ぶ');
+
+    fireEvent.click(screen.getByText('Lucky Line'));
+
+    expect(scrollIntoViewSpy).not.toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith({
+      ...params,
+      loadout: {
+        ...params.loadout,
+        lineId: 'lucky-line',
+      },
+    });
+
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView,
+    });
   });
 });

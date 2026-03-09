@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.7] - 2026-03-09
+
+### Changed
+
+- **Step 1 now starts from a single current-loadout table**: Rod, Line, Bobber, and Enchant are always visible together in one table, so users can see their current build at a glance before choosing what to change.
+- **Gear picking now happens in a right-side game-like selector panel**: Clicking a row in the current-loadout table opens that slot's candidate table in a right-side panel instead of jumping the page around or expanding multiple stacked sections.
+- **Removed the forced auto-scroll between loadout steps**: Choosing a Rod, Line, Bobber, or Enchant no longer scrolls the calculator to a different place automatically, which makes the selection flow easier to follow.
+- **Selection feedback now goes back into the current-loadout table**: After choosing a candidate, the destination row in the current-loadout table animates and updates in place, making the change easier to track visually.
+- **Regression coverage now guards the new Step 1 flow**: Component and Playwright tests now check the current-loadout table entry point, the right-side picker panel, and the absence of auto-scroll behavior.
+
 ## [0.10.6] - 2026-03-09
 
 ### Changed

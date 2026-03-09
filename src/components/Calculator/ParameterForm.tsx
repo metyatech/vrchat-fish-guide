@@ -81,6 +81,22 @@ function formatItemDetail(item: EquipmentItem | EnchantItem): string {
 
 type LoadoutSlot = 'rod' | 'line' | 'bobber' | 'enchant';
 
+const LOADOUT_SLOT_LABELS: Record<LoadoutSlot, string> = {
+  rod: 'Rod',
+  line: 'Line',
+  bobber: 'Bobber',
+  enchant: 'Enchant',
+};
+
+const LOADOUT_SLOT_FIELDS: Record<LoadoutSlot, keyof CalculatorParams['loadout']> = {
+  rod: 'rodId',
+  line: 'lineId',
+  bobber: 'bobberId',
+  enchant: 'enchantId',
+};
+
+const LOADOUT_SLOT_ORDER: LoadoutSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+
 const NEXT_LOADOUT_SLOT: Record<LoadoutSlot, LoadoutSlot | null> = {
   rod: 'line',
   line: 'bobber',
@@ -118,178 +134,258 @@ function StatTableHeader({ stat }: { stat: StatThemeKey }) {
   );
 }
 
-function LoadoutTableSection<T extends EquipmentItem | EnchantItem>({
-  slot,
-  label,
-  items,
-  selectedId,
-  expanded,
-  onToggle,
-  onSelect,
+function LoadoutStatCells({
+  item,
+  cellClassName = 'px-2 py-2 align-top text-xs font-semibold',
 }: {
-  slot: LoadoutSlot;
-  label: string;
-  items: readonly T[];
-  selectedId: string;
-  expanded: boolean;
-  onToggle: () => void;
-  onSelect: (id: string) => void;
+  item: EquipmentItem | EnchantItem;
+  cellClassName?: string;
 }) {
-  const theme = SLOT_THEME[slot];
-  const selectedItem = items.find((item) => item.id === selectedId) ?? items[0];
-  const panelId = `loadout-table-${slot}`;
+  return (
+    <>
+      <td className={cellClassName} style={{ color: STAT_THEME.luck.surfaceText }}>
+        {formatSignedDisplayNumber(item.luck)}
+      </td>
+      <td className={cellClassName} style={{ color: STAT_THEME.strength.surfaceText }}>
+        {formatSignedDisplayNumber(item.strength)}
+      </td>
+      <td className={cellClassName} style={{ color: STAT_THEME.expertise.surfaceText }}>
+        {formatSignedDisplayNumber(item.expertise)}
+      </td>
+      <td className={cellClassName} style={{ color: STAT_THEME.attractionRate.surfaceText }}>
+        {formatSignedDisplayNumber(item.attractionPct, '%')}
+      </td>
+      <td className={cellClassName} style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
+        {formatSignedDisplayNumber(item.bigCatch)}
+      </td>
+      <td className={cellClassName} style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+        {formatWeightKg(item.maxWeightKg)}
+      </td>
+    </>
+  );
+}
+
+function LoadoutTableHeader({
+  leadingLabel,
+  leadingClassName = 'px-2 py-1',
+}: {
+  leadingLabel: string;
+  leadingClassName?: string;
+}) {
+  return (
+    <thead>
+      <tr className="text-left text-xs text-gray-600">
+        <th className={leadingClassName}>{leadingLabel}</th>
+        <th className="px-2 py-1">名前</th>
+        <th className="px-2 py-1">入手場所 / 効果</th>
+        <th className="px-2 py-1">
+          <StatTableHeader stat="luck" />
+        </th>
+        <th className="px-2 py-1">
+          <StatTableHeader stat="strength" />
+        </th>
+        <th className="px-2 py-1">
+          <StatTableHeader stat="expertise" />
+        </th>
+        <th className="px-2 py-1">
+          <StatTableHeader stat="attractionRate" />
+        </th>
+        <th className="px-2 py-1">
+          <StatTableHeader stat="bigCatchRate" />
+        </th>
+        <th className="px-2 py-1">
+          <StatTableHeader stat="maxWeight" />
+        </th>
+      </tr>
+    </thead>
+  );
+}
+
+function CurrentLoadoutTable({
+  activeSlot,
+  selectedIds,
+  recentlyUpdatedSlot,
+  onActivate,
+}: {
+  activeSlot: LoadoutSlot | null;
+  selectedIds: Record<LoadoutSlot, string>;
+  recentlyUpdatedSlot: LoadoutSlot | null;
+  onActivate: (slot: LoadoutSlot) => void;
+}) {
+  const selectedItems: Record<LoadoutSlot, EquipmentItem | EnchantItem> = {
+    rod: RODS.find((item) => item.id === selectedIds.rod) ?? RODS[0],
+    line: LINES.find((item) => item.id === selectedIds.line) ?? LINES[0],
+    bobber: BOBBERS.find((item) => item.id === selectedIds.bobber) ?? BOBBERS[0],
+    enchant: ENCHANTS.find((item) => item.id === selectedIds.enchant) ?? ENCHANTS[0],
+  };
 
   return (
-    <div className={`rounded-xl border shadow-sm ${theme.panelClassName}`}>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        aria-label={expanded ? `${label} の候補表を閉じる` : `${label} の候補表を開く`}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <SlotLabelChip slot={slot} label={label} />
-            <span className="text-[11px] text-gray-500">
-              {expanded ? '表を閉じる' : '表を開く'}
-            </span>
-          </div>
-          <div className="mt-2 text-sm font-semibold text-gray-900">
-            現在: {selectedItem.nameEn}
-          </div>
-          <div className="mt-1 text-xs leading-relaxed text-gray-600">
-            {formatItemDetail(selectedItem)}
-          </div>
-        </div>
-        <span
-          className={`shrink-0 text-sm text-gray-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
-          aria-hidden="true"
+    <div className="overflow-hidden rounded-[22px] border border-white/80 bg-white/85 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+      <div className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(241,247,255,0.95))] px-4 py-4">
+        <div className="text-sm font-semibold text-gray-800">今の装備の表</div>
+        <p className="mt-1 text-xs leading-relaxed text-gray-500">
+          Rod / Line / Bobber / Enchant の行を押すと、右にその欄の候補が出ます。
+        </p>
+      </div>
+      <div className="overflow-x-auto">
+        <table
+          data-testid="current-loadout-table"
+          className="min-w-full border-separate border-spacing-y-2 px-3 text-sm"
         >
-          ▾
-        </span>
-      </button>
+          <LoadoutTableHeader leadingLabel="欄" />
+          <tbody>
+            {LOADOUT_SLOT_ORDER.map((slot) => {
+              const item = selectedItems[slot];
+              const isActive = activeSlot === slot;
+              const isUpdated = recentlyUpdatedSlot === slot;
 
-      <div
-        id={panelId}
-        aria-hidden={!expanded}
-        className="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
-        style={{
-          gridTemplateRows: expanded ? '1fr' : '0fr',
-          opacity: expanded ? 1 : 0,
-        }}
-      >
-        <div className="overflow-hidden">
-          <div className="border-t border-white/70 bg-white/80 px-4 py-3">
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-600">
-                    <th className="px-2 py-1">選択</th>
-                    <th className="px-2 py-1">名前</th>
-                    <th className="px-2 py-1">入手場所 / 効果</th>
-                    <th className="px-2 py-1">
-                      <StatTableHeader stat="luck" />
-                    </th>
-                    <th className="px-2 py-1">
-                      <StatTableHeader stat="strength" />
-                    </th>
-                    <th className="px-2 py-1">
-                      <StatTableHeader stat="expertise" />
-                    </th>
-                    <th className="px-2 py-1">
-                      <StatTableHeader stat="attractionRate" />
-                    </th>
-                    <th className="px-2 py-1">
-                      <StatTableHeader stat="bigCatchRate" />
-                    </th>
-                    <th className="px-2 py-1">
-                      <StatTableHeader stat="maxWeight" />
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item) => {
-                    const selected = item.id === selectedId;
-                    const selectItem = () => onSelect(item.id);
-                    const handleRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        selectItem();
-                      }
-                    };
+              const activate = () => onActivate(slot);
+              const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  activate();
+                }
+              };
 
-                    return (
-                      <tr
-                        key={item.id}
-                        tabIndex={0}
-                        role="button"
-                        aria-pressed={selected}
-                        aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
-                        onClick={selectItem}
-                        onKeyDown={handleRowKeyDown}
-                        className={`cursor-pointer outline-none transition-all duration-150 ${
-                          selected
-                            ? 'bg-gradient-to-r from-green-50 to-white shadow-sm ring-2 ring-green-500 ring-offset-1'
-                            : 'bg-white/70 hover:bg-ocean-50/50 hover:shadow-sm focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
-                        }`}
-                      >
-                        <td className="rounded-l-lg px-2 py-2 align-top">
-                          <LoadoutSelectionBadge selected={selected} />
-                        </td>
-                        <td className="px-2 py-2 align-top font-semibold text-gray-900">
-                          {item.nameEn}
-                        </td>
-                        <td className="px-2 py-2 align-top text-xs leading-relaxed text-gray-600">
-                          {formatItemDetail(item)}
-                        </td>
-                        <td
-                          className="px-2 py-2 align-top text-xs font-semibold"
-                          style={{ color: STAT_THEME.luck.surfaceText }}
-                        >
-                          {formatSignedDisplayNumber(item.luck)}
-                        </td>
-                        <td
-                          className="px-2 py-2 align-top text-xs font-semibold"
-                          style={{ color: STAT_THEME.strength.surfaceText }}
-                        >
-                          {formatSignedDisplayNumber(item.strength)}
-                        </td>
-                        <td
-                          className="px-2 py-2 align-top text-xs font-semibold"
-                          style={{ color: STAT_THEME.expertise.surfaceText }}
-                        >
-                          {formatSignedDisplayNumber(item.expertise)}
-                        </td>
-                        <td
-                          className="px-2 py-2 align-top text-xs font-semibold"
-                          style={{ color: STAT_THEME.attractionRate.surfaceText }}
-                        >
-                          {formatSignedDisplayNumber(item.attractionPct, '%')}
-                        </td>
-                        <td
-                          className="px-2 py-2 align-top text-xs font-semibold"
-                          style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
-                        >
-                          {formatSignedDisplayNumber(item.bigCatch)}
-                        </td>
-                        <td
-                          className="rounded-r-lg px-2 py-2 align-top text-xs font-semibold"
-                          style={{ color: STAT_THEME.maxWeight.surfaceText }}
-                        >
-                          {formatWeightKg(item.maxWeightKg)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+              return (
+                <tr
+                  key={slot}
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={isActive}
+                  aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
+                  onClick={activate}
+                  onKeyDown={handleKeyDown}
+                  className={`cursor-pointer outline-none transition-all duration-200 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-white via-white to-ocean-50 shadow-[0_14px_36px_rgba(37,120,232,0.14)] ring-2 ring-ocean-500 ring-offset-1'
+                      : 'bg-white/70 hover:bg-ocean-50/70 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
+                  } ${isUpdated ? 'animate-loadout-settle' : ''}`}
+                >
+                  <td className="rounded-l-xl px-2 py-3 align-top">
+                    <div className="flex flex-col gap-2">
+                      <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                      <span className="text-[11px] font-medium text-gray-500">
+                        {isActive ? '右で選択中' : '押すと候補を開く'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-3 align-top font-semibold text-gray-900">{item.nameEn}</td>
+                  <td className="px-2 py-3 align-top text-xs leading-relaxed text-gray-600">
+                    {formatItemDetail(item)}
+                  </td>
+                  <LoadoutStatCells
+                    item={item}
+                    cellClassName="px-2 py-3 align-top text-xs font-semibold"
+                  />
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
+  );
+}
+
+function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
+  slot,
+  items,
+  selectedId,
+  onSelect,
+  onClose,
+}: {
+  slot: LoadoutSlot;
+  items: readonly T[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  onClose: () => void;
+}) {
+  const theme = SLOT_THEME[slot];
+
+  return (
+    <aside
+      key={slot}
+      data-testid="slot-picker-panel"
+      className={`animate-slide-in-right overflow-hidden rounded-[24px] border bg-white/90 shadow-[0_24px_56px_rgba(15,23,42,0.14)] ${theme.panelClassName}`}
+    >
+      <div className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(247,250,255,0.92))] px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+                Select
+              </span>
+            </div>
+            <h4 className="mt-2 text-sm font-semibold text-gray-900">
+              {LOADOUT_SLOT_LABELS[slot]} の候補を右から選ぶ
+            </h4>
+            <p className="mt-1 text-xs leading-relaxed text-gray-600">
+              行のどこを押しても選べます。選ぶと、左の今の装備の表にそのまま反映されます。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm transition hover:bg-white"
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+
+      <div className="max-h-[68vh] overflow-auto px-4 py-3">
+        <div className="overflow-x-auto">
+          <table
+            id={`loadout-picker-${slot}`}
+            className="min-w-full border-separate border-spacing-y-2 text-sm"
+          >
+            <LoadoutTableHeader leadingLabel="選択" />
+            <tbody>
+              {items.map((item) => {
+                const selected = item.id === selectedId;
+                const selectItem = () => onSelect(item.id);
+                const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectItem();
+                  }
+                };
+
+                return (
+                  <tr
+                    key={item.id}
+                    tabIndex={0}
+                    role="button"
+                    aria-pressed={selected}
+                    aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
+                    onClick={selectItem}
+                    onKeyDown={handleKeyDown}
+                    className={`cursor-pointer outline-none transition-all duration-150 ${
+                      selected
+                        ? 'bg-gradient-to-r from-green-50 to-white shadow-sm ring-2 ring-green-500 ring-offset-1'
+                        : 'bg-white/70 hover:bg-ocean-50/50 hover:shadow-sm focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
+                    }`}
+                  >
+                    <td className="rounded-l-lg px-2 py-2 align-top">
+                      <LoadoutSelectionBadge selected={selected} />
+                    </td>
+                    <td className="px-2 py-2 align-top font-semibold text-gray-900">
+                      {item.nameEn}
+                    </td>
+                    <td className="px-2 py-2 align-top text-xs leading-relaxed text-gray-600">
+                      {formatItemDetail(item)}
+                    </td>
+                    <LoadoutStatCells item={item} />
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -341,14 +437,11 @@ function SlotLabelChip({
 }
 
 export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
-  const [expandedSlot, setExpandedSlot] = React.useState<LoadoutSlot | null>('rod');
+  const [activeSlot, setActiveSlot] = React.useState<LoadoutSlot | null>('rod');
+  const [recentlyUpdatedSlot, setRecentlyUpdatedSlot] = React.useState<LoadoutSlot | null>(null);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
-  const sectionRefs = React.useRef<Record<LoadoutSlot, HTMLDivElement | null>>({
-    rod: null,
-    line: null,
-    bobber: null,
-    enchant: null,
-  });
+  const advanceTimerRef = React.useRef<number | null>(null);
+  const clearRecentUpdateTimerRef = React.useRef<number | null>(null);
 
   const handleChange = <K extends keyof CalculatorParams>(field: K, value: CalculatorParams[K]) => {
     onChange({ ...params, [field]: value });
@@ -367,35 +460,54 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     });
   };
 
-  const handleLoadoutSelect = (
-    slot: LoadoutSlot,
-    field: keyof CalculatorParams['loadout'],
-    value: string,
-  ) => {
-    updateLoadout(field, value);
-    setExpandedSlot(NEXT_LOADOUT_SLOT[slot]);
+  const handleLoadoutSelect = (slot: LoadoutSlot, value: string) => {
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+    }
+    if (clearRecentUpdateTimerRef.current !== null) {
+      window.clearTimeout(clearRecentUpdateTimerRef.current);
+    }
+
+    updateLoadout(LOADOUT_SLOT_FIELDS[slot], value);
+    setRecentlyUpdatedSlot(slot);
+
+    clearRecentUpdateTimerRef.current = window.setTimeout(() => {
+      setRecentlyUpdatedSlot((current) => (current === slot ? null : current));
+      clearRecentUpdateTimerRef.current = null;
+    }, 720);
+
+    advanceTimerRef.current = window.setTimeout(() => {
+      const nextSlot = NEXT_LOADOUT_SLOT[slot];
+      setActiveSlot(nextSlot ?? slot);
+      advanceTimerRef.current = null;
+    }, 220);
   };
 
-  const toggleLoadoutSection = (slot: LoadoutSlot) => {
-    setExpandedSlot((current) => (current === slot ? null : slot));
+  const activateSlot = (slot: LoadoutSlot) => {
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+    setActiveSlot(slot);
   };
 
   React.useEffect(() => {
-    if (!expandedSlot) return;
-    const target = sectionRefs.current[expandedSlot];
-    if (!target) return;
-
-    const frameId = window.requestAnimationFrame(() => {
-      if (typeof target.scrollIntoView === 'function') {
-        target.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
+    return () => {
+      if (advanceTimerRef.current !== null) {
+        window.clearTimeout(advanceTimerRef.current);
       }
-    });
+      if (clearRecentUpdateTimerRef.current !== null) {
+        window.clearTimeout(clearRecentUpdateTimerRef.current);
+      }
+    };
+  }, []);
 
-    return () => window.cancelAnimationFrame(frameId);
-  }, [expandedSlot]);
+  const loadoutItems: Record<LoadoutSlot, readonly (EquipmentItem | EnchantItem)[]> = {
+    rod: RODS,
+    line: LINES,
+    bobber: BOBBERS,
+    enchant: ENCHANTS,
+  };
 
   const fieldId = {
     areaId: 'calc-area',
@@ -425,72 +537,44 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               Step 1
             </span>
           </div>
-          <h3 className="text-sm font-semibold text-gray-800">まずは今の装備</h3>
+          <h3 className="text-sm font-semibold text-gray-800">まずは今の装備を表でそろえる</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            各候補を表で見比べながら選べます。1つ選ぶと次の欄へ進むので、上から順に今の装備をそろえてください。
+            左で今の装備を見て、変えたい欄を押します。すると右にその欄の候補表が出るので、行を押して選びます。
           </p>
         </div>
 
-        <div className="space-y-4">
-          <div
-            ref={(node) => {
-              sectionRefs.current.rod = node;
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.98fr)]">
+          <CurrentLoadoutTable
+            activeSlot={activeSlot}
+            selectedIds={{
+              rod: params.loadout.rodId,
+              line: params.loadout.lineId,
+              bobber: params.loadout.bobberId,
+              enchant: params.loadout.enchantId,
             }}
-          >
-            <LoadoutTableSection
-              slot="rod"
-              label="Rod"
-              items={RODS}
-              selectedId={params.loadout.rodId}
-              expanded={expandedSlot === 'rod'}
-              onToggle={() => toggleLoadoutSection('rod')}
-              onSelect={(id) => handleLoadoutSelect('rod', 'rodId', id)}
-            />
-          </div>
-          <div
-            ref={(node) => {
-              sectionRefs.current.line = node;
-            }}
-          >
-            <LoadoutTableSection
-              slot="line"
-              label="Line"
-              items={LINES}
-              selectedId={params.loadout.lineId}
-              expanded={expandedSlot === 'line'}
-              onToggle={() => toggleLoadoutSection('line')}
-              onSelect={(id) => handleLoadoutSelect('line', 'lineId', id)}
-            />
-          </div>
-          <div
-            ref={(node) => {
-              sectionRefs.current.bobber = node;
-            }}
-          >
-            <LoadoutTableSection
-              slot="bobber"
-              label="Bobber"
-              items={BOBBERS}
-              selectedId={params.loadout.bobberId}
-              expanded={expandedSlot === 'bobber'}
-              onToggle={() => toggleLoadoutSection('bobber')}
-              onSelect={(id) => handleLoadoutSelect('bobber', 'bobberId', id)}
-            />
-          </div>
-          <div
-            ref={(node) => {
-              sectionRefs.current.enchant = node;
-            }}
-          >
-            <LoadoutTableSection
-              slot="enchant"
-              label="Enchant"
-              items={ENCHANTS}
-              selectedId={params.loadout.enchantId}
-              expanded={expandedSlot === 'enchant'}
-              onToggle={() => toggleLoadoutSection('enchant')}
-              onSelect={(id) => handleLoadoutSelect('enchant', 'enchantId', id)}
-            />
+            recentlyUpdatedSlot={recentlyUpdatedSlot}
+            onActivate={activateSlot}
+          />
+
+          <div className="min-h-[22rem]">
+            {activeSlot ? (
+              <LoadoutPickerPanel
+                slot={activeSlot}
+                items={loadoutItems[activeSlot]}
+                selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
+                onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
+                onClose={() => setActiveSlot(null)}
+              />
+            ) : (
+              <div className="animate-fade-in flex h-full min-h-[22rem] items-center justify-center rounded-[24px] border border-dashed border-white/80 bg-white/60 px-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+                <div>
+                  <div className="text-sm font-semibold text-gray-700">右に候補表を出す</div>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                    左の今の装備の表で、変えたい欄の行を押してください。
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
