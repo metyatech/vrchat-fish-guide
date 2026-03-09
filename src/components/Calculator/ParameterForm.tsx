@@ -107,7 +107,7 @@ const NEXT_LOADOUT_SLOT: Record<LoadoutSlot, LoadoutSlot | null> = {
 function LoadoutSelectionBadge({ selected }: { selected: boolean }) {
   return (
     <span
-      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
+      className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
         selected
           ? 'border-green-500 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-sm'
           : 'border-gray-300 bg-white text-gray-500 hover:border-ocean-300'
@@ -118,18 +118,18 @@ function LoadoutSelectionBadge({ selected }: { selected: boolean }) {
   );
 }
 
-function StatTableHeader({ stat }: { stat: StatThemeKey }) {
+function StatTableHeader({ stat, short = false }: { stat: StatThemeKey; short?: boolean }) {
   const theme = STAT_THEME[stat];
 
   return (
     <span
-      className="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold"
+      className="inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold"
       style={{
         backgroundColor: theme.cardBackground,
         color: theme.surfaceText,
       }}
     >
-      {theme.label}
+      {short ? theme.shortLabel : theme.label}
     </span>
   );
 }
@@ -168,38 +168,51 @@ function LoadoutStatCells({
 function LoadoutTableHeader({
   leadingLabel,
   leadingClassName = 'px-2 py-1',
+  compact = false,
 }: {
   leadingLabel: string;
   leadingClassName?: string;
+  /** When true: omits the location column and uses abbreviated stat labels. */
+  compact?: boolean;
 }) {
   return (
     <thead>
       <tr className="text-left text-xs text-gray-600">
         <th className={leadingClassName}>{leadingLabel}</th>
         <th className="px-2 py-1">名前</th>
-        <th className="px-2 py-1">入手場所 / 効果</th>
+        {!compact && <th className="px-2 py-1">入手場所 / 効果</th>}
         <th className="px-2 py-1">
-          <StatTableHeader stat="luck" />
+          <StatTableHeader stat="luck" short={compact} />
         </th>
         <th className="px-2 py-1">
-          <StatTableHeader stat="strength" />
+          <StatTableHeader stat="strength" short={compact} />
         </th>
         <th className="px-2 py-1">
-          <StatTableHeader stat="expertise" />
+          <StatTableHeader stat="expertise" short={compact} />
         </th>
         <th className="px-2 py-1">
-          <StatTableHeader stat="attractionRate" />
+          <StatTableHeader stat="attractionRate" short={compact} />
         </th>
         <th className="px-2 py-1">
-          <StatTableHeader stat="bigCatchRate" />
+          <StatTableHeader stat="bigCatchRate" short={compact} />
         </th>
         <th className="px-2 py-1">
-          <StatTableHeader stat="maxWeight" />
+          <StatTableHeader stat="maxWeight" short={compact} />
         </th>
       </tr>
     </thead>
   );
 }
+
+/** Slot-specific row highlight class for the active row, colour-matched to the slot chip. */
+const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
+  rod: 'bg-gradient-to-r from-amber-50 via-white to-white ring-2 ring-amber-400 ring-offset-1 shadow-[0_14px_36px_rgba(245,158,11,0.12)]',
+  line: 'bg-gradient-to-r from-sky-50 via-white to-white ring-2 ring-sky-400 ring-offset-1 shadow-[0_14px_36px_rgba(56,189,248,0.12)]',
+  bobber:
+    'bg-gradient-to-r from-rose-50 via-white to-white ring-2 ring-rose-400 ring-offset-1 shadow-[0_14px_36px_rgba(251,113,133,0.12)]',
+  enchant:
+    'bg-gradient-to-r from-violet-50 via-white to-white ring-2 ring-violet-400 ring-offset-1 shadow-[0_14px_36px_rgba(167,139,250,0.12)]',
+};
 
 function CurrentLoadoutTable({
   activeSlot,
@@ -224,15 +237,16 @@ function CurrentLoadoutTable({
       <div className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(241,247,255,0.95))] px-4 py-4">
         <div className="text-sm font-semibold text-gray-800">今の装備の表</div>
         <p className="mt-1 text-xs leading-relaxed text-gray-500">
-          Rod / Line / Bobber / Enchant の行を押すと、右にその欄の候補が出ます。
+          行を押すと、右にその欄の候補が出ます。
         </p>
       </div>
-      <div className="overflow-x-auto">
+      {/* overflow-hidden: table is compact-mode (no location col) so it always fits the container. */}
+      <div className="overflow-hidden">
         <table
           data-testid="current-loadout-table"
           className="min-w-full border-separate border-spacing-y-2 px-3 text-sm"
         >
-          <LoadoutTableHeader leadingLabel="欄" />
+          <LoadoutTableHeader leadingLabel="欄" compact={true} />
           <tbody>
             {LOADOUT_SLOT_ORDER.map((slot) => {
               const item = selectedItems[slot];
@@ -258,22 +272,20 @@ function CurrentLoadoutTable({
                   onKeyDown={handleKeyDown}
                   className={`cursor-pointer outline-none transition-all duration-200 ${
                     isActive
-                      ? 'bg-gradient-to-r from-white via-white to-ocean-50 shadow-[0_14px_36px_rgba(37,120,232,0.14)] ring-2 ring-ocean-500 ring-offset-1'
+                      ? SLOT_ACTIVE_ROW_CLASS[slot]
                       : 'bg-white/70 hover:bg-ocean-50/70 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
                   } ${isUpdated ? 'animate-loadout-settle' : ''}`}
                 >
                   <td className="rounded-l-xl px-2 py-3 align-top">
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-1.5">
                       <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                       <span className="text-[11px] font-medium text-gray-500">
-                        {isActive ? '右で選択中' : '押すと候補を開く'}
+                        {isActive ? '▶ 右で選択中' : '押すと候補を開く'}
                       </span>
                     </div>
                   </td>
                   <td className="px-2 py-3 align-top font-semibold text-gray-900">{item.nameEn}</td>
-                  <td className="px-2 py-3 align-top text-xs leading-relaxed text-gray-600">
-                    {formatItemDetail(item)}
-                  </td>
+                  {/* Location column omitted in compact mode — visible in the picker panel. */}
                   <LoadoutStatCells
                     item={item}
                     cellClassName="px-2 py-3 align-top text-xs font-semibold"
@@ -307,7 +319,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     <aside
       key={slot}
       data-testid="slot-picker-panel"
-      className={`animate-slide-in-right overflow-hidden rounded-[24px] border bg-white/90 shadow-[0_24px_56px_rgba(15,23,42,0.14)] ${theme.panelClassName}`}
+      className={`animate-slide-in-right overflow-hidden rounded-[24px] border bg-white/95 shadow-[0_24px_56px_rgba(15,23,42,0.14)] ${theme.panelBorderClassName}`}
     >
       <div className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(247,250,255,0.92))] px-4 py-4">
         <div className="flex items-start justify-between gap-3">

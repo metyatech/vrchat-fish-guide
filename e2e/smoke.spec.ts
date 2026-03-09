@@ -118,6 +118,38 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   expect(updatedRowCount).not.toBe(initialRowCount);
 });
 
+test('current loadout table has no horizontal overflow', async ({ page }) => {
+  await page.goto('/calculator/');
+
+  await expect(page.getByTestId('current-loadout-table')).toBeVisible();
+
+  // The compact-mode table (no location column, abbreviated stat headers) must fit
+  // its container without triggering a horizontal scrollbar.
+  const hasOverflow = await page.evaluate(() => {
+    const tableEl = document.querySelector(
+      '[data-testid="current-loadout-table"]',
+    ) as HTMLElement | null;
+    if (!tableEl) return { error: 'table element not found' };
+    const wrapper = tableEl.parentElement;
+    if (!wrapper) return { error: 'no parent wrapper' };
+    return {
+      scrollWidth: wrapper.scrollWidth,
+      clientWidth: wrapper.clientWidth,
+      overflow: wrapper.scrollWidth > wrapper.clientWidth,
+    };
+  });
+
+  expect(hasOverflow).not.toHaveProperty('error');
+  expect((hasOverflow as { overflow: boolean }).overflow).toBe(false);
+
+  // Badge text must not be broken across lines: verify white-space:nowrap is applied.
+  const pickerPanel = page.getByTestId('slot-picker-panel');
+  await expect(pickerPanel).toBeVisible();
+  const firstBadge = pickerPanel.locator('span.whitespace-nowrap').first();
+  await expect(firstBadge).toBeVisible();
+  await expect(firstBadge).toHaveCSS('white-space', 'nowrap');
+});
+
 test('sources page shows data governance and current source set', async ({ page }) => {
   await page.goto('/sources/');
 

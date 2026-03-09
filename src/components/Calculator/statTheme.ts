@@ -8,6 +8,8 @@ export type StatThemeKey =
 
 export interface StatTheme {
   label: string;
+  /** Abbreviated label used in compact table headers to prevent horizontal overflow. */
+  shortLabel: string;
   accent: string;
   pillText: string;
   surfaceText: string;
@@ -34,12 +36,14 @@ function withAlpha(hex: string, alpha: number): string {
 
 function createTheme(
   label: string,
+  shortLabel: string,
   accent: string,
   pillText: string,
   surfaceText = pillText,
 ): StatTheme {
   return {
     label,
+    shortLabel,
     accent,
     pillText,
     surfaceText,
@@ -54,12 +58,12 @@ function createTheme(
  * reads as the same concept throughout the calculator.
  */
 export const STAT_THEME: Record<StatThemeKey, StatTheme> = {
-  luck: createTheme('Luck', '#FFE756', '#4D3F00'),
-  strength: createTheme('Strength', '#FE6C6D', '#5B1117'),
-  expertise: createTheme('Expertise', '#4BBCE0', '#0D4257'),
-  attractionRate: createTheme('Attraction Rate', '#92D5BC', '#184634'),
-  bigCatchRate: createTheme('Big Catch Rate', '#FFD76D', '#5E4300'),
-  maxWeight: createTheme('Max Weight', '#9254BA', '#FFFFFF', '#4C2567'),
+  luck: createTheme('Luck', 'Lk', '#FFE756', '#4D3F00'),
+  strength: createTheme('Strength', 'Str', '#FE6C6D', '#5B1117'),
+  expertise: createTheme('Expertise', 'Exp', '#4BBCE0', '#0D4257'),
+  attractionRate: createTheme('Attraction Rate', 'Att%', '#92D5BC', '#184634'),
+  bigCatchRate: createTheme('Big Catch Rate', 'BigC', '#FFD76D', '#5E4300'),
+  maxWeight: createTheme('Max Weight', 'MaxWt', '#9254BA', '#FFFFFF', '#4C2567'),
 };
 
 export const STAT_THEME_ORDER: StatThemeKey[] = [
