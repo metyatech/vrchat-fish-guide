@@ -8,10 +8,10 @@
  *
  * Covered regressions:
  * - LoadoutSelectionBadge text ("✓ 使用中" / "選択") splitting across lines.
- * - CurrentLoadoutTable container using overflow-x-auto (which produced a
- *   horizontal scrollbar because the table was too wide).
- * - Active row using a generic ocean ring instead of a slot-specific colour.
- * - Loadout board region causing horizontal overflow (new game HUD redesign).
+ * - CurrentLoadout container using overflow-x-auto (which produced a
+ *   horizontal scrollbar because the loadout board was too wide).
+ * - Active row losing its slot-specific colour cue.
+ * - Loadout board region causing horizontal overflow.
  * - CTA "閉じる" button label wrapping in the inventory drawer.
  */
 
@@ -61,12 +61,10 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(foundOverflowXAuto).toBe(false);
   });
 
-  it('compact mode omits the location column from the current loadout table', () => {
+  it('current loadout board has no detached connector column', () => {
     renderDefault();
 
-    const table = screen.getByTestId('current-loadout-table');
-    // The compact header should not contain the location column heading.
-    expect(within(table).queryByText('入手場所 / 効果')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loadout-connector')).not.toBeInTheDocument();
   });
 
   it('active row (Rod by default) carries a slot-specific amber ring class', () => {
@@ -115,5 +113,17 @@ describe('UI quality – overflow and wrapping prevention', () => {
     // The 閉じる button label span must have whitespace-nowrap so it never wraps.
     const closeButtonNowrap = pickerPanel.querySelector('span.whitespace-nowrap');
     expect(closeButtonNowrap).not.toBeNull();
+  });
+
+  it('selection relationship is explicit in both source row and chooser panel', () => {
+    renderDefault();
+
+    const table = screen.getByTestId('current-loadout-table');
+    const rodRow = within(table).getByRole('button', { name: 'Rod を選び直す' });
+    expect(rodRow).toHaveTextContent('右の一覧から選ぶと、この行が更新されます');
+
+    const pickerPanel = screen.getByTestId('slot-picker-panel');
+    expect(pickerPanel).toHaveTextContent('左の Rod 行を更新');
+    expect(screen.getByTestId('active-slot-indicator')).toHaveTextContent('Rod を右から選ぶ');
   });
 });

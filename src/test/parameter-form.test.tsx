@@ -11,19 +11,17 @@ import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
 // and the picker side panel.
 
 describe('Step 1 loadout UI quality', () => {
-  it('current-loadout table has no stat column headers (no Luck/Strength etc in thead)', () => {
+  it('current loadout board presents four selectable rows and keeps Rod active on mount', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    const thead = currentLoadoutTable.querySelector('thead');
-    // The compact current-loadout table keeps a minimal header but does not
-    // show detailed stat column headers to prevent horizontal overflow.
-    expect(thead).not.toBeNull();
-    expect(within(currentLoadoutTable).queryByText('Luck')).not.toBeInTheDocument();
-    expect(within(currentLoadoutTable).queryByText('Strength')).not.toBeInTheDocument();
-    expect(within(currentLoadoutTable).queryByText('Expertise')).not.toBeInTheDocument();
+    const rowButtons = within(currentLoadoutTable).getAllByRole('button');
+    expect(rowButtons).toHaveLength(4);
+    expect(
+      within(currentLoadoutTable).getByRole('button', { name: 'Rod を選び直す' }),
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('picker panel badge labels have whitespace-nowrap to prevent wrapping', () => {
@@ -65,7 +63,7 @@ describe('Step 1 loadout UI quality', () => {
     });
     fireEvent.click(bobberRow);
 
-    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Bobber の候補一覧');
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Bobber の候補');
   });
 });
 
@@ -152,7 +150,7 @@ describe('ParameterForm', () => {
     const lineRow = within(currentLoadoutTable).getByRole('button', { name: 'Line を選び直す' });
     fireEvent.click(lineRow);
 
-    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Line の候補一覧');
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Line の候補');
 
     fireEvent.click(screen.getByText('Lucky Line'));
 
@@ -182,12 +180,14 @@ describe('ParameterForm', () => {
 
     const activeRow = within(currentLoadoutCard).getByRole('button', { name: 'Rod を選び直す' });
     expect(activeRow).toHaveAttribute('data-state', 'active');
+    expect(activeRow).toHaveTextContent('右の一覧から選ぶと、この行が更新されます');
 
     const activeIndicator = screen.getByTestId('active-slot-indicator');
-    expect(activeIndicator).toHaveTextContent('Rod');
+    expect(activeIndicator).toHaveTextContent('Rod を右から選ぶ');
 
     const pickerPanel = screen.getByTestId('slot-picker-panel');
-    expect(pickerPanel).toHaveTextContent('Rod の候補一覧');
+    expect(pickerPanel).toHaveTextContent('Rod の候補');
+    expect(pickerPanel).toHaveTextContent('左の Rod 行を更新');
     const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(nowrapBadges.length).toBeGreaterThan(0);
   });

@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-03-10
+
+### Changed
+
+- **Step 1 was rebuilt around a clearer source→choice→destination flow**: the left side now stays as a readable current-loadout board, the active row itself explains that the change comes from the right, and the picker panel states that the selected item will land back in that specific row.
+- **Removed the detached connector presentation that made the previous game-style redesign harder to understand**: the right picker now behaves like a row-anchored chooser instead of a separate mysterious panel in the middle of the page.
+- **Strengthened automated clarity checks for Step 1**: regression tests now assert the visible relationship between the active row and the chooser panel, and the visual snapshot baseline was updated to the new layout.
+
 ## [0.12.0] - 2026-03-10
 
 ### Changed
