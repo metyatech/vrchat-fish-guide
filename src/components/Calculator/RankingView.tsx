@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { CalculatorParams, EquipmentItem, EnchantItem } from '@/types';
 import { rankAllSlots, RankSlot, SlotRankEntry } from '@/lib/ranking';
 import { formatCurrency } from '@/lib/calculator';
+import { SLOT_THEME } from '@/components/Calculator/slotTheme';
 
 interface RankingViewProps {
   /** Base params to rank against (area, conditions, time model, etc.) */
@@ -14,6 +15,8 @@ interface RankingViewProps {
   focusSlot?: RankSlot;
   /** Expand by default */
   initialExpanded?: boolean;
+  /** Keep the chosen slot open in guided flows */
+  alwaysOpen?: boolean;
   /** Create a comparison pattern from a ranked item */
   onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
 }
@@ -124,6 +127,7 @@ export function RankingView({
   topN = 5,
   focusSlot = 'rod',
   initialExpanded = false,
+  alwaysOpen = false,
   onPickItem,
 }: RankingViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
@@ -131,31 +135,36 @@ export function RankingView({
 
   const ranked = useMemo(() => rankAllSlots(baseParams), [baseParams]);
   const otherSlots = SLOT_ORDER.filter((slot) => slot !== focusSlot);
+  const isVisible = alwaysOpen || isExpanded;
+  const focusTheme = SLOT_THEME[focusSlot];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className={`rounded-xl border bg-white p-5 ${focusTheme.panelClassName}`}>
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-800">この欄で強い候補</h2>
+          <h2 className="text-base font-semibold text-gray-800">
+            {SLOT_LABELS[focusSlot]} の候補一覧
+          </h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            いま比べたい {SLOT_LABELS[focusSlot]}{' '}
-            だけを変えたときに、どの候補が伸びやすいかを並べています。
-            ここに出る順番は、まだ正確式が分かっていない部分を含む推定です。
+            いまの装備のまま <strong>{SLOT_LABELS[focusSlot]}</strong>{' '}
+            だけを変えたときに、伸びやすい順で並べています。迷ったら、上から 1 つ選べば大丈夫です。
           </p>
         </div>
-        <button
-          onClick={() => setIsExpanded((v) => !v)}
-          className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-        >
-          {isExpanded ? '閉じる ▲' : '表示 ▼'}
-        </button>
+        {!alwaysOpen ? (
+          <button
+            onClick={() => setIsExpanded((v) => !v)}
+            className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+          >
+            {isExpanded ? '閉じる ▲' : '表示 ▼'}
+          </button>
+        ) : null}
       </div>
 
-      {isExpanded && (
+      {isVisible && (
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
             <strong>見方:</strong>{' '}
-            これは「ほかを今のままにして、この欄だけ変えたらどうなるか」です。全部の装備を同時に変えた結果ではありません。
+            上にあるほど、今の条件では伸びやすい候補です。1つ押すと、その候補が比較一覧に追加されます。
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -176,38 +185,42 @@ export function RankingView({
             />
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
-            ほかの欄も見たいときだけ、下を開いてください。
-            <button
-              type="button"
-              onClick={() => setShowOtherSlots((value) => !value)}
-              className="ml-2 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-            >
-              {showOtherSlots ? 'ほかの欄を閉じる' : 'ほかの欄も見る'}
-            </button>
-          </div>
+          {!alwaysOpen ? (
+            <>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+                ほかの欄も見たいときだけ、下を開いてください。
+                <button
+                  type="button"
+                  onClick={() => setShowOtherSlots((value) => !value)}
+                  className="ml-2 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                >
+                  {showOtherSlots ? 'ほかの欄を閉じる' : 'ほかの欄も見る'}
+                </button>
+              </div>
 
-          {showOtherSlots ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {otherSlots.map((slot) => (
-                <SlotTable
-                  key={slot}
-                  slot={slot}
-                  entries={ranked[slot]}
-                  topN={topN}
-                  activeItemId={
-                    slot === 'rod'
-                      ? baseParams.loadout.rodId
-                      : slot === 'line'
-                        ? baseParams.loadout.lineId
-                        : slot === 'bobber'
-                          ? baseParams.loadout.bobberId
-                          : baseParams.loadout.enchantId
-                  }
-                  onPickItem={onPickItem}
-                />
-              ))}
-            </div>
+              {showOtherSlots ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {otherSlots.map((slot) => (
+                    <SlotTable
+                      key={slot}
+                      slot={slot}
+                      entries={ranked[slot]}
+                      topN={topN}
+                      activeItemId={
+                        slot === 'rod'
+                          ? baseParams.loadout.rodId
+                          : slot === 'line'
+                            ? baseParams.loadout.lineId
+                            : slot === 'bobber'
+                              ? baseParams.loadout.bobberId
+                              : baseParams.loadout.enchantId
+                      }
+                      onPickItem={onPickItem}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
       )}

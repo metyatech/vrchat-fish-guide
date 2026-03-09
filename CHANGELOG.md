@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-03-09
+
+### Changed
+
+- **Step 4 / 5 are now a simpler one-way flow**: The calculator now separates "pick one slot to change" from "pick one candidate to add", so users no longer have to infer the intended action from a mixed recommendation panel.
+- **Slot colors are now consistent across the comparison flow**: Rod, Line, Bobber, Enchant, and full-build comparison each keep the same accent color across selection, recommendation, and candidate areas, making it easier to scan what the page is talking about.
+- **Candidate lists now stay focused on the selected slot**: Guided comparison mode keeps the chosen slot open without extra nested toggles, so users can move from Step 4 to Step 5 without deciding what to expand next.
+- **Copy and walkthrough updated for the stricter flow**: Calculator wording, README guidance, and Playwright smoke coverage now match the new first-use order: current gear -> optional narrowing -> play-speed adjustment -> choose one slot -> add one candidate -> compare.
+
 ## [0.9.0] - 2026-03-09
 
 ### Changed

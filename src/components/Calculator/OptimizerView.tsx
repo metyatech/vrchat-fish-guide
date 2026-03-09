@@ -14,6 +14,8 @@ interface OptimizerViewProps {
   baseParams: CalculatorParams;
   /** Expand by default */
   initialExpanded?: boolean;
+  /** Keep the optimizer visible in guided flows */
+  alwaysOpen?: boolean;
   /** Add an optimized combination to the comparison list */
   onPickBuild?: (entry: FullBuildEntry, rank: number) => void;
 }
@@ -104,6 +106,7 @@ function ResultTable({
 export function OptimizerView({
   baseParams,
   initialExpanded = false,
+  alwaysOpen = false,
   onPickBuild,
 }: OptimizerViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
@@ -113,8 +116,10 @@ export function OptimizerView({
   // Stable serialized key so re-runs only happen when params actually change.
   const paramsKey = JSON.stringify(baseParams);
 
+  const isVisible = alwaysOpen || isExpanded;
+
   useEffect(() => {
-    if (!isExpanded) {
+    if (!isVisible) {
       setResult(null);
       setIsLoading(false);
       return;
@@ -135,31 +140,33 @@ export function OptimizerView({
       controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExpanded, paramsKey]);
+  }, [isVisible, paramsKey]);
 
   const displayedTotal = result?.totalCombinationSpace ?? TOTAL_COMBINATIONS;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-800">全部まとめて比べる</h2>
+          <h2 className="text-base font-semibold text-gray-800">全部入れ替えて一気に探す</h2>
           <p className="mt-0.5 text-xs text-gray-500">
             Rod / Line / Bobber / Enchant の全組み合わせ {displayedTotal.toLocaleString()}{' '}
-            通りをすべて調べて、伸びやすい順に並べます。時間はかかりますが、全部まとめて入れ替えた結果を見たいときに使います。
+            通りをすべて調べて、伸びやすい順に並べます。1欄ずつではなく、全部まとめて入れ替えたいときだけ使ってください。
           </p>
         </div>
-        <button
-          onClick={() => setIsExpanded((v) => !v)}
-          className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-          aria-expanded={isExpanded}
-          aria-controls="optimizer-results"
-        >
-          {isExpanded ? '閉じる ▲' : '表示 ▼'}
-        </button>
+        {!alwaysOpen ? (
+          <button
+            onClick={() => setIsExpanded((v) => !v)}
+            className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+            aria-expanded={isExpanded}
+            aria-controls="optimizer-results"
+          >
+            {isExpanded ? '閉じる ▲' : '表示 ▼'}
+          </button>
+        ) : null}
       </div>
 
-      {isExpanded && (
+      {isVisible && (
         <div id="optimizer-results" className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
             <strong>見方:</strong>

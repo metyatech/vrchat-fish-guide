@@ -9,6 +9,7 @@ import {
   WEATHER_TYPE_LABELS,
 } from '@/data/fish';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
+import { SLOT_THEME } from '@/components/Calculator/slotTheme';
 import { BEST_AREA_ID } from '@/lib/calculator';
 import {
   CalculatorParams,
@@ -82,6 +83,26 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SlotLabelChip({
+  slot,
+  label,
+}: {
+  slot: 'rod' | 'line' | 'bobber' | 'enchant';
+  label: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold ${SLOT_THEME[slot].chipClassName}`}
+    >
+      <span
+        className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+        aria-hidden="true"
+      />
+      {label}
+    </span>
+  );
+}
+
 export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
   const handleChange = <K extends keyof CalculatorParams>(field: K, value: CalculatorParams[K]) => {
     onChange({ ...params, [field]: value });
@@ -138,9 +159,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label htmlFor={fieldId.rodId} className="mb-1 block text-sm font-medium text-gray-700">
-              Rod
+          <div className={`rounded-xl border p-3 ${SLOT_THEME.rod.panelClassName}`}>
+            <label htmlFor={fieldId.rodId} className="mb-2 block">
+              <SlotLabelChip slot="rod" label="Rod" />
             </label>
             <select
               id={fieldId.rodId}
@@ -157,12 +178,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             <p className="mt-1 text-xs text-gray-500">現在: {selectedRod.nameEn}</p>
           </div>
 
-          <div>
-            <label
-              htmlFor={fieldId.lineId}
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Line
+          <div className={`rounded-xl border p-3 ${SLOT_THEME.line.panelClassName}`}>
+            <label htmlFor={fieldId.lineId} className="mb-2 block">
+              <SlotLabelChip slot="line" label="Line" />
             </label>
             <select
               id={fieldId.lineId}
@@ -179,12 +197,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             <p className="mt-1 text-xs text-gray-500">現在: {selectedLine.nameEn}</p>
           </div>
 
-          <div>
-            <label
-              htmlFor={fieldId.bobberId}
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Bobber
+          <div className={`rounded-xl border p-3 ${SLOT_THEME.bobber.panelClassName}`}>
+            <label htmlFor={fieldId.bobberId} className="mb-2 block">
+              <SlotLabelChip slot="bobber" label="Bobber" />
             </label>
             <select
               id={fieldId.bobberId}
@@ -201,12 +216,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             <p className="mt-1 text-xs text-gray-500">現在: {selectedBobber.nameEn}</p>
           </div>
 
-          <div>
-            <label
-              htmlFor={fieldId.enchantId}
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Enchant
+          <div className={`rounded-xl border p-3 ${SLOT_THEME.enchant.panelClassName}`}>
+            <label htmlFor={fieldId.enchantId} className="mb-2 block">
+              <SlotLabelChip slot="enchant" label="Enchant" />
             </label>
             <select
               id={fieldId.enchantId}

@@ -9,6 +9,7 @@ import { OptimizerView } from '@/components/Calculator/OptimizerView';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { RankingView } from '@/components/Calculator/RankingView';
 import { ResultTable } from '@/components/Calculator/ResultTable';
+import { CompareTarget, SLOT_THEME } from '@/components/Calculator/slotTheme';
 import { WarningBanner } from '@/components/Calculator/WarningBanner';
 import { AREA_MAP, RARITY_LABELS, TIME_OF_DAY_LABELS, WEATHER_TYPE_LABELS } from '@/data/fish';
 import { calculateDistribution, formatCurrency, getDefaultParams } from '@/lib/calculator';
@@ -24,8 +25,6 @@ import {
   updateBuildParams,
 } from '@/lib/url-state';
 import { BuildConfig, CalculatorParams, DistributionResult, Rarity } from '@/types';
-
-type CompareTarget = RankSlot | 'full-build';
 
 const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
   rod: 'Rod',
@@ -267,6 +266,12 @@ export function CalculatorPageClient() {
     };
   }, [activeBuild.params, compareTarget, rankedBySlot]);
 
+  const compareTargetTheme = SLOT_THEME[compareTarget];
+  const compareTargetActionLabel =
+    compareTarget === 'full-build'
+      ? '全部まとめて入れ替える'
+      : `${COMPARE_TARGET_LABELS[compareTarget]} を変える`;
+
   const hasComparisons = builds.length > 1;
 
   // ── Share URL ──────────────────────────────────────────────────────────────
@@ -313,7 +318,7 @@ export function CalculatorPageClient() {
         <p className="mt-1 text-sm text-gray-500">
           いまの装備から何を変えると一番伸びるかを、上から順に条件を入れながら比べます。
         </p>
-        <ol className="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-4">
+        <ol className="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-5">
           <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
             1. 今の装備を入れる
           </li>
@@ -321,10 +326,13 @@ export function CalculatorPageClient() {
             2. 必要なら場所と条件を絞る
           </li>
           <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            3. 次に、何を比べたいかを選ぶ
+            3. プレイ速度を微調整する
           </li>
           <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            4. 候補を追加して、期待値/時間で比べる
+            4. 1つだけ変えてみる欄を選ぶ
+          </li>
+          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+            5. 候補を追加して比べる
           </li>
         </ol>
       </div>
@@ -356,10 +364,10 @@ export function CalculatorPageClient() {
               Step 4
             </div>
             <h2 className="text-lg font-semibold text-gray-900">
-              次に、どこを変えて比べるか決める
+              次に、どの欄を 1 つだけ変えて試すか選ぶ
             </h2>
             <p className="mt-1 text-sm text-gray-500">
-              まずは 1 か所だけ変えて比べるのがおすすめです。全部まとめて比べるのは最後で十分です。
+              まずは 1 か所だけ変えて比べるのがおすすめです。迷ったら Rod から試してください。
             </p>
           </div>
 
@@ -368,72 +376,27 @@ export function CalculatorPageClient() {
               <button
                 key={target}
                 onClick={() => setCompareTarget(target)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                   compareTarget === target
-                    ? 'bg-ocean-600 text-white'
-                    : 'border border-gray-200 bg-gray-50 text-gray-700 hover:border-ocean-300 hover:text-ocean-700'
+                    ? SLOT_THEME[target].buttonActiveClassName
+                    : SLOT_THEME[target].buttonIdleClassName
                 }`}
               >
-                {COMPARE_TARGET_LABELS[target]}
+                {target === 'full-build'
+                  ? '全部まとめて入れ替える'
+                  : `${COMPARE_TARGET_LABELS[target]} を変える`}
               </button>
             ))}
           </div>
 
-          <div className="rounded-xl border border-ocean-200 bg-ocean-50 p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              次にやること
+          <div className={`rounded-xl border p-4 ${compareTargetTheme.panelClassName}`}>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+              いま選んだ欄
             </div>
-            {compareTarget === 'full-build' ? (
-              <div className="mt-2 space-y-2 text-sm text-ocean-950">
-                <p>
-                  下の <strong>「全部まとめて比べる」</strong>{' '}
-                  で、装備の全組み合わせから伸びやすい候補を探します。
-                </p>
-                <p className="text-xs text-ocean-900">
-                  先に上の入力を埋めてから、候補一覧を見てください。
-                </p>
-              </div>
-            ) : bestNextTry ? (
-              <div className="mt-2 space-y-3 text-sm text-ocean-950">
-                <p>
-                  いまの <strong>{COMPARE_TARGET_LABELS[compareTarget]}</strong>{' '}
-                  を比べるなら、最初に試す候補は{' '}
-                  <strong>{bestNextTry.bestEntry.item.nameEn}</strong> です。
-                </p>
-                <div className="rounded-xl border border-white/60 bg-white/80 p-3 text-xs text-gray-700">
-                  現在: <strong>{bestNextTry.currentEntry.item.nameEn}</strong>
-                  <br />
-                  候補: <strong>{bestNextTry.bestEntry.item.nameEn}</strong>
-                  <br />
-                  期待値/時間:{' '}
-                  <strong>{formatCurrency(bestNextTry.currentEntry.expectedValuePerHour)}</strong>
-                  {' → '}
-                  <strong>{formatCurrency(bestNextTry.bestEntry.expectedValuePerHour)}</strong>
-                  {!bestNextTry.alreadyBest ? (
-                    <>
-                      <br />
-                      伸び幅: <strong>{bestNextTry.upliftPct.toFixed(1)}%</strong>
-                    </>
-                  ) : null}
-                </div>
-                {!bestNextTry.alreadyBest ? (
-                  <button
-                    onClick={handleCreateRecommendationBuild}
-                    className="rounded-lg bg-ocean-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ocean-700"
-                  >
-                    この候補で比べる組み合わせを追加
-                  </button>
-                ) : (
-                  <p className="text-xs text-ocean-900">
-                    いまの装備がこの欄では一番良い状態です。別の欄に切り替えて比べてください。
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-ocean-950">
-                先に上の入力で場所と今の装備を確認してください。
-              </p>
-            )}
+            <p className="mt-2 text-sm text-gray-900">
+              <strong>{compareTargetActionLabel}</strong> を試します。次は、この欄の候補を 1
+              つ選んで比較へ追加します。
+            </p>
           </div>
         </section>
 
@@ -442,12 +405,51 @@ export function CalculatorPageClient() {
             <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
               Step 5
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">おすすめ候補を 1 つ追加する</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {compareTarget === 'full-build'
+                ? '全部入れ替えの候補を 1 つ追加する'
+                : `${COMPARE_TARGET_LABELS[compareTarget]} の候補を 1 つ追加する`}
+            </h2>
             <p className="mt-1 text-sm text-gray-500">
-              ここでは、次に試す候補を追加します。まずは 1
-              件だけ追加して、そのまますぐ下で結果を比べるのがおすすめです。
+              まずは 1 件だけ追加して、そのまますぐ下で今の装備と比べるのがおすすめです。
             </p>
           </div>
+
+          {compareTarget !== 'full-build' && bestNextTry ? (
+            <div className={`rounded-xl border p-4 ${compareTargetTheme.panelClassName}`}>
+              <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                まずはこの候補
+              </div>
+              <div className="mt-2 rounded-xl border border-white/60 bg-white/80 p-3 text-sm text-gray-700">
+                現在: <strong>{bestNextTry.currentEntry.item.nameEn}</strong>
+                <br />
+                候補: <strong>{bestNextTry.bestEntry.item.nameEn}</strong>
+                <br />
+                期待値/時間:{' '}
+                <strong>{formatCurrency(bestNextTry.currentEntry.expectedValuePerHour)}</strong>
+                {' → '}
+                <strong>{formatCurrency(bestNextTry.bestEntry.expectedValuePerHour)}</strong>
+                {!bestNextTry.alreadyBest ? (
+                  <>
+                    <br />
+                    伸び幅: <strong>{bestNextTry.upliftPct.toFixed(1)}%</strong>
+                  </>
+                ) : null}
+              </div>
+              {!bestNextTry.alreadyBest ? (
+                <button
+                  onClick={handleCreateRecommendationBuild}
+                  className={`mt-3 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${compareTargetTheme.buttonActiveClassName}`}
+                >
+                  まずはこの候補を比較へ追加
+                </button>
+              ) : (
+                <p className="mt-3 text-xs text-gray-700">
+                  いまの装備がこの欄では一番良い状態です。別の欄を選ぶと、次に試す候補が出ます。
+                </p>
+              )}
+            </div>
+          ) : null}
 
           {compareTarget !== 'full-build' ? (
             <RankingView
@@ -455,16 +457,18 @@ export function CalculatorPageClient() {
               baseParams={activeBuild.params}
               focusSlot={compareTarget}
               initialExpanded={true}
+              alwaysOpen={true}
               onPickItem={handleCreateSlotComparison}
             />
-          ) : null}
-
-          <OptimizerView
-            key={`optimizer-${compareTarget}`}
-            baseParams={activeBuild.params}
-            initialExpanded={compareTarget === 'full-build'}
-            onPickBuild={handleCreateOptimizedBuild}
-          />
+          ) : (
+            <OptimizerView
+              key="optimizer-full-build"
+              baseParams={activeBuild.params}
+              initialExpanded={true}
+              alwaysOpen={true}
+              onPickBuild={handleCreateOptimizedBuild}
+            />
+          )}
         </section>
 
         <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -473,7 +477,9 @@ export function CalculatorPageClient() {
               <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
                 Step 6
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">追加した組み合わせを比べる</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                追加した候補を今の装備と比べる
+              </h2>
               <p className="mt-1 text-sm text-gray-500">
                 候補を追加したら、ここで横並びに見ます。迷ったら、まずは期待値/時間だけ比べてください。
               </p>
