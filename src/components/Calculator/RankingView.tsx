@@ -53,13 +53,13 @@ function SlotTable({
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <h3 className="mb-3 text-sm font-semibold text-gray-800">{SLOT_LABELS[slot]}</h3>
-      <table className="w-full text-xs">
+      <table className="w-full table-fixed text-xs">
         <thead>
           <tr className="border-b border-gray-100">
-            <th className="pb-1.5 text-left font-medium text-gray-500">装備</th>
-            <th className="pb-1.5 text-right font-medium text-gray-500">期待値/時間</th>
-            <th className="pb-1.5 text-right font-medium text-gray-500">期待値/回</th>
-            <th className="pb-1.5 text-right font-medium text-gray-500">操作</th>
+            <th className="w-1/2 pb-1.5 text-left font-medium text-gray-500">装備</th>
+            <th className="w-1/6 pb-1.5 text-right font-medium text-gray-500">期待値/時間</th>
+            <th className="w-1/6 pb-1.5 text-right font-medium text-gray-500">期待値/回</th>
+            <th className="w-1/6 pb-1.5 text-right font-medium text-gray-500">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -75,9 +75,11 @@ function SlotTable({
                   isActive ? 'bg-ocean-50/70' : isBest ? 'bg-green-50/40' : 'hover:bg-gray-50/60'
                 }`}
               >
-                <td className="py-1.5">
+                <td className="py-1.5 pr-2 align-top">
                   <span
-                    className={`font-medium ${isBest ? 'text-green-700' : isActive ? 'text-ocean-700' : 'text-gray-700'}`}
+                    className={`break-words font-medium ${
+                      isBest ? 'text-green-700' : isActive ? 'text-ocean-700' : 'text-gray-700'
+                    }`}
                   >
                     {rank + 1}. {entry.item.nameEn}
                   </span>
@@ -95,7 +97,7 @@ function SlotTable({
                     <span className="ml-1 text-gray-400">({entry.item.rarityLabel})</span>
                   ) : null}
                 </td>
-                <td className="py-1.5 text-right">
+                <td className="py-1.5 text-right align-top">
                   <span className={`font-semibold ${isBest ? 'text-green-700' : 'text-gray-700'}`}>
                     {formatCurrency(entry.expectedValuePerHour)}
                   </span>
@@ -103,14 +105,14 @@ function SlotTable({
                     <span className="ml-1 text-gray-400">({deltaVsTop.toFixed(1)}%)</span>
                   )}
                 </td>
-                <td className="py-1.5 text-right text-gray-600">
+                <td className="py-1.5 text-right align-top text-gray-600">
                   {formatCurrency(entry.expectedValuePerCatch)}
                 </td>
-                <td className="py-1.5 pl-3 text-right">
+                <td className="py-1.5 pl-2 text-right align-top">
                   <button
                     type="button"
                     onClick={() => onPickItem?.(slot, entry.item.id, entry.item.nameEn)}
-                    className="rounded-lg border border-ocean-200 bg-ocean-50 px-2.5 py-1 text-[11px] font-medium text-ocean-700 shadow-sm transition-all duration-150 hover:border-ocean-400 hover:bg-ocean-100 hover:shadow-md active:scale-95"
+                    className="w-full rounded-lg border border-ocean-200 bg-ocean-50 px-2.5 py-1 text-[11px] font-medium text-ocean-700 shadow-sm transition-all duration-150 hover:border-ocean-400 hover:bg-ocean-100 hover:shadow-md active:scale-95"
                   >
                     この候補を追加
                   </button>

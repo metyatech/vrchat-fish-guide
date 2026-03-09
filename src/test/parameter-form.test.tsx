@@ -5,6 +5,70 @@ import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { STAT_THEME } from '@/components/Calculator/statTheme';
 import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
 
+// ── Step 1 UI quality regression checks ───────────────────────────────────────
+// These tests catch regressions that previously caused horizontal overflow,
+// awkward label wrapping, and weak visual linkage between the loadout table
+// and the picker side panel.
+
+describe('Step 1 loadout UI quality', () => {
+  it('current-loadout table has no stat column headers (no Luck/Strength etc in thead)', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const thead = currentLoadoutTable.querySelector('thead');
+    // The compact current-loadout table keeps a minimal header but does not
+    // show detailed stat column headers to prevent horizontal overflow.
+    expect(thead).not.toBeNull();
+    expect(within(currentLoadoutTable).queryByText('Luck')).not.toBeInTheDocument();
+    expect(within(currentLoadoutTable).queryByText('Strength')).not.toBeInTheDocument();
+    expect(within(currentLoadoutTable).queryByText('Expertise')).not.toBeInTheDocument();
+  });
+
+  it('picker panel badge labels have whitespace-nowrap to prevent wrapping', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    // The picker panel (rod open by default) must contain whitespace-nowrap badges
+    // so that compact action labels never wrap across lines.
+    const pickerPanel = screen.getByTestId('slot-picker-panel');
+    const noWrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
+    expect(noWrapBadges.length).toBeGreaterThan(0);
+  });
+
+  it('active slot row is visually marked as pressed on mount', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    // Rod row should be active (aria-pressed="true") by default.
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const rodRow = within(currentLoadoutTable).getByRole('button', { name: 'Rod を選び直す' });
+    expect(rodRow).toHaveAttribute('aria-pressed', 'true');
+
+    // Other rows must be inactive.
+    const lineRow = within(currentLoadoutTable).getByRole('button', { name: 'Line を選び直す' });
+    expect(lineRow).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('picker panel becomes visible with correct slot when a row is clicked', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    // Click Bobber row — picker should switch to Bobber candidates.
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const bobberRow = within(currentLoadoutTable).getByRole('button', {
+      name: 'Bobber を選び直す',
+    });
+    fireEvent.click(bobberRow);
+
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Bobber の候補一覧');
+  });
+});
+
 describe('ParameterForm', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -30,8 +94,8 @@ describe('ParameterForm', () => {
     expect(attractionLabel).toHaveStyle({ backgroundColor: STAT_THEME.attractionRate.accent });
     expect(bigCatchLabel).toHaveStyle({ backgroundColor: STAT_THEME.bigCatchRate.accent });
 
-    const maxWeightHeader = screen.getAllByText('Max Weight')[0];
-    expect(maxWeightHeader).toHaveStyle({ color: STAT_THEME.maxWeight.surfaceText });
+    const maxWeightLabel = within(totalStatsSection).getByText('Max Weight');
+    expect(maxWeightLabel).toHaveStyle({ backgroundColor: STAT_THEME.maxWeight.accent });
   });
 
   it('updates loadout when a table row is selected', () => {
@@ -88,7 +152,7 @@ describe('ParameterForm', () => {
     const lineRow = within(currentLoadoutTable).getByRole('button', { name: 'Line を選び直す' });
     fireEvent.click(lineRow);
 
-    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Line の候補を右から選ぶ');
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Line の候補一覧');
 
     fireEvent.click(screen.getByText('Lucky Line'));
 
@@ -105,5 +169,26 @@ describe('ParameterForm', () => {
       configurable: true,
       value: originalScrollIntoView,
     });
+  });
+
+  it('keeps the active loadout state visually anchored and avoids clipping or label wrapping', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const currentLoadoutCard = screen.getByTestId('current-loadout-card');
+    expect(currentLoadoutCard).toHaveClass('overflow-visible');
+
+    const activeRow = within(currentLoadoutCard).getByRole('button', { name: 'Rod を選び直す' });
+    expect(activeRow).toHaveAttribute('data-state', 'active');
+
+    const activeIndicator = screen.getByTestId('active-slot-indicator');
+    expect(activeIndicator).toHaveTextContent('Rod');
+
+    const pickerPanel = screen.getByTestId('slot-picker-panel');
+    expect(pickerPanel).toHaveTextContent('Rod の候補一覧');
+    const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
+    expect(nowrapBadges.length).toBeGreaterThan(0);
   });
 });

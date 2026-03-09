@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-03-09
+
+### Changed
+
+- **Step 1 was redesigned around a single visible current-loadout table**: the current Rod / Line / Bobber / Enchant rows now stay visible as the main anchor, and the slot being edited is highlighted instead of buried inside nested cards.
+- **The candidate picker now uses a compact two-column comparison layout**: users can compare names, effects, and stat badges without the wide multi-column table that previously forced clipping and horizontal scrolling.
+- **The connection between left and right is now explicit in the UI**: the active slot indicator, connector lane, and picker header all reinforce which row is being edited and where the chosen item will land.
+- **Automated UI quality checks now guard overflow and first-use clarity regressions**: Playwright coverage now checks the current-loadout area for horizontal overflow and verifies that the calculator remains usable on a narrow viewport.
+
 ## [0.10.7] - 2026-03-09
 
 ### Changed

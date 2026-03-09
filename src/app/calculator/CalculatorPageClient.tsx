@@ -326,58 +326,33 @@ export function CalculatorPageClient() {
       )}
 
       <div className="mb-8">
-        <div className="overflow-hidden rounded-[30px] border border-white/30 bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.34),_rgba(37,120,232,0.98)_36%,_rgba(12,74,153,1)_100%)] px-6 py-6 text-white shadow-[0_28px_90px_rgba(37,120,232,0.28)]">
+        <div className="overflow-hidden rounded-[30px] bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.34),_rgba(37,120,232,0.98)_36%,_rgba(12,74,153,1)_100%)] px-6 py-6 text-white shadow-[0_28px_90px_rgba(37,120,232,0.28)] ring-1 ring-white/20">
           <h1 className="text-2xl font-bold tracking-tight">📊 装備込みの期待値比較</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ocean-100">
             いまの装備から何を変えると一番伸びるかを、上から順に条件を入れながら比べます。
           </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold">
+            <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1.5 text-white/90 backdrop-blur-sm">
+              1. いまの装備をそろえる
+            </span>
+            <span className="text-white/55">→</span>
+            <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1.5 text-white/90 backdrop-blur-sm">
+              2. 条件を必要なぶんだけ決める
+            </span>
+            <span className="text-white/55">→</span>
+            <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1.5 text-white/90 backdrop-blur-sm">
+              3. 1か所ずつ比べる
+            </span>
+          </div>
         </div>
-        <ol className="mt-4 grid grid-cols-1 gap-2.5 text-sm md:grid-cols-5">
-          {[
-            '今の装備を入れる',
-            '必要なら場所と条件を絞る',
-            'プレイ速度を微調整する',
-            '1つだけ変えてみる欄を選ぶ',
-            '候補を追加して比べる',
-          ].map((label, i) => (
-            <li
-              key={i}
-              className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/85 px-3 py-3 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur-sm"
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white">
-                {i + 1}
-              </span>
-              <span className="text-gray-700">{label}</span>
-            </li>
-          ))}
-        </ol>
       </div>
 
       <div className="space-y-6">
-        <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
-          <div className="mb-4">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
-                1
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-                Step 1–3
-              </span>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              上から順に、今の装備と条件を決める
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              まずは装備だけで大丈夫です。場所は自動選択、Time of Day と Weather
-              は自動平均のまま使い始められます。
-            </p>
-          </div>
-          <ParameterForm
-            params={activeBuild.params}
-            model={activeResult.model}
-            onChange={handleParamsChange}
-          />
-        </section>
+        <ParameterForm
+          params={activeBuild.params}
+          model={activeResult.model}
+          onChange={handleParamsChange}
+        />
 
         <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="mb-4">

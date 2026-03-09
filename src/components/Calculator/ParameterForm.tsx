@@ -10,7 +10,7 @@ import {
 } from '@/data/fish';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { SLOT_THEME } from '@/components/Calculator/slotTheme';
-import { STAT_THEME, StatThemeKey } from '@/components/Calculator/statTheme';
+import { STAT_THEME, STAT_THEME_ORDER, StatThemeKey } from '@/components/Calculator/statTheme';
 import { BEST_AREA_ID, formatSignedDisplayNumber, formatWeightKg } from '@/lib/calculator';
 import {
   CalculatorParams,
@@ -79,6 +79,45 @@ function formatItemDetail(item: EquipmentItem | EnchantItem): string {
   return `${item.location} / ${item.price.toLocaleString()}G`;
 }
 
+function getItemStatValue(item: EquipmentItem | EnchantItem, stat: StatThemeKey): number {
+  switch (stat) {
+    case 'luck':
+      return item.luck;
+    case 'strength':
+      return item.strength;
+    case 'expertise':
+      return item.expertise;
+    case 'attractionRate':
+      return item.attractionPct;
+    case 'bigCatchRate':
+      return item.bigCatch;
+    case 'maxWeight':
+      return item.maxWeightKg;
+  }
+}
+
+function formatItemStatValue(item: EquipmentItem | EnchantItem, stat: StatThemeKey): string {
+  const value = getItemStatValue(item, stat);
+  if (stat === 'maxWeight') {
+    return formatWeightKg(value);
+  }
+  if (stat === 'attractionRate') {
+    return formatSignedDisplayNumber(value, '%');
+  }
+  return formatSignedDisplayNumber(value);
+}
+
+function getHighlightedStats(item: EquipmentItem | EnchantItem): StatThemeKey[] {
+  const stats = STAT_THEME_ORDER.filter((stat) => {
+    const value = getItemStatValue(item, stat);
+    if (stat === 'maxWeight') {
+      return value > 0;
+    }
+    return Math.abs(value) > 0.001;
+  });
+  return stats.length > 0 ? stats.slice(0, 3) : ['expertise'];
+}
+
 type LoadoutSlot = 'rod' | 'line' | 'bobber' | 'enchant';
 
 const LOADOUT_SLOT_LABELS: Record<LoadoutSlot, string> = {
@@ -109,25 +148,38 @@ function LoadoutSelectionBadge({ selected }: { selected: boolean }) {
     <span
       className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
         selected
-          ? 'border-green-500 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-sm'
+          ? 'border-green-500 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-[0_8px_20px_rgba(34,197,94,0.35)] ring-2 ring-green-300/70'
           : 'border-gray-300 bg-white text-gray-500 hover:border-ocean-300'
       }`}
     >
-      {selected ? '✓ 使用中' : '選ぶ'}
+      {selected ? '✓ 使用中' : '選択'}
+    </span>
+  );
+}
+
+function StatBadge({ stat, value }: { stat: StatThemeKey; value: string }) {
+  const theme = STAT_THEME[stat];
+
+  return (
+    <span
+      className="inline-flex items-center justify-between gap-1 rounded-full px-2 py-1 text-[10px] font-semibold"
+      style={{
+        backgroundColor: theme.cardBackground,
+        color: theme.surfaceText,
+      }}
+    >
+      <span className="opacity-70">{theme.shortLabel}</span>
+      <span className="text-[11px] font-bold">{value}</span>
     </span>
   );
 }
 
 function StatTableHeader({ stat, short = false }: { stat: StatThemeKey; short?: boolean }) {
   const theme = STAT_THEME[stat];
-
   return (
     <span
       className="inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold"
-      style={{
-        backgroundColor: theme.cardBackground,
-        color: theme.surfaceText,
-      }}
+      style={{ backgroundColor: theme.cardBackground, color: theme.surfaceText }}
     >
       {short ? theme.shortLabel : theme.label}
     </span>
@@ -143,75 +195,54 @@ function LoadoutStatCells({
 }) {
   return (
     <>
-      <td className={cellClassName} style={{ color: STAT_THEME.luck.surfaceText }}>
+      <td
+        className={`hidden lg:table-cell ${cellClassName}`}
+        style={{ color: STAT_THEME.luck.surfaceText }}
+      >
         {formatSignedDisplayNumber(item.luck)}
       </td>
-      <td className={cellClassName} style={{ color: STAT_THEME.strength.surfaceText }}>
+      <td
+        className={`hidden lg:table-cell ${cellClassName}`}
+        style={{ color: STAT_THEME.strength.surfaceText }}
+      >
         {formatSignedDisplayNumber(item.strength)}
       </td>
-      <td className={cellClassName} style={{ color: STAT_THEME.expertise.surfaceText }}>
+      <td
+        className={`hidden lg:table-cell ${cellClassName}`}
+        style={{ color: STAT_THEME.expertise.surfaceText }}
+      >
         {formatSignedDisplayNumber(item.expertise)}
       </td>
-      <td className={cellClassName} style={{ color: STAT_THEME.attractionRate.surfaceText }}>
+      <td
+        className={`hidden lg:table-cell ${cellClassName}`}
+        style={{ color: STAT_THEME.attractionRate.surfaceText }}
+      >
         {formatSignedDisplayNumber(item.attractionPct, '%')}
       </td>
-      <td className={cellClassName} style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
+      <td
+        className={`hidden lg:table-cell ${cellClassName}`}
+        style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
+      >
         {formatSignedDisplayNumber(item.bigCatch)}
       </td>
-      <td className={cellClassName} style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+      <td
+        className={`hidden lg:table-cell ${cellClassName}`}
+        style={{ color: STAT_THEME.maxWeight.surfaceText }}
+      >
         {formatWeightKg(item.maxWeightKg)}
       </td>
     </>
   );
 }
 
-function LoadoutTableHeader({
-  leadingLabel,
-  leadingClassName = 'px-2 py-1',
-  compact = false,
-}: {
-  leadingLabel: string;
-  leadingClassName?: string;
-  /** When true: omits the location column and uses abbreviated stat labels. */
-  compact?: boolean;
-}) {
-  return (
-    <thead>
-      <tr className="text-left text-xs text-gray-600">
-        <th className={leadingClassName}>{leadingLabel}</th>
-        <th className="px-2 py-1">名前</th>
-        {!compact && <th className="px-2 py-1">入手場所 / 効果</th>}
-        <th className="px-2 py-1">
-          <StatTableHeader stat="luck" short={compact} />
-        </th>
-        <th className="px-2 py-1">
-          <StatTableHeader stat="strength" short={compact} />
-        </th>
-        <th className="px-2 py-1">
-          <StatTableHeader stat="expertise" short={compact} />
-        </th>
-        <th className="px-2 py-1">
-          <StatTableHeader stat="attractionRate" short={compact} />
-        </th>
-        <th className="px-2 py-1">
-          <StatTableHeader stat="bigCatchRate" short={compact} />
-        </th>
-        <th className="px-2 py-1">
-          <StatTableHeader stat="maxWeight" short={compact} />
-        </th>
-      </tr>
-    </thead>
-  );
-}
-
 /** Slot-specific row highlight class for the active row, colour-matched to the slot chip. */
 const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
-  rod: 'bg-gradient-to-r from-amber-50 via-white to-white ring-2 ring-amber-400 ring-offset-1 shadow-[0_14px_36px_rgba(245,158,11,0.12)]',
-  line: 'bg-gradient-to-r from-sky-50 via-white to-white ring-2 ring-sky-400 ring-offset-1 shadow-[0_14px_36px_rgba(56,189,248,0.12)]',
+  rod: 'relative bg-gradient-to-r from-amber-50 via-white to-white ring-2 ring-amber-400 ring-offset-1 shadow-[0_16px_40px_rgba(245,158,11,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-amber-400',
+  line: 'relative bg-gradient-to-r from-sky-50 via-white to-white ring-2 ring-sky-400 ring-offset-1 shadow-[0_16px_40px_rgba(56,189,248,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-sky-400',
   bobber:
-    'bg-gradient-to-r from-rose-50 via-white to-white ring-2 ring-rose-400 ring-offset-1 shadow-[0_14px_36px_rgba(251,113,133,0.12)]',
+    'relative bg-gradient-to-r from-rose-50 via-white to-white ring-2 ring-rose-400 ring-offset-1 shadow-[0_16px_40px_rgba(251,113,133,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-rose-400',
   enchant:
-    'bg-gradient-to-r from-violet-50 via-white to-white ring-2 ring-violet-400 ring-offset-1 shadow-[0_14px_36px_rgba(167,139,250,0.12)]',
+    'relative bg-gradient-to-r from-violet-50 via-white to-white ring-2 ring-violet-400 ring-offset-1 shadow-[0_16px_40px_rgba(167,139,250,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-violet-400',
 };
 
 function CurrentLoadoutTable({
@@ -233,20 +264,27 @@ function CurrentLoadoutTable({
   };
 
   return (
-    <div className="overflow-hidden rounded-[22px] border border-white/80 bg-white/85 shadow-[0_20px_48px_rgba(15,23,42,0.10)]">
+    <div
+      data-testid="current-loadout-card"
+      className="overflow-visible rounded-[22px] border border-white/80 bg-white/85 shadow-[0_20px_48px_rgba(15,23,42,0.10)]"
+    >
       <div className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(241,247,255,0.95))] px-4 py-4">
         <div className="text-sm font-semibold text-gray-800">今の装備の表</div>
         <p className="mt-1 text-xs leading-relaxed text-gray-500">
           行を押すと、右にその欄の候補が出ます。
         </p>
       </div>
-      {/* overflow-hidden: table is compact-mode (no location col) so it always fits the container. */}
-      <div className="overflow-hidden">
+      <div className="px-3 pb-3">
         <table
           data-testid="current-loadout-table"
-          className="min-w-full border-separate border-spacing-y-2 px-3 text-sm"
+          className="w-full border-separate border-spacing-y-2 text-sm"
         >
-          <LoadoutTableHeader leadingLabel="欄" compact={true} />
+          <thead>
+            <tr className="text-left text-xs text-gray-600">
+              <th className="px-2 py-1">欄</th>
+              <th className="px-2 py-1">いまの装備</th>
+            </tr>
+          </thead>
           <tbody>
             {LOADOUT_SLOT_ORDER.map((slot) => {
               const item = selectedItems[slot];
@@ -268,6 +306,8 @@ function CurrentLoadoutTable({
                   role="button"
                   aria-pressed={isActive}
                   aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
+                  data-slot={slot}
+                  data-state={isActive ? 'active' : 'inactive'}
                   onClick={activate}
                   onKeyDown={handleKeyDown}
                   className={`cursor-pointer outline-none transition-all duration-200 ${
@@ -276,7 +316,7 @@ function CurrentLoadoutTable({
                       : 'bg-white/70 hover:bg-ocean-50/70 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
                   } ${isUpdated ? 'animate-loadout-settle' : ''}`}
                 >
-                  <td className="rounded-l-xl px-2 py-3 align-top">
+                  <td className="rounded-l-xl px-2 py-3 align-top md:w-[132px]">
                     <div className="flex flex-col gap-1.5">
                       <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                       <span className="text-[11px] font-medium text-gray-500">
@@ -284,12 +324,25 @@ function CurrentLoadoutTable({
                       </span>
                     </div>
                   </td>
-                  <td className="px-2 py-3 align-top font-semibold text-gray-900">{item.nameEn}</td>
-                  {/* Location column omitted in compact mode — visible in the picker panel. */}
-                  <LoadoutStatCells
-                    item={item}
-                    cellClassName="px-2 py-3 align-top text-xs font-semibold"
-                  />
+                  <td className="px-2 py-3 align-top">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-gray-900">
+                        {item.nameEn}
+                      </div>
+                      <div className="mt-1 text-xs leading-relaxed text-gray-500">
+                        {formatItemDetail(item)}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {getHighlightedStats(item).map((stat) => (
+                          <StatBadge
+                            key={stat}
+                            stat={stat}
+                            value={formatItemStatValue(item, stat)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </td>
                 </tr>
               );
             })}
@@ -314,6 +367,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   onClose: () => void;
 }) {
   const theme = SLOT_THEME[slot];
+  const selectedItem = items.find((item) => item.id === selectedId);
 
   return (
     <aside
@@ -326,15 +380,16 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-                Select
+              <span className="text-[11px] font-semibold tracking-[0.18em] text-gray-400">
+                いま変更する欄
               </span>
             </div>
-            <h4 className="mt-2 text-sm font-semibold text-gray-900">
-              {LOADOUT_SLOT_LABELS[slot]} の候補を右から選ぶ
-            </h4>
+            <h3 className="mt-2 text-sm font-semibold text-gray-900">
+              {LOADOUT_SLOT_LABELS[slot]} の候補一覧
+            </h3>
             <p className="mt-1 text-xs leading-relaxed text-gray-600">
-              行のどこを押しても選べます。選ぶと、左の今の装備の表にそのまま反映されます。
+              左で光っている {LOADOUT_SLOT_LABELS[slot]}{' '}
+              の行を、ここで選び直します。行のどこを押しても反映されます。
             </p>
           </div>
           <button
@@ -348,54 +403,122 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       </div>
 
       <div className="max-h-[68vh] overflow-auto px-4 py-3">
-        <div className="overflow-x-auto">
-          <table
-            id={`loadout-picker-${slot}`}
-            className="min-w-full border-separate border-spacing-y-2 text-sm"
-          >
-            <LoadoutTableHeader leadingLabel="選択" />
-            <tbody>
-              {items.map((item) => {
-                const selected = item.id === selectedId;
-                const selectItem = () => onSelect(item.id);
-                const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    selectItem();
-                  }
-                };
-
-                return (
-                  <tr
-                    key={item.id}
-                    tabIndex={0}
-                    role="button"
-                    aria-pressed={selected}
-                    aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
-                    onClick={selectItem}
-                    onKeyDown={handleKeyDown}
-                    className={`cursor-pointer outline-none transition-all duration-150 ${
-                      selected
-                        ? 'bg-gradient-to-r from-green-50 to-white shadow-sm ring-2 ring-green-500 ring-offset-1'
-                        : 'bg-white/70 hover:bg-ocean-50/50 hover:shadow-sm focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
-                    }`}
-                  >
-                    <td className="rounded-l-lg px-2 py-2 align-top">
-                      <LoadoutSelectionBadge selected={selected} />
-                    </td>
-                    <td className="px-2 py-2 align-top font-semibold text-gray-900">
-                      {item.nameEn}
-                    </td>
-                    <td className="px-2 py-2 align-top text-xs leading-relaxed text-gray-600">
-                      {formatItemDetail(item)}
-                    </td>
-                    <LoadoutStatCells item={item} />
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className={`mb-3 rounded-2xl border bg-white/90 p-3 ${theme.panelBorderClassName}`}>
+          <div className="text-[11px] font-semibold tracking-[0.18em] text-gray-400">
+            左でいま選んでいる装備
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-gray-900">
+                {selectedItem?.nameEn ?? '未選択'}
+              </div>
+              <div className="mt-1 text-xs leading-relaxed text-gray-500">
+                {selectedItem ? formatItemDetail(selectedItem) : '候補を選ぶとここが更新されます。'}
+              </div>
+            </div>
+            <div className="hidden shrink-0 items-center gap-2 md:flex">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${theme.dotClassName}`}
+                aria-hidden="true"
+              />
+              <span className="text-xs font-semibold text-gray-600">
+                {LOADOUT_SLOT_LABELS[slot]}
+              </span>
+            </div>
+          </div>
         </div>
+
+        <table
+          id={`loadout-picker-${slot}`}
+          className="w-full border-separate border-spacing-y-2 text-sm"
+        >
+          <thead>
+            <tr className="text-left text-xs text-gray-600">
+              <th className="px-2 py-1">選択</th>
+              <th className="px-2 py-1">候補</th>
+              <th className="hidden px-2 py-1 lg:table-cell">
+                <StatTableHeader stat="luck" />
+              </th>
+              <th className="hidden px-2 py-1 lg:table-cell">
+                <StatTableHeader stat="strength" />
+              </th>
+              <th className="hidden px-2 py-1 lg:table-cell">
+                <StatTableHeader stat="expertise" />
+              </th>
+              <th className="hidden px-2 py-1 lg:table-cell">
+                <StatTableHeader stat="attractionRate" />
+              </th>
+              <th className="hidden px-2 py-1 lg:table-cell">
+                <StatTableHeader stat="bigCatchRate" />
+              </th>
+              <th className="hidden px-2 py-1 lg:table-cell">
+                <StatTableHeader stat="maxWeight" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const selected = item.id === selectedId;
+              const selectItem = () => onSelect(item.id);
+              const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  selectItem();
+                }
+              };
+
+              return (
+                <tr
+                  key={item.id}
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={selected}
+                  aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
+                  onClick={selectItem}
+                  onKeyDown={handleKeyDown}
+                  className={`cursor-pointer outline-none transition-all duration-150 ${
+                    selected
+                      ? 'bg-gradient-to-r from-green-50 to-white shadow-[0_12px_32px_rgba(16,185,129,0.18)] ring-2 ring-green-500 ring-offset-1'
+                      : 'bg-white/70 hover:bg-ocean-50/50 hover:shadow-sm focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
+                  }`}
+                >
+                  <td className="rounded-l-lg px-2 py-2 align-top md:w-[120px]">
+                    <LoadoutSelectionBadge selected={selected} />
+                  </td>
+                  <td className="px-2 py-2 align-top">
+                    <div className="min-w-0">
+                      <div className="truncate font-semibold text-gray-900">{item.nameEn}</div>
+                      <div className="mt-1 text-xs leading-relaxed text-gray-500">
+                        {formatItemDetail(item)}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1 lg:hidden">
+                        <StatBadge stat="luck" value={formatSignedDisplayNumber(item.luck)} />
+                        <StatBadge
+                          stat="strength"
+                          value={formatSignedDisplayNumber(item.strength)}
+                        />
+                        <StatBadge
+                          stat="expertise"
+                          value={formatSignedDisplayNumber(item.expertise)}
+                        />
+                        <StatBadge
+                          stat="attractionRate"
+                          value={formatSignedDisplayNumber(item.attractionPct, '%')}
+                        />
+                        <StatBadge
+                          stat="bigCatchRate"
+                          value={formatSignedDisplayNumber(item.bigCatch)}
+                        />
+                        <StatBadge stat="maxWeight" value={formatWeightKg(item.maxWeightKg)} />
+                      </div>
+                    </div>
+                  </td>
+                  <LoadoutStatCells item={item} />
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </aside>
   );
@@ -530,15 +653,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     playerMistakeRate: 'calc-player-mistake-rate',
   } as const;
 
-  return (
-    <div className="space-y-5 rounded-[28px] border border-white/70 bg-white/80 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-sm">
-      <div className="border-b border-gray-100 pb-3">
-        <h2 className="text-lg font-semibold text-gray-800">入力</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          上から順に決めれば使えます。細かい前提は下の「詳細調整」にまとめています。
-        </p>
-      </div>
+  const activeSlotTheme = activeSlot ? SLOT_THEME[activeSlot] : null;
+  const activeSlotLabel = activeSlot ? LOADOUT_SLOT_LABELS[activeSlot] : '選択なし';
 
+  return (
+    <div className="space-y-5">
       <section className="animate-slide-in-up space-y-4 rounded-[24px] border border-ocean-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.35),_rgba(255,255,255,0.94)_45%,_rgba(255,255,255,0.98)_100%)] p-5 shadow-[0_16px_48px_rgba(37,120,232,0.12)]">
         <div>
           <div className="mb-1 flex items-center gap-2">
@@ -549,13 +668,47 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               Step 1
             </span>
           </div>
-          <h3 className="text-sm font-semibold text-gray-800">まずは今の装備を表でそろえる</h3>
+          <h2 className="text-sm font-semibold text-gray-800">まずは今の装備を表でそろえる</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
             左で今の装備を見て、変えたい欄を押します。すると右にその欄の候補表が出るので、行を押して選びます。
           </p>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.98fr)]">
+        <div className="rounded-[22px] border border-white/80 bg-white/75 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-600">
+            <span className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-gray-500">
+              いまの流れ
+            </span>
+            <span className="text-gray-500">左の装備表 → 右の候補一覧 → 下の合計ステータス</span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700">
+              <span className="h-2 w-2 rounded-full bg-ocean-500" aria-hidden="true" />
+              今の装備
+            </div>
+            <span className="text-xs text-gray-400">▶</span>
+            <div
+              data-testid="active-slot-indicator"
+              className={`animate-hud-pulse flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold text-gray-700 ${
+                activeSlotTheme?.chipClassName ?? 'border-slate-200 bg-slate-50'
+              }`}
+            >
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
+                aria-hidden="true"
+              />
+              {activeSlotLabel}
+              <span className="text-[10px] font-medium text-gray-500">を編集中</span>
+            </div>
+            <span className="text-xs text-gray-400">▶</span>
+            <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+              合計ステータス
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_auto_minmax(0,1fr)]">
           <CurrentLoadoutTable
             activeSlot={activeSlot}
             selectedIds={{
@@ -567,6 +720,32 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             recentlyUpdatedSlot={recentlyUpdatedSlot}
             onActivate={activateSlot}
           />
+
+          <div className="hidden xl:flex">
+            <div
+              data-testid="loadout-connector"
+              className={`flex min-h-[22rem] flex-col items-center justify-center gap-3 rounded-full border bg-white/80 px-3 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] ${
+                activeSlotTheme?.panelClassName ?? 'border-slate-200 bg-slate-50'
+              }`}
+            >
+              <span className="text-center text-[10px] font-semibold tracking-[0.18em] text-gray-400">
+                左の行が
+                <br />
+                ここで開きます
+              </span>
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className={`h-10 w-1 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
+                />
+                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+                  {activeSlotLabel}
+                </span>
+                <div
+                  className={`h-10 w-1 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
+                />
+              </div>
+            </div>
+          </div>
 
           <div className="min-h-[22rem]">
             {activeSlot ? (
@@ -580,7 +759,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             ) : (
               <div className="animate-fade-in flex h-full min-h-[22rem] items-center justify-center rounded-[24px] border border-dashed border-white/80 bg-white/60 px-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
                 <div>
-                  <div className="text-sm font-semibold text-gray-700">右に候補表を出す</div>
+                  <div className="text-sm font-semibold text-gray-700">右に候補一覧を出す</div>
                   <p className="mt-2 text-xs leading-relaxed text-gray-500">
                     左の今の装備の表で、変えたい欄の行を押してください。
                   </p>
@@ -612,6 +791,24 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             >
               {model.enchantStatusText ?? 'No Enchant selected'}
             </span>
+          </div>
+
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+            <span className="rounded-full border border-white/80 bg-white/80 px-3 py-1 font-semibold text-gray-600">
+              結果は
+            </span>
+            <span
+              className={`flex items-center gap-2 rounded-full border px-3 py-1 font-semibold ${
+                activeSlotTheme?.chipClassName ?? 'border-slate-200 bg-slate-50 text-slate-700'
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
+                aria-hidden="true"
+              />
+              {activeSlotLabel}
+            </span>
+            <span>の選択で更新されます</span>
           </div>
 
           {model.inactiveEnchantReason ? (
@@ -653,7 +850,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               Step 2
             </span>
           </div>
-          <h3 className="text-sm font-semibold text-gray-800">必要なら、場所と条件を絞る</h3>
+          <h2 className="text-sm font-semibold text-gray-800">必要なら、場所と条件を絞る</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
             何も変えなければ、Fishing Area は自動選択、Time of Day と Weather は自動平均です。
           </p>
@@ -743,7 +940,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               Step 3
             </span>
           </div>
-          <h3 className="text-sm font-semibold text-gray-800">あなたのプレイ速度</h3>
+          <h2 className="text-sm font-semibold text-gray-800">あなたのプレイ速度</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
             基本は装備ステータスから自動で見積もります。ここでは、自分の癖だけ少し足し引きします。
           </p>

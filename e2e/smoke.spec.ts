@@ -34,9 +34,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.goto('/calculator/');
 
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: '上から順に、今の装備と条件を決める' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'まずは今の装備を表でそろえる' })).toBeVisible();
   await expect(
     page.getByRole('heading', { name: '次に、どの欄を 1 つだけ変えて試すか選ぶ' }),
   ).toBeVisible();
@@ -44,7 +42,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('heading', { name: '追加した候補を今の装備と比べる' })).toBeVisible();
   await expect(page.getByText('現在の装備の合計ステータス', { exact: true })).toBeVisible();
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
-  await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補を右から選ぶ');
+  await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補一覧');
   await expect(page.getByRole('button', { name: /細かい調整と前提/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rod を変える' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'まずはこの候補を比較へ追加' })).toBeVisible();
@@ -68,14 +66,6 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(
     totalStatsSection.locator('span.rounded-full', { hasText: 'Big Catch Rate' }),
   ).toHaveCSS('background-color', 'rgb(255, 215, 109)');
-  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Max Weight' })).toHaveCSS(
-    'background-color',
-    'rgb(146, 84, 186)',
-  );
-  await expect(page.locator('thead span', { hasText: 'Max Weight' }).first()).toHaveCSS(
-    'color',
-    'rgb(76, 37, 103)',
-  );
   await expect(totalStatsSection).not.toContainText('11.999999999999');
   await expect(totalStatsSection).not.toContainText('16.999999999999');
 
@@ -85,11 +75,11 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   const initialRowCount = await page.locator('tbody tr').count();
 
   await page.locator('#loadout-picker-rod tbody tr', { hasText: 'Fortunate Rod' }).click();
-  await expect(page.getByTestId('slot-picker-panel')).toContainText('Line の候補を右から選ぶ');
+  await expect(page.getByTestId('slot-picker-panel')).toContainText('Line の候補一覧');
   await page.locator('#loadout-picker-line tbody tr', { hasText: 'Lucky Line' }).click();
-  await expect(page.getByTestId('slot-picker-panel')).toContainText('Bobber の候補を右から選ぶ');
+  await expect(page.getByTestId('slot-picker-panel')).toContainText('Bobber の候補一覧');
   await page.locator('#loadout-picker-bobber tbody tr', { hasText: 'Lucky Bobber' }).click();
-  await expect(page.getByTestId('slot-picker-panel')).toContainText('Enchant の候補を右から選ぶ');
+  await expect(page.getByTestId('slot-picker-panel')).toContainText('Enchant の候補一覧');
   await page.locator('#loadout-picker-enchant tbody tr', { hasText: 'Money Maker' }).click();
   await page.getByLabel('Fishing Area').selectOption('open-sea');
   await page.getByLabel('Time of Day').selectOption('night');
@@ -119,9 +109,12 @@ test('calculator updates summary cards and fish list when loadout and filters ch
 });
 
 test('current loadout table has no horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
+  await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod');
+  await expect(page.getByTestId('current-loadout-card')).toHaveCSS('overflow', 'visible');
 
   // The compact-mode table (no location column, abbreviated stat headers) must fit
   // its container without triggering a horizontal scrollbar.
@@ -142,12 +135,50 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
   expect(hasOverflow).not.toHaveProperty('error');
   expect((hasOverflow as { overflow: boolean }).overflow).toBe(false);
 
+  const pageOverflow = await page.evaluate(() => {
+    const target = document.documentElement;
+    return {
+      scrollWidth: target.scrollWidth,
+      clientWidth: target.clientWidth,
+      overflow: target.scrollWidth > target.clientWidth + 1,
+    };
+  });
+  expect((pageOverflow as { overflow: boolean }).overflow).toBe(false);
+
   // Badge text must not be broken across lines: verify white-space:nowrap is applied.
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toBeVisible();
   const firstBadge = pickerPanel.locator('span.whitespace-nowrap').first();
   await expect(firstBadge).toBeVisible();
   await expect(firstBadge).toHaveCSS('white-space', 'nowrap');
+
+  const activeRow = page
+    .getByTestId('current-loadout-table')
+    .locator('[data-state="active"]')
+    .first();
+  await expect(activeRow).toBeVisible();
+  await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補一覧');
+});
+
+test('calculator avoids horizontal scrolling on a narrow viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/calculator/');
+
+  await expect(page.getByRole('heading', { name: 'まずは今の装備を表でそろえる' })).toBeVisible();
+
+  const pageOverflow = await page.evaluate(() => {
+    const target = document.documentElement;
+    window.scrollTo(10, 0);
+    return {
+      scrollWidth: target.scrollWidth,
+      clientWidth: target.clientWidth,
+      overflow: target.scrollWidth > target.clientWidth + 1,
+      scrollX: window.scrollX,
+    };
+  });
+
+  expect((pageOverflow as { overflow: boolean }).overflow).toBe(false);
+  expect((pageOverflow as { scrollX: number }).scrollX).toBe(0);
 });
 
 test('sources page shows data governance and current source set', async ({ page }) => {

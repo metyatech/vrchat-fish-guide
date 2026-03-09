@@ -33,15 +33,103 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
         はその列で一番良い値です。名前を押すと、その組み合わせを上の入力欄に表示します。
       </p>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="space-y-3 md:hidden">
+        {builds.map((build, i) => {
+          const result = results[i];
+          if (!result) return null;
+          const isActive = build.id === activeId;
+          const isTopEvHour = result.expectedValuePerHour === bestEvPerHour;
+          const isTopEvCatch = result.expectedValuePerCatch === bestEvPerCatch;
+          const isTopCatch = result.totalFishProbability === bestCatchProb;
+          const catchesPerHour = 3600 / Math.max(1, result.model.effectiveAvgCatchTimeSec);
+
+          return (
+            <button
+              key={build.id}
+              type="button"
+              onClick={() => onSelect(build.id)}
+              className={`w-full rounded-xl border p-3 text-left shadow-sm transition ${
+                isActive
+                  ? 'border-ocean-200 bg-ocean-50/80'
+                  : 'border-gray-200 bg-white hover:border-ocean-200'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div
+                    className={`truncate text-sm font-semibold ${
+                      isActive ? 'text-ocean-700' : 'text-gray-800'
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-ocean-500 align-middle" />
+                    )}
+                    {build.name}
+                  </div>
+                  <div className="mt-1 text-[11px] text-gray-500">
+                    期待値/時間のベストは
+                    <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                      緑
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400">EV/h</div>
+                  <div
+                    className={`text-sm font-semibold ${
+                      isTopEvHour ? 'text-green-700' : 'text-ocean-700'
+                    }`}
+                  >
+                    {formatCurrency(result.expectedValuePerHour)}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-gray-600">
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
+                  <span>期待値/回</span>
+                  <span
+                    className={`font-semibold ${isTopEvCatch ? 'text-green-700' : 'text-gray-800'}`}
+                  >
+                    {formatCurrency(result.expectedValuePerCatch)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
+                  <span>釣獲確率</span>
+                  <span
+                    className={`font-semibold ${isTopCatch ? 'text-green-700' : 'text-gray-800'}`}
+                  >
+                    {(result.totalFishProbability * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
+                  <span>試行回数/時間</span>
+                  <span className="font-semibold text-gray-800">{catchesPerHour.toFixed(0)}回</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block">
+        <table className="w-full table-fixed text-sm md:table-auto">
           <thead>
             <tr className="border-b-2 border-gray-100">
-              <th className="pb-2 text-left font-semibold text-gray-600">組み合わせ</th>
-              <th className="pb-2 text-right font-semibold text-gray-600">期待値/時間</th>
-              <th className="pb-2 text-right font-semibold text-gray-600">期待値/回</th>
-              <th className="pb-2 text-right font-semibold text-gray-600">釣獲確率</th>
-              <th className="pb-2 text-right font-semibold text-gray-600">試行回数/時間</th>
+              <th className="w-1/3 pb-2 text-left font-semibold text-gray-600 md:w-auto">
+                組み合わせ
+              </th>
+              <th className="w-1/6 pb-2 text-right font-semibold text-gray-600 md:w-auto">
+                期待値/時間
+              </th>
+              <th className="w-1/6 pb-2 text-right font-semibold text-gray-600 md:w-auto">
+                期待値/回
+              </th>
+              <th className="w-1/6 pb-2 text-right font-semibold text-gray-600 md:w-auto">
+                釣獲確率
+              </th>
+              <th className="w-1/6 pb-2 text-right font-semibold text-gray-600 md:w-auto">
+                試行回数/時間
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -66,7 +154,7 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
                   <td className="py-2.5">
                     <button
                       onClick={() => onSelect(build.id)}
-                      className={`text-left font-medium transition-colors ${
+                      className={`w-full break-words text-left font-medium transition-colors ${
                         isActive ? 'text-ocean-700' : 'text-gray-700 hover:text-ocean-600'
                       }`}
                     >

@@ -34,71 +34,153 @@ function ResultTable({
   const best = result.topBuilds[0]?.expectedValuePerHour ?? 0;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="border-b border-gray-200">
-            <th className="pb-2 text-left font-medium text-gray-500">#</th>
-            <th className="pb-2 text-left font-medium text-gray-500">Rod</th>
-            <th className="pb-2 text-left font-medium text-gray-500">Line</th>
-            <th className="pb-2 text-left font-medium text-gray-500">Bobber</th>
-            <th className="pb-2 text-left font-medium text-gray-500">Enchant</th>
-            <th className="pb-2 text-right font-medium text-gray-500">期待値/時間</th>
-            <th className="pb-2 text-right font-medium text-gray-500">期待値/回</th>
-            <th className="pb-2 text-right font-medium text-gray-500">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.topBuilds.map((entry: FullBuildEntry, i: number) => {
-            const isBest = i === 0;
-            const deltaVsTop = best > 0 ? ((entry.expectedValuePerHour - best) / best) * 100 : 0;
+    <div className="space-y-3">
+      <div className="space-y-3 md:hidden">
+        {result.topBuilds.map((entry: FullBuildEntry, i: number) => {
+          const isBest = i === 0;
+          const deltaVsTop = best > 0 ? ((entry.expectedValuePerHour - best) / best) * 100 : 0;
 
-            return (
-              <tr key={i} className={`border-b border-gray-50 ${isBest ? 'bg-green-50' : ''}`}>
-                <td className="py-1.5 font-medium text-gray-500">{i + 1}</td>
-                <td className="py-1.5">
-                  <span className={`font-medium ${isBest ? 'text-green-700' : 'text-gray-700'}`}>
-                    {entry.items.rod.nameEn}
-                  </span>
-                  {isBest && (
-                    <span className="ml-1.5 rounded bg-green-100 px-1 py-0.5 text-xs text-green-700">
-                      ベスト
-                    </span>
-                  )}
-                </td>
-                <td className="py-1.5 text-gray-700">{entry.items.line.nameEn}</td>
-                <td className="py-1.5 text-gray-700">{entry.items.bobber.nameEn}</td>
-                <td className="py-1.5">
-                  <span className="text-gray-700">{entry.items.enchant.nameEn}</span>
-                  {isEnchantItem(entry.items.enchant) && entry.items.enchant.rarityLabel ? (
-                    <span className="ml-1 text-gray-400">({entry.items.enchant.rarityLabel})</span>
-                  ) : null}
-                </td>
-                <td className="py-1.5 text-right">
-                  <span className={`font-semibold ${isBest ? 'text-green-700' : 'text-gray-700'}`}>
+          return (
+            <div
+              key={i}
+              className={`rounded-xl border p-3 shadow-sm ${
+                isBest ? 'border-green-200 bg-green-50/60' : 'border-gray-200 bg-white'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold text-gray-500">
+                    #{i + 1} {isBest ? 'ベスト' : ''}
+                  </div>
+                  <div className="mt-1 space-y-1 text-xs text-gray-700">
+                    <div className="truncate">
+                      <span className="font-semibold">Rod:</span> {entry.items.rod.nameEn}
+                    </div>
+                    <div className="truncate">
+                      <span className="font-semibold">Line:</span> {entry.items.line.nameEn}
+                    </div>
+                    <div className="truncate">
+                      <span className="font-semibold">Bobber:</span> {entry.items.bobber.nameEn}
+                    </div>
+                    <div className="truncate">
+                      <span className="font-semibold">Enchant:</span> {entry.items.enchant.nameEn}
+                      {isEnchantItem(entry.items.enchant) && entry.items.enchant.rarityLabel ? (
+                        <span className="ml-1 text-gray-400">
+                          ({entry.items.enchant.rarityLabel})
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400">EV/h</div>
+                  <div
+                    className={`text-sm font-semibold ${isBest ? 'text-green-700' : 'text-gray-700'}`}
+                  >
                     {formatCurrency(entry.expectedValuePerHour)}
-                  </span>
+                  </div>
                   {i > 0 && best > 0 && (
-                    <span className="ml-1 text-gray-400">({deltaVsTop.toFixed(1)}%)</span>
+                    <div className="text-[10px] text-gray-400">({deltaVsTop.toFixed(1)}%)</div>
                   )}
-                </td>
-                <td className="py-1.5 text-right text-gray-600">
-                  {formatCurrency(entry.expectedValuePerCatch)}
-                </td>
-                <td className="py-1.5 pl-3 text-right">
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-gray-600">
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
+                  <span>期待値/回</span>
+                  <span className="font-semibold text-gray-800">
+                    {formatCurrency(entry.expectedValuePerCatch)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
+                  <span>操作</span>
                   <button
                     type="button"
                     onClick={() => onPickBuild?.(entry, i)}
-                    className="rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                    className="rounded border border-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
                   >
-                    この組み合わせを追加
+                    追加
                   </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block">
+        <table className="w-full table-fixed text-xs md:table-auto">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="w-8 pb-2 text-left font-medium text-gray-500 md:w-auto">#</th>
+              <th className="pb-2 text-left font-medium text-gray-500">Rod</th>
+              <th className="pb-2 text-left font-medium text-gray-500">Line</th>
+              <th className="pb-2 text-left font-medium text-gray-500">Bobber</th>
+              <th className="pb-2 text-left font-medium text-gray-500">Enchant</th>
+              <th className="pb-2 text-right font-medium text-gray-500">期待値/時間</th>
+              <th className="pb-2 text-right font-medium text-gray-500">期待値/回</th>
+              <th className="pb-2 text-right font-medium text-gray-500">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.topBuilds.map((entry: FullBuildEntry, i: number) => {
+              const isBest = i === 0;
+              const deltaVsTop = best > 0 ? ((entry.expectedValuePerHour - best) / best) * 100 : 0;
+
+              return (
+                <tr key={i} className={`border-b border-gray-50 ${isBest ? 'bg-green-50' : ''}`}>
+                  <td className="py-1.5 font-medium text-gray-500">{i + 1}</td>
+                  <td className="py-1.5">
+                    <span
+                      className={`break-words font-medium ${
+                        isBest ? 'text-green-700' : 'text-gray-700'
+                      }`}
+                    >
+                      {entry.items.rod.nameEn}
+                    </span>
+                    {isBest && (
+                      <span className="ml-1.5 rounded bg-green-100 px-1 py-0.5 text-xs text-green-700">
+                        ベスト
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-1.5 break-words text-gray-700">{entry.items.line.nameEn}</td>
+                  <td className="py-1.5 break-words text-gray-700">{entry.items.bobber.nameEn}</td>
+                  <td className="py-1.5 break-words">
+                    <span className="text-gray-700">{entry.items.enchant.nameEn}</span>
+                    {isEnchantItem(entry.items.enchant) && entry.items.enchant.rarityLabel ? (
+                      <span className="ml-1 text-gray-400">
+                        ({entry.items.enchant.rarityLabel})
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="py-1.5 text-right">
+                    <span
+                      className={`font-semibold ${isBest ? 'text-green-700' : 'text-gray-700'}`}
+                    >
+                      {formatCurrency(entry.expectedValuePerHour)}
+                    </span>
+                    {i > 0 && best > 0 && (
+                      <span className="ml-1 text-gray-400">({deltaVsTop.toFixed(1)}%)</span>
+                    )}
+                  </td>
+                  <td className="py-1.5 text-right text-gray-600">
+                    {formatCurrency(entry.expectedValuePerCatch)}
+                  </td>
+                  <td className="py-1.5 pl-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => onPickBuild?.(entry, i)}
+                      className="w-full whitespace-normal rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                    >
+                      この組み合わせを追加
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
