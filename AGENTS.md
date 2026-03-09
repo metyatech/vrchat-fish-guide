@@ -298,6 +298,27 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/writing-and-documentation
 
 - When a Markdown document links to a local file, use a path relative to the Markdown file.
 
+Source: github:metyatech/agent-rules@HEAD/rules/domains/node/module-system.md
+
+# Node module system (ESM)
+
+- Default to TypeScript (.ts/.tsx); use JavaScript only for tool-required config files.
+- Always set "type": "module" in package.json.
+- Prefer ESM with .js extensions for JavaScript config/scripts (e.g., next.config.js as ESM).
+
+Source: github:metyatech/agent-rules@HEAD/rules/domains/node/npm-packages.md
+
+# Node package publishing
+
+- For scoped npm packages, set publishConfig.access = "public".
+- Set files to constrain the published contents.
+- If a clean npm install is insufficient, use prepare (or equivalent) to build.
+
+## Verification
+
+- Use npm pack --dry-run to inspect the package contents.
+- Run npm test when tests exist.
+
 Source: ../agent-rules-local/ghws-workspace.md
 
 # GHWS workspace repository management
@@ -310,3 +331,4 @@ Source: ../agent-rules-local/ghws-workspace.md
 - When adding a new repository, create it under the `ghws` workspace first and then push it to GitHub.
 - For account-wide requests, treat all user-owned repositories as in scope; repository creation, splitting, and deletion are allowed when needed.
 - Never clone repositories that are not managed by the user into the `ghws` workspace.
+
