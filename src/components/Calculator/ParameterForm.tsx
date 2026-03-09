@@ -9,12 +9,12 @@ import {
   WEATHER_TYPE_LABELS,
 } from '@/data/fish';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
+import { BEST_AREA_ID } from '@/lib/calculator';
 import {
   CalculatorParams,
   DerivedModelSummary,
   ModifierAssumptions,
   Rarity,
-  TimeModelMode,
   TimeOfDay,
   WeatherType,
 } from '@/types';
@@ -26,7 +26,7 @@ interface ParameterFormProps {
 }
 
 const TIME_OF_DAY_HELPER: Record<TimeOfDay, string> = {
-  any: 'Any',
+  any: '自動で平均する',
   morning: 'Morning',
   day: 'Day',
   evening: 'Evening',
@@ -34,17 +34,12 @@ const TIME_OF_DAY_HELPER: Record<TimeOfDay, string> = {
 };
 
 const WEATHER_TYPE_HELPER: Record<WeatherType, string> = {
-  any: 'Any',
+  any: '自動で平均する',
   clear: 'Clear',
   rainy: 'Rainy',
   moonrain: 'Moonrain',
   stormy: 'Stormy',
   foggy: 'Foggy',
-};
-
-const TIME_MODEL_LABELS: Record<TimeModelMode, string> = {
-  observed: '自分の実測値を使う',
-  estimated: '装備から自動で見積もる',
 };
 
 function parseNumberInput(value: string, fallback: number, min: number, max: number): number {
@@ -58,6 +53,24 @@ function parseNumberInput(value: string, fallback: number, min: number, max: num
 function formatSignedStat(value: number, suffix = ''): string {
   if (value === 0) return `0${suffix}`;
   return `${value > 0 ? '+' : ''}${value}${suffix}`;
+}
+
+function formatItemOption(
+  name: string,
+  stats: {
+    luck: number;
+    strength: number;
+    expertise: number;
+    attractionPct: number;
+    bigCatch: number;
+    maxWeightKg: number;
+  },
+): string {
+  return `${name} | Luck ${stats.luck >= 0 ? '+' : ''}${stats.luck} | Strength ${
+    stats.strength >= 0 ? '+' : ''
+  }${stats.strength} | Expertise ${stats.expertise >= 0 ? '+' : ''}${stats.expertise} | Attraction Rate ${
+    stats.attractionPct >= 0 ? '+' : ''
+  }${stats.attractionPct}% | Big Catch Rate ${stats.bigCatch >= 0 ? '+' : ''}${stats.bigCatch} | Max Weight ${stats.maxWeightKg}kg`;
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -95,13 +108,16 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     enchantId: 'calc-enchant',
     timeOfDay: 'calc-time-of-day',
     weatherType: 'calc-weather-type',
-    timeModelMode: 'calc-time-model',
-    observedAvgCatchTimeSec: 'calc-observed-avg-catch-time',
-    observedMissRate: 'calc-observed-miss-rate',
-    baseBiteTimeSec: 'calc-base-bite-time',
-    baseMinigameTimeSec: 'calc-base-minigame-time',
-    baseMissRate: 'calc-base-miss-rate',
+    castTimeSec: 'calc-cast-time',
+    hookReactionTimeSec: 'calc-hook-reaction-time',
+    playerMistakeRate: 'calc-player-mistake-rate',
   } as const;
+
+  const selectedRod = RODS.find((item) => item.id === params.loadout.rodId) ?? RODS[0];
+  const selectedLine = LINES.find((item) => item.id === params.loadout.lineId) ?? LINES[0];
+  const selectedBobber = BOBBERS.find((item) => item.id === params.loadout.bobberId) ?? BOBBERS[0];
+  const selectedEnchant =
+    ENCHANTS.find((item) => item.id === params.loadout.enchantId) ?? ENCHANTS[0];
 
   return (
     <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -115,28 +131,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
       <section className="space-y-4 rounded-xl border border-ocean-100 bg-ocean-50 p-4">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 1</div>
-          <h3 className="text-sm font-semibold text-gray-800">場所と今の装備</h3>
+          <h3 className="text-sm font-semibold text-gray-800">まずは今の装備</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            まずここだけ決めれば比較を始められます。ゲーム内の名前は英語のまま表示しています。
+            まずここだけ決めれば比較を始められます。候補名の後ろに主要ステータスを並べています。
           </p>
-        </div>
-
-        <div>
-          <label htmlFor={fieldId.areaId} className="mb-1 block text-sm font-medium text-gray-700">
-            Fishing Area
-          </label>
-          <select
-            id={fieldId.areaId}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-            value={params.areaId}
-            onChange={(event) => handleChange('areaId', event.target.value)}
-          >
-            {FISHING_AREAS.map((area) => (
-              <option key={area.id} value={area.id}>
-                {area.nameEn}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -152,10 +150,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             >
               {RODS.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.nameEn}
+                  {formatItemOption(item.nameEn, item)}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">現在: {selectedRod.nameEn}</p>
           </div>
 
           <div>
@@ -173,10 +172,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             >
               {LINES.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.nameEn}
+                  {formatItemOption(item.nameEn, item)}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">現在: {selectedLine.nameEn}</p>
           </div>
 
           <div>
@@ -194,10 +194,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             >
               {BOBBERS.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.nameEn}
+                  {formatItemOption(item.nameEn, item)}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">現在: {selectedBobber.nameEn}</p>
           </div>
 
           <div>
@@ -215,16 +216,13 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             >
               {ENCHANTS.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.nameEn}
+                  {formatItemOption(item.nameEn, item)}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">現在: {selectedEnchant.nameEn}</p>
           </div>
         </div>
-
-        <p className="text-xs leading-relaxed text-gray-500">
-          Rod = 竿 / Line = ライン / Bobber = ウキ / Enchant = エンチャント
-        </p>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-3 flex items-start justify-between gap-3">
@@ -236,10 +234,14 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             </div>
             <span
               className={`rounded-full px-3 py-1 text-xs font-medium ${
-                model.enchantActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                model.enchantState === 'active'
+                  ? 'bg-green-100 text-green-700'
+                  : model.enchantState === 'conditional'
+                    ? 'bg-ocean-100 text-ocean-700'
+                    : 'bg-gray-100 text-gray-600'
               }`}
             >
-              {model.enchantActive ? 'いま有効' : 'いま無効'}
+              {model.enchantStatusText ?? 'No Enchant selected'}
             </span>
           </div>
 
@@ -254,10 +256,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             <StatCard label="Strength" value={formatSignedStat(model.totalStats.strength)} />
             <StatCard label="Expertise" value={formatSignedStat(model.totalStats.expertise)} />
             <StatCard
-              label="Attraction"
+              label="Attraction Rate"
               value={formatSignedStat(model.totalStats.attractionPct, '%')}
             />
-            <StatCard label="Big Catch" value={formatSignedStat(model.totalStats.bigCatch)} />
+            <StatCard label="Big Catch Rate" value={formatSignedStat(model.totalStats.bigCatch)} />
             <StatCard
               label="Max Weight"
               value={`${model.totalStats.maxWeightKg.toLocaleString()}kg`}
@@ -269,9 +271,31 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
       <section className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 2</div>
-          <h3 className="text-sm font-semibold text-gray-800">いまの釣り条件</h3>
+          <h3 className="text-sm font-semibold text-gray-800">必要なら、場所と条件を絞る</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            時間帯と天気で、釣れる魚と一部 Enchant の有効・無効が変わります。
+            何も変えなければ、Fishing Area は自動選択、Time of Day と Weather は自動平均です。
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor={fieldId.areaId} className="mb-1 block text-sm font-medium text-gray-700">
+            Fishing Area
+          </label>
+          <select
+            id={fieldId.areaId}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+            value={params.areaId}
+            onChange={(event) => handleChange('areaId', event.target.value)}
+          >
+            <option value={BEST_AREA_ID}>自動で一番よい場所を選ぶ</option>
+            {FISHING_AREAS.map((area) => (
+              <option key={area.id} value={area.id}>
+                {area.nameEn}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            初期状態では、今の装備ごとに期待値/時間が最も高い Fishing Area を自動で選びます。
           </p>
         </div>
 
@@ -295,6 +319,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              自動で平均する を選ぶと、Morning / Day / Evening / Night を平均して計算します。
+            </p>
           </div>
 
           <div>
@@ -316,6 +343,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              自動で平均する を選ぶと、Clear / Rainy / Moonrain / Stormy / Foggy
+              を平均して計算します。
+            </p>
           </div>
         </div>
       </section>
@@ -325,172 +356,106 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 3</div>
           <h3 className="text-sm font-semibold text-gray-800">あなたのプレイ速度</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            分かるなら実測値を入れてください。分からなければデフォルトのままでも比較はできます。
+            基本は装備ステータスから自動で見積もります。ここでは、自分の癖だけ少し足し引きします。
           </p>
         </div>
 
-        <div>
-          <label
-            htmlFor={fieldId.timeModelMode}
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            時間の計算方法
-          </label>
-          <select
-            id={fieldId.timeModelMode}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-            value={params.timeModelMode}
-            onChange={(event) => handleChange('timeModelMode', event.target.value as TimeModelMode)}
-          >
-            {(Object.keys(TIME_MODEL_LABELS) as TimeModelMode[]).map((mode) => (
-              <option key={mode} value={mode}>
-                {TIME_MODEL_LABELS[mode]}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label
+              htmlFor={fieldId.castTimeSec}
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              投げてから着水まで (sec)
+            </label>
+            <input
+              id={fieldId.castTimeSec}
+              type="number"
+              min={0}
+              max={15}
+              step={0.1}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+              value={params.castTimeSec}
+              onChange={(event) =>
+                handleChange(
+                  'castTimeSec',
+                  parseNumberInput(event.target.value, params.castTimeSec, 0, 15),
+                )
+              }
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor={fieldId.hookReactionTimeSec}
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              `!` が出てから反応するまで (sec)
+            </label>
+            <input
+              id={fieldId.hookReactionTimeSec}
+              type="number"
+              min={0}
+              max={10}
+              step={0.05}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+              value={params.hookReactionTimeSec}
+              onChange={(event) =>
+                handleChange(
+                  'hookReactionTimeSec',
+                  parseNumberInput(event.target.value, params.hookReactionTimeSec, 0, 10),
+                )
+              }
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor={fieldId.playerMistakeRate}
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              プレイミスの多さ
+            </label>
+            <input
+              id={fieldId.playerMistakeRate}
+              type="number"
+              min={0}
+              max={0.95}
+              step={0.01}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
+              value={params.playerMistakeRate}
+              onChange={(event) =>
+                handleChange(
+                  'playerMistakeRate',
+                  parseNumberInput(event.target.value, params.playerMistakeRate, 0, 0.95),
+                )
+              }
+            />
+          </div>
         </div>
 
-        {params.timeModelMode === 'observed' ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label
-                htmlFor={fieldId.observedAvgCatchTimeSec}
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                1回にかかる平均時間（秒）
-              </label>
-              <input
-                id={fieldId.observedAvgCatchTimeSec}
-                type="number"
-                min={1}
-                max={600}
-                step={5}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                value={params.observedAvgCatchTimeSec}
-                onChange={(event) =>
-                  handleChange(
-                    'observedAvgCatchTimeSec',
-                    parseNumberInput(event.target.value, params.observedAvgCatchTimeSec, 1, 600),
-                  )
-                }
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor={fieldId.observedMissRate}
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                逃がす割合
-              </label>
-              <input
-                id={fieldId.observedMissRate}
-                type="number"
-                min={0}
-                max={0.95}
-                step={0.05}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                value={params.observedMissRate}
-                onChange={(event) =>
-                  handleChange(
-                    'observedMissRate',
-                    parseNumberInput(event.target.value, params.observedMissRate, 0, 0.95),
-                  )
-                }
-              />
-            </div>
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-xs leading-relaxed text-gray-600">
+          <div className="mb-2 font-semibold text-gray-800">
+            この装備の組み合わせでの自動見積もり
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <label
-                  htmlFor={fieldId.baseBiteTimeSec}
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  魚が掛かるまでの基準時間（秒）
-                </label>
-                <input
-                  id={fieldId.baseBiteTimeSec}
-                  type="number"
-                  min={1}
-                  max={300}
-                  step={1}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                  value={params.baseBiteTimeSec}
-                  onChange={(event) =>
-                    handleChange(
-                      'baseBiteTimeSec',
-                      parseNumberInput(event.target.value, params.baseBiteTimeSec, 1, 300),
-                    )
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={fieldId.baseMinigameTimeSec}
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  ミニゲームの基準時間（秒）
-                </label>
-                <input
-                  id={fieldId.baseMinigameTimeSec}
-                  type="number"
-                  min={1}
-                  max={300}
-                  step={1}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                  value={params.baseMinigameTimeSec}
-                  onChange={(event) =>
-                    handleChange(
-                      'baseMinigameTimeSec',
-                      parseNumberInput(event.target.value, params.baseMinigameTimeSec, 1, 300),
-                    )
-                  }
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor={fieldId.baseMissRate}
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  逃がしやすさの基準値
-                </label>
-                <input
-                  id={fieldId.baseMissRate}
-                  type="number"
-                  min={0}
-                  max={0.95}
-                  step={0.05}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ocean-500"
-                  value={params.baseMissRate}
-                  onChange={(event) =>
-                    handleChange(
-                      'baseMissRate',
-                      parseNumberInput(event.target.value, params.baseMissRate, 0, 0.95),
-                    )
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-xs leading-relaxed text-gray-600">
-              <div className="mb-2 font-semibold text-gray-800">この装備での見積もり</div>
-              <ul className="space-y-1">
-                <li>• 魚が掛かるまで: {model.effectiveBiteTimeSec?.toFixed(1) ?? '—'} 秒</li>
-                <li>• ミニゲーム時間: {model.effectiveMinigameTimeSec?.toFixed(1) ?? '—'} 秒</li>
-                <li>• 逃がす割合: {(model.effectiveMissRate * 100).toFixed(1)}%</li>
-              </ul>
-            </div>
-          </div>
-        )}
+          <ul className="space-y-1">
+            <li>• 投げてから着水まで: {model.effectiveCastTimeSec?.toFixed(2) ?? '—'} sec</li>
+            <li>
+              • 着水してから `!` が出るまで: {model.effectiveBiteTimeSec?.toFixed(2) ?? '—'} sec
+            </li>
+            <li>
+              • `!` が出てから反応するまで: {model.effectiveHookReactionTimeSec?.toFixed(2) ?? '—'}{' '}
+              sec
+            </li>
+            <li>• ミニゲーム時間: {model.effectiveMinigameTimeSec?.toFixed(2) ?? '—'} sec</li>
+            <li>• 逃がしやすさ: {(model.effectiveMissRate * 100).toFixed(1)}%</li>
+          </ul>
+        </div>
       </section>
 
       <details className="rounded-xl border border-gray-200 bg-gray-50 p-4">
         <summary className="cursor-pointer list-none text-sm font-semibold text-gray-800">
-          詳細調整
+          細かい調整と前提
           <span className="ml-2 text-xs font-normal text-gray-500">
             より細かく詰めたいときだけ開く
           </span>
@@ -498,14 +463,14 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
         <div className="mt-4 space-y-4">
           <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="text-sm font-semibold text-gray-800">この計算で使う値</h3>
+            <h3 className="text-sm font-semibold text-gray-800">このページが計算に使っている値</h3>
             <p className="mt-1 text-xs leading-relaxed text-gray-500">
-              上の入力から、このページが実際に計算へ入れている値です。根拠が強い部分と、まだ推定の部分を分けて表示しています。
+              上の入力から、このページが実際に計算へ入れている値です。公開情報で確認できている部分と、まだ推定の部分を分けて表示しています。
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
               <StatCard label="Luck 補正" value={`${model.effectiveLuckMultiplier.toFixed(2)}x`} />
               <StatCard
-                label="逃がす割合"
+                label="逃がしやすさ"
                 value={`${(model.effectiveMissRate * 100).toFixed(1)}%`}
               />
               <StatCard
@@ -513,7 +478,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 value={`${model.effectiveAvgCatchTimeSec.toFixed(1)}s`}
               />
               <StatCard
-                label="重さの寄せ方"
+                label="重さの寄り方"
                 value={`${(model.weightPercentile * 100).toFixed(0)}%`}
               />
               {model.modifierEvFactor !== 1 ? (
@@ -525,7 +490,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             </div>
             <div className="mt-4 space-y-3 text-xs leading-relaxed">
               <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
-                <div className="mb-1 font-semibold">根拠が確認できている部分</div>
+                <div className="mb-1 font-semibold">公開データで確認できている部分</div>
                 <ul className="space-y-1">
                   {model.supportedNotes.map((note) => (
                     <li key={note}>• {note}</li>

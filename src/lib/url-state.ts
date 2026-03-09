@@ -72,6 +72,9 @@ function validateParams(v: unknown): v is CalculatorParams {
     isFiniteNumber(o.baseBiteTimeSec) &&
     isFiniteNumber(o.baseMinigameTimeSec) &&
     isFiniteNumber(o.baseMissRate) &&
+    isFiniteNumber(o.castTimeSec) &&
+    isFiniteNumber(o.hookReactionTimeSec) &&
+    isFiniteNumber(o.playerMistakeRate) &&
     validateModifierAssumptions(o.modifierAssumptions)
   );
 }
@@ -224,7 +227,7 @@ export function generateBuildId(): string {
 }
 
 /** Create a default first build. */
-export function createDefaultBuild(areaId = 'coconut-bay'): BuildConfig {
+export function createDefaultBuild(areaId = 'best-area'): BuildConfig {
   return {
     id: generateBuildId(),
     name: '現在の装備',

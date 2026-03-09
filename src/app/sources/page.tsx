@@ -80,7 +80,7 @@ export default function SourcesPage() {
             <li>• レア度ごとの出やすさの基準値</li>
             <li>• Money Maker / Pocket Watcher / Double Up!! の直接期待値補正</li>
             <li>• 装備を含む推定売値ベースの期待値計算</li>
-            <li>• 実測値 / 自動見積もりを含む時間あたり収益推定</li>
+            <li>• 装備ステータスから自動見積もりした時間あたり収益推定</li>
             <li>
               • <span className="rounded bg-amber-100 px-1 text-amber-800">まだ推定</span>{' '}
               見た目・サイズの追加効果を期待値へ反映（デフォルト有効、無効化可）

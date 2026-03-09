@@ -4,7 +4,11 @@ import { getDefaultParams } from '@/lib/calculator';
 import { optimizeFullBuild, rankAllSlots, rankSlot } from '@/lib/ranking';
 
 describe('rankSlot', () => {
-  const baseParams = getDefaultParams('coconut-bay');
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
 
   it('returns one entry per available rod', () => {
     const entries = rankSlot(baseParams, 'rod');
@@ -61,14 +65,22 @@ describe('rankSlot', () => {
 
 describe('rankAllSlots', () => {
   it('returns results for all four slots', () => {
-    const ranked = rankAllSlots(getDefaultParams('coconut-bay'));
+    const ranked = rankAllSlots({
+      ...getDefaultParams('coconut-bay'),
+      timeOfDay: 'day',
+      weatherType: 'clear',
+    });
     expect(Object.keys(ranked)).toEqual(
       expect.arrayContaining(['rod', 'line', 'bobber', 'enchant']),
     );
   });
 
   it('each slot list is sorted descending by EV/hour', () => {
-    const ranked = rankAllSlots(getDefaultParams('coconut-bay'));
+    const ranked = rankAllSlots({
+      ...getDefaultParams('coconut-bay'),
+      timeOfDay: 'day',
+      weatherType: 'clear',
+    });
     for (const entries of Object.values(ranked)) {
       for (let i = 1; i < entries.length; i++) {
         expect(entries[i - 1].expectedValuePerHour).toBeGreaterThanOrEqual(
@@ -79,13 +91,21 @@ describe('rankAllSlots', () => {
   });
 
   it('works for open-sea area', () => {
-    const ranked = rankAllSlots(getDefaultParams('open-sea'));
+    const ranked = rankAllSlots({
+      ...getDefaultParams('open-sea'),
+      timeOfDay: 'day',
+      weatherType: 'clear',
+    });
     expect(ranked.rod.length).toBeGreaterThan(0);
   });
 });
 
 describe('optimizeFullBuild', () => {
-  const baseParams = getDefaultParams('coconut-bay');
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
 
   it('returns topBuilds sorted descending by expectedValuePerHour', () => {
     const result = optimizeFullBuild(baseParams);
@@ -141,7 +161,11 @@ describe('optimizeFullBuild', () => {
   });
 
   it('works for open-sea area', () => {
-    const result = optimizeFullBuild(getDefaultParams('open-sea'));
+    const result = optimizeFullBuild({
+      ...getDefaultParams('open-sea'),
+      timeOfDay: 'day',
+      weatherType: 'clear',
+    });
     expect(result.topBuilds.length).toBeGreaterThan(0);
   });
 

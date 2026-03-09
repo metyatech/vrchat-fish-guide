@@ -146,7 +146,7 @@ export function OptimizerView({
           <h2 className="text-base font-semibold text-gray-800">全部まとめて比べる</h2>
           <p className="mt-0.5 text-xs text-gray-500">
             Rod / Line / Bobber / Enchant の全組み合わせ {displayedTotal.toLocaleString()}{' '}
-            通りをすべて調べて、伸びやすい順に並べます。まだ正確式が見つかっていない部分を含む推定です。
+            通りをすべて調べて、伸びやすい順に並べます。時間はかかりますが、全部まとめて入れ替えた結果を見たいときに使います。
           </p>
         </div>
         <button
@@ -165,12 +165,12 @@ export function OptimizerView({
             <strong>見方:</strong>
             <ul className="mt-1 list-inside list-disc space-y-0.5">
               <li>
-                Luck や Big Catch
+                Luck や Big Catch Rate
                 など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。
               </li>
               <li>
                 全 <strong>{(result?.searchedCount ?? displayedTotal).toLocaleString()}</strong>{' '}
-                通りを すべて評価しています。装備の除外はありません。
+                通りをすべて評価しています。装備の除外はありません。
               </li>
               <li>
                 1欄だけの比較とは結果が変わることがあります。ここでは全部まとめて入れ替えた場合を見ています。

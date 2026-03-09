@@ -127,19 +127,20 @@ export function RankingView({
   onPickItem,
 }: RankingViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
+  const [showOtherSlots, setShowOtherSlots] = useState(false);
 
   const ranked = useMemo(() => rankAllSlots(baseParams), [baseParams]);
-  const orderedSlots = [focusSlot, ...SLOT_ORDER.filter((slot) => slot !== focusSlot)];
+  const otherSlots = SLOT_ORDER.filter((slot) => slot !== focusSlot);
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-gray-800">スロット別ランキング</h2>
+          <h2 className="text-base font-semibold text-gray-800">この欄で強い候補</h2>
           <p className="mt-0.5 text-xs text-gray-500">
             いま比べたい {SLOT_LABELS[focusSlot]}{' '}
-            を先頭に、この欄だけ変えたときに伸びやすい候補を並べます。
-            まだ正確式が見つかっていない部分を含む推定です。
+            だけを変えたときに、どの候補が伸びやすいかを並べています。
+            ここに出る順番は、まだ正確式が分かっていない部分を含む推定です。
           </p>
         </div>
         <button
@@ -154,31 +155,60 @@ export function RankingView({
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
             <strong>見方:</strong>{' '}
-            これは「ほかを今のままにして、この欄だけ変えたらどうなるか」です。
-            全部の装備を同時に変えた結果ではありません。全部まとめて比べたいときは下の
-            「全部まとめて比べる」を使ってください。
+            これは「ほかを今のままにして、この欄だけ変えたらどうなるか」です。全部の装備を同時に変えた結果ではありません。
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {orderedSlots.map((slot) => (
-              <SlotTable
-                key={slot}
-                slot={slot}
-                entries={ranked[slot]}
-                topN={topN}
-                activeItemId={
-                  slot === 'rod'
-                    ? baseParams.loadout.rodId
-                    : slot === 'line'
-                      ? baseParams.loadout.lineId
-                      : slot === 'bobber'
-                        ? baseParams.loadout.bobberId
-                        : baseParams.loadout.enchantId
-                }
-                onPickItem={onPickItem}
-              />
-            ))}
+          <div className="grid grid-cols-1 gap-4">
+            <SlotTable
+              slot={focusSlot}
+              entries={ranked[focusSlot]}
+              topN={topN}
+              activeItemId={
+                focusSlot === 'rod'
+                  ? baseParams.loadout.rodId
+                  : focusSlot === 'line'
+                    ? baseParams.loadout.lineId
+                    : focusSlot === 'bobber'
+                      ? baseParams.loadout.bobberId
+                      : baseParams.loadout.enchantId
+              }
+              onPickItem={onPickItem}
+            />
           </div>
+
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600">
+            ほかの欄も見たいときだけ、下を開いてください。
+            <button
+              type="button"
+              onClick={() => setShowOtherSlots((value) => !value)}
+              className="ml-2 rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+            >
+              {showOtherSlots ? 'ほかの欄を閉じる' : 'ほかの欄も見る'}
+            </button>
+          </div>
+
+          {showOtherSlots ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {otherSlots.map((slot) => (
+                <SlotTable
+                  key={slot}
+                  slot={slot}
+                  entries={ranked[slot]}
+                  topN={topN}
+                  activeItemId={
+                    slot === 'rod'
+                      ? baseParams.loadout.rodId
+                      : slot === 'line'
+                        ? baseParams.loadout.lineId
+                        : slot === 'bobber'
+                          ? baseParams.loadout.bobberId
+                          : baseParams.loadout.enchantId
+                  }
+                  onPickItem={onPickItem}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

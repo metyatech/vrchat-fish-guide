@@ -4,6 +4,7 @@ import {
   DEFAULT_RARITY_WEIGHT_NOTES,
   DEFAULT_RARITY_WEIGHTS,
   FISH_MAP,
+  FISHING_AREAS,
 } from '@/data/fish';
 import { BOBBER_MAP, ENCHANT_MAP, LINE_MAP, ROD_MAP } from '@/data/equipment';
 import {
@@ -68,6 +69,37 @@ const EMPTY_STATS: StatBlock = {
   maxWeightKg: 0,
 };
 
+const ALL_TIME_OF_DAY: Exclude<TimeOfDay, 'any'>[] = ['morning', 'day', 'evening', 'night'];
+const ALL_WEATHER_TYPES: Exclude<WeatherType, 'any'>[] = [
+  'clear',
+  'rainy',
+  'moonrain',
+  'stormy',
+  'foggy',
+];
+
+const RARITY_MINIGAME_FACTOR: Partial<Record<Rarity, number>> = {
+  abundant: 0.85,
+  common: 1,
+  curious: 1.12,
+  elusive: 1.28,
+  fabled: 1.5,
+  mythic: 1.8,
+  exotic: 2.1,
+};
+
+const RARITY_ESCAPE_FACTOR: Partial<Record<Rarity, number>> = {
+  abundant: 0.55,
+  common: 0.8,
+  curious: 1,
+  elusive: 1.2,
+  fabled: 1.5,
+  mythic: 1.9,
+  exotic: 2.25,
+};
+
+export const BEST_AREA_ID = 'best-area';
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -94,7 +126,7 @@ function addStats(target: StatBlock, item?: EquipmentItem | EnchantItem): StatBl
 
 export function getSelectedLoadout(loadout: CalculatorParams['loadout']) {
   return {
-    rod: ROD_MAP[loadout.rodId] ?? ROD_MAP['sunleaf-rod'],
+    rod: ROD_MAP[loadout.rodId] ?? ROD_MAP['stick-and-string'],
     line: LINE_MAP[loadout.lineId] ?? LINE_MAP['basic-line'],
     bobber: BOBBER_MAP[loadout.bobberId] ?? BOBBER_MAP['basic-bobber'],
     enchant: ENCHANT_MAP[loadout.enchantId] ?? ENCHANT_MAP['no-enchant'],
@@ -114,11 +146,12 @@ export function resolveEnchantActivity(
     if (timeOfDay === 'any') {
       return {
         active: false,
-        reason: 'Day-only enchantments stay inactive when Time of Day is Any.',
+        reason:
+          'Time of Day を自動平均にしている間は、Day のみ有効な Enchant は常時有効にはできません。',
       };
     }
     if (!isDaylightTime(timeOfDay)) {
-      return { active: false, reason: 'This enchant only applies during daylight.' };
+      return { active: false, reason: 'この Enchant は昼の時間帯だけ有効です。' };
     }
   }
 
@@ -127,8 +160,8 @@ export function resolveEnchantActivity(
       active: false,
       reason:
         timeOfDay === 'any'
-          ? 'Night-only enchantments stay inactive when Time of Day is Any.'
-          : 'This enchant only applies at Night.',
+          ? 'Time of Day を自動平均にしている間は、Night のみ有効な Enchant は常時有効にはできません。'
+          : 'この Enchant は Night のときだけ有効です。',
     };
   }
 
@@ -137,8 +170,8 @@ export function resolveEnchantActivity(
       active: false,
       reason:
         weatherType === 'any'
-          ? `${enchant.activationWeather} enchantments stay inactive when Weather is Any.`
-          : `This enchant only applies in ${enchant.activationWeather} weather.`,
+          ? `Weather を自動平均にしている間は、${enchant.activationWeather} でのみ有効な Enchant は常時有効にはできません。`
+          : `この Enchant は ${enchant.activationWeather} のときだけ有効です。`,
     };
   }
 
@@ -163,7 +196,7 @@ function normalizeParams(params: CalculatorParams): CalculatorParams {
       bobberId: selected.bobber.id,
       enchantId: selected.enchant.id,
     },
-    timeModelMode: params.timeModelMode === 'estimated' ? 'estimated' : 'observed',
+    timeModelMode: 'estimated',
     observedAvgCatchTimeSec: clamp(
       Number.isFinite(params.observedAvgCatchTimeSec) ? params.observedAvgCatchTimeSec : 60,
       1,
@@ -185,6 +218,17 @@ function normalizeParams(params: CalculatorParams): CalculatorParams {
       300,
     ),
     baseMissRate: clamp(Number.isFinite(params.baseMissRate) ? params.baseMissRate : 0.1, 0, 0.95),
+    castTimeSec: clamp(Number.isFinite(params.castTimeSec) ? params.castTimeSec : 1.2, 0, 15),
+    hookReactionTimeSec: clamp(
+      Number.isFinite(params.hookReactionTimeSec) ? params.hookReactionTimeSec : 0.2,
+      0,
+      10,
+    ),
+    playerMistakeRate: clamp(
+      Number.isFinite(params.playerMistakeRate) ? params.playerMistakeRate : 0.04,
+      0,
+      0.95,
+    ),
     customRarityWeights:
       customRarityWeights && Object.keys(customRarityWeights).length > 0
         ? customRarityWeights
@@ -296,14 +340,52 @@ function getDirectMultipliers(enchant?: EnchantItem) {
   return { directValueMultiplier, directCatchMultiplier, supportedNotes, unsupportedNotes };
 }
 
-export function deriveModelSummary(params: CalculatorParams): DerivedModelSummary {
-  const normalizedParams = normalizeParams(params);
-  const { rod, line, bobber, enchant } = getSelectedLoadout(normalizedParams.loadout);
-  const enchantActivity = resolveEnchantActivity(
-    enchant,
-    normalizedParams.timeOfDay,
-    normalizedParams.weatherType,
+interface ConditionScenario {
+  timeOfDay: Exclude<TimeOfDay, 'any'>;
+  weatherType: Exclude<WeatherType, 'any'>;
+  weight: number;
+}
+
+function getConditionScenarios(
+  timeOfDay: TimeOfDay,
+  weatherType: WeatherType,
+): ConditionScenario[] {
+  const timeStates = timeOfDay === 'any' ? ALL_TIME_OF_DAY : [timeOfDay];
+  const weatherStates = weatherType === 'any' ? ALL_WEATHER_TYPES : [weatherType];
+  const total = timeStates.length * weatherStates.length;
+
+  return timeStates.flatMap((timeState) =>
+    weatherStates.map((weatherState) => ({
+      timeOfDay: timeState,
+      weatherType: weatherState,
+      weight: 1 / total,
+    })),
   );
+}
+
+function getAreaCandidateIds(areaId: string): string[] {
+  if (areaId === BEST_AREA_ID) {
+    return FISHING_AREAS.map((area) => area.id);
+  }
+  return [areaId];
+}
+
+function getScenarioEnchantState(
+  normalizedParams: CalculatorParams,
+  timeOfDay: Exclude<TimeOfDay, 'any'>,
+  weatherType: Exclude<WeatherType, 'any'>,
+) {
+  const { enchant } = getSelectedLoadout(normalizedParams.loadout);
+  return resolveEnchantActivity(enchant, timeOfDay, weatherType);
+}
+
+function deriveScenarioModel(
+  normalizedParams: CalculatorParams,
+  timeOfDay: Exclude<TimeOfDay, 'any'>,
+  weatherType: Exclude<WeatherType, 'any'>,
+): DerivedModelSummary {
+  const { rod, line, bobber, enchant } = getSelectedLoadout(normalizedParams.loadout);
+  const enchantActivity = getScenarioEnchantState(normalizedParams, timeOfDay, weatherType);
 
   let totalStats = { ...EMPTY_STATS };
   totalStats = addStats(totalStats, rod);
@@ -322,13 +404,29 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
     ? computeModifierEvFactor(modifierAssumptions.assumeCursedToBlessed)
     : 1.0;
 
+  const biteScale = scaleFromScore(totalStats.attractionPct, 100, 0.2, 4);
+  const controlScore = totalStats.strength + totalStats.expertise;
+  const minigameScale = scaleFromScore(controlScore, 200, 0.3, 3);
+  const missScale = scaleFromScore(controlScore, 250, 0.1, 3);
+  const effectiveCastTimeSec = normalizedParams.castTimeSec;
+  const effectiveHookReactionTimeSec = normalizedParams.hookReactionTimeSec;
+  const effectiveBiteTimeSec = normalizedParams.baseBiteTimeSec * biteScale;
+  const effectiveMinigameTimeSec = normalizedParams.baseMinigameTimeSec * minigameScale;
+  const effectiveMissRate = clamp(
+    (normalizedParams.baseMissRate + normalizedParams.playerMistakeRate) * missScale,
+    0,
+    0.95,
+  );
+
   const supportedNotes = [
     'Rod / Line / Bobber / Enchant のステータス合計は公開 Fandom 表を使っています。',
     ...direct.supportedNotes,
   ];
   const experimentalNotes = [
     `Luck ${totalStats.luck >= 0 ? '+' : ''}${totalStats.luck} は、レアな魚が出やすくなる補正 ${effectiveLuckMultiplier.toFixed(2)}x として入れています。`,
-    `Big Catch ${totalStats.bigCatch >= 0 ? '+' : ''}${totalStats.bigCatch} は、重い魚が出やすくなる方向へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
+    `Attraction Rate ${totalStats.attractionPct >= 0 ? '+' : ''}${totalStats.attractionPct}% は、魚が掛かるまでの時間へ反映しています。`,
+    `Strength + Expertise (${controlScore >= 0 ? '+' : ''}${controlScore}) は、ミニゲーム時間と逃がしにくさへ反映しています。`,
+    `Big Catch Rate ${totalStats.bigCatch >= 0 ? '+' : ''}${totalStats.bigCatch} は、重い魚が出やすくなる方向へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
     `Max Weight ${totalStats.maxWeightKg.toLocaleString()}kg は、魚ごとの重さ上限に使っています。`,
   ];
   if (modifierAssumptions.includeModifiers) {
@@ -343,58 +441,175 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
     unsupportedNotes.push('見た目・サイズの追加効果は、いまは期待値に入れていません。');
   }
 
-  if (enchant.id !== 'no-enchant' && !enchantActivity.active && enchantActivity.reason) {
-    experimentalNotes.push(`選んでいる Enchant は今は無効です: ${enchantActivity.reason}`);
-  }
-
-  if (normalizedParams.timeModelMode === 'observed') {
-    experimentalNotes.push(
-      '実測値を使う設定では、入力した平均時間と逃がす割合をそのまま使います。Attraction / Strength / Expertise の自動補正はここでは足しません。',
-    );
-    return {
-      loadout: normalizedParams.loadout,
-      totalStats,
-      enchantActive: enchantActivity.active,
-      inactiveEnchantReason: enchantActivity.reason,
-      effectiveLuckMultiplier,
-      effectiveAvgCatchTimeSec: normalizedParams.observedAvgCatchTimeSec,
-      effectiveMissRate: normalizedParams.observedMissRate,
-      weightPercentile,
-      directValueMultiplier: direct.directValueMultiplier,
-      directCatchMultiplier: direct.directCatchMultiplier,
-      modifierEvFactor,
-      supportedNotes,
-      experimentalNotes,
-      unsupportedNotes,
-    };
-  }
-
-  const biteScale = scaleFromScore(totalStats.attractionPct, 100, 0.2, 4);
-  const controlScore = totalStats.strength + totalStats.expertise;
-  const minigameScale = scaleFromScore(controlScore, 200, 0.3, 3);
-  const missScale = scaleFromScore(controlScore, 250, 0.1, 3);
-  const effectiveBiteTimeSec = normalizedParams.baseBiteTimeSec * biteScale;
-  const effectiveMinigameTimeSec = normalizedParams.baseMinigameTimeSec * minigameScale;
-  const effectiveMissRate = clamp(normalizedParams.baseMissRate * missScale, 0, 0.95);
-
-  experimentalNotes.push(
-    `装備から見積もる設定では、Attraction ${totalStats.attractionPct >= 0 ? '+' : ''}${totalStats.attractionPct}% を魚が掛かるまでの時間へ、Strength + Expertise (${controlScore >= 0 ? '+' : ''}${controlScore}) をミニゲーム時間と逃がす割合へ反映しています。`,
-  );
-
   return {
     loadout: normalizedParams.loadout,
     totalStats,
     enchantActive: enchantActivity.active,
+    enchantState: enchantActivity.active ? 'active' : 'inactive',
+    enchantStatusText:
+      enchant.id === 'no-enchant'
+        ? 'Enchant なし'
+        : enchantActivity.active
+          ? 'この条件では Enchant が有効'
+          : 'この条件では Enchant が無効',
     inactiveEnchantReason: enchantActivity.reason,
     effectiveLuckMultiplier,
-    effectiveAvgCatchTimeSec: effectiveBiteTimeSec + effectiveMinigameTimeSec,
+    effectiveAvgCatchTimeSec:
+      effectiveCastTimeSec +
+      effectiveBiteTimeSec +
+      effectiveHookReactionTimeSec +
+      effectiveMinigameTimeSec,
     effectiveMissRate,
     effectiveBiteTimeSec,
     effectiveMinigameTimeSec,
+    effectiveCastTimeSec,
+    effectiveHookReactionTimeSec,
     weightPercentile,
     directValueMultiplier: direct.directValueMultiplier,
     directCatchMultiplier: direct.directCatchMultiplier,
     modifierEvFactor,
+    supportedNotes,
+    experimentalNotes,
+    unsupportedNotes,
+  };
+}
+
+export function deriveModelSummary(params: CalculatorParams): DerivedModelSummary {
+  const normalizedParams = normalizeParams(params);
+  const { enchant } = getSelectedLoadout(normalizedParams.loadout);
+  const scenarios = getConditionScenarios(normalizedParams.timeOfDay, normalizedParams.weatherType);
+  const scenarioModels = scenarios.map((scenario) => ({
+    scenario,
+    model: deriveScenarioModel(normalizedParams, scenario.timeOfDay, scenario.weatherType),
+  }));
+
+  const totalStats = scenarioModels.reduce(
+    (acc, { scenario, model }) => ({
+      luck: acc.luck + model.totalStats.luck * scenario.weight,
+      strength: acc.strength + model.totalStats.strength * scenario.weight,
+      expertise: acc.expertise + model.totalStats.expertise * scenario.weight,
+      attractionPct: acc.attractionPct + model.totalStats.attractionPct * scenario.weight,
+      bigCatch: acc.bigCatch + model.totalStats.bigCatch * scenario.weight,
+      maxWeightKg: acc.maxWeightKg + model.totalStats.maxWeightKg * scenario.weight,
+    }),
+    { ...EMPTY_STATS },
+  );
+
+  const anyActive = scenarioModels.some(({ model }) => model.enchantActive);
+  const allActive = scenarioModels.every(({ model }) => model.enchantActive);
+  const areaText =
+    normalizedParams.areaId === BEST_AREA_ID ? '自動選択されるエリアの候補全体' : '選んだエリア';
+
+  const supportedNotes = Array.from(
+    new Set(
+      scenarioModels
+        .flatMap(({ model }) => model.supportedNotes)
+        .concat([
+          normalizedParams.areaId === BEST_AREA_ID
+            ? 'Fishing Area を自動にすると、今の候補ごとに期待値/時間が最も高い場所を選びます。'
+            : 'Fishing Area を固定すると、その場所だけで計算します。',
+        ]),
+    ),
+  );
+  const experimentalNotes = Array.from(
+    new Set(
+      scenarioModels
+        .flatMap(({ model }) => model.experimentalNotes)
+        .concat([
+          normalizedParams.timeOfDay === 'any' || normalizedParams.weatherType === 'any'
+            ? 'Time of Day / Weather を自動平均にすると、公開されている各状態を同じ比率で平均して計算します。'
+            : 'Time of Day / Weather は選んだ条件に固定して計算します。',
+        ]),
+    ),
+  );
+  const unsupportedNotes = Array.from(
+    new Set(scenarioModels.flatMap(({ model }) => model.unsupportedNotes)),
+  );
+
+  if (normalizedParams.timeOfDay === 'any') {
+    experimentalNotes.push(
+      'Time of Day を自動平均にすると、Morning / Day / Evening / Night を固定せず平均して扱います。',
+    );
+  }
+  if (normalizedParams.weatherType === 'any') {
+    experimentalNotes.push(
+      'Weather を自動平均にすると、Clear / Rainy / Moonrain / Stormy / Foggy を固定せず平均して扱います。',
+    );
+  }
+
+  let enchantState: DerivedModelSummary['enchantState'] = 'inactive';
+  let enchantStatusText = 'Enchant なし';
+  let inactiveEnchantReason: string | undefined;
+
+  if (enchant.id !== 'no-enchant') {
+    if (allActive) {
+      enchantState = 'active';
+      enchantStatusText = 'この条件では Enchant が有効';
+    } else if (anyActive) {
+      enchantState = 'conditional';
+      enchantStatusText = '条件によって Enchant が有効/無効になる';
+      inactiveEnchantReason = `${areaText} では、この Enchant が有効になる条件と無効な条件が混ざります。`;
+    } else {
+      enchantState = 'inactive';
+      enchantStatusText = 'この条件では Enchant が無効';
+      inactiveEnchantReason =
+        scenarioModels.find(({ model }) => model.inactiveEnchantReason)?.model
+          .inactiveEnchantReason ?? 'この条件では Enchant が無効です。';
+    }
+  }
+
+  return {
+    loadout: normalizedParams.loadout,
+    totalStats,
+    enchantActive: anyActive,
+    enchantState,
+    enchantStatusText,
+    inactiveEnchantReason,
+    effectiveLuckMultiplier: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + model.effectiveLuckMultiplier * scenario.weight,
+      0,
+    ),
+    effectiveAvgCatchTimeSec: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + model.effectiveAvgCatchTimeSec * scenario.weight,
+      0,
+    ),
+    effectiveMissRate: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + model.effectiveMissRate * scenario.weight,
+      0,
+    ),
+    effectiveBiteTimeSec: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + (model.effectiveBiteTimeSec ?? 0) * scenario.weight,
+      0,
+    ),
+    effectiveMinigameTimeSec: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + (model.effectiveMinigameTimeSec ?? 0) * scenario.weight,
+      0,
+    ),
+    effectiveCastTimeSec: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + (model.effectiveCastTimeSec ?? 0) * scenario.weight,
+      0,
+    ),
+    effectiveHookReactionTimeSec: scenarioModels.reduce(
+      (sum, { scenario, model }) =>
+        sum + (model.effectiveHookReactionTimeSec ?? 0) * scenario.weight,
+      0,
+    ),
+    weightPercentile: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + model.weightPercentile * scenario.weight,
+      0,
+    ),
+    directValueMultiplier: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + model.directValueMultiplier * scenario.weight,
+      0,
+    ),
+    directCatchMultiplier: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + model.directCatchMultiplier * scenario.weight,
+      0,
+    ),
+    modifierEvFactor: scenarioModels.reduce(
+      (sum, { scenario, model }) => sum + model.modifierEvFactor * scenario.weight,
+      0,
+    ),
     supportedNotes,
     experimentalNotes,
     unsupportedNotes,
@@ -429,20 +644,36 @@ function getModeledPrice(fish: FishEntry, model: DerivedModelSummary): number | 
   return basePrice * model.directValueMultiplier;
 }
 
-export function calculateDistribution(params: CalculatorParams): DistributionResult {
-  const normalizedParams = normalizeParams(params);
+interface AreaConditionDistribution {
+  areaId: string;
+  timeOfDay: Exclude<TimeOfDay, 'any'>;
+  weatherType: Exclude<WeatherType, 'any'>;
+  model: DerivedModelSummary;
+  fishResults: FishResult[];
+  expectedValuePerCatch: number;
+  expectedValuePerHour: number;
+  totalFishProbability: number;
+  missingPriceFish: FishEntry[];
+  effectiveRarityWeights: Partial<Record<Rarity, number>>;
+  warnings: string[];
+}
+
+function calculateAreaConditionDistribution(
+  normalizedParams: CalculatorParams,
+  areaId: string,
+  timeOfDay: Exclude<TimeOfDay, 'any'>,
+  weatherType: Exclude<WeatherType, 'any'>,
+): AreaConditionDistribution {
   const warnings: string[] = [];
-  const eligibleFish = getEligibleFish(
-    normalizedParams.areaId,
-    normalizedParams.timeOfDay,
-    normalizedParams.weatherType,
-  );
-  const model = deriveModelSummary(normalizedParams);
+  const eligibleFish = getEligibleFish(areaId, timeOfDay, weatherType);
+  const model = deriveScenarioModel(normalizedParams, timeOfDay, weatherType);
 
   if (eligibleFish.length === 0) {
-    warnings.push('選択したエリア・時間帯・天候に一致する魚データがありません。');
+    warnings.push('選択した条件に一致する魚データがありません。');
     return {
-      params: normalizedParams,
+      areaId,
+      timeOfDay,
+      weatherType,
       model,
       fishResults: [],
       expectedValuePerCatch: 0,
@@ -453,29 +684,6 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
       warnings,
     };
   }
-
-  if (normalizedParams.timeOfDay !== 'any' || normalizedParams.weatherType !== 'any') {
-    warnings.push(
-      '時間帯・天候タグは公開 community index の条件表示に基づくフィルタです。内部の 1.5x ボーナス式まではモデル化していません。',
-    );
-  }
-
-  warnings.push(...DEFAULT_RARITY_WEIGHT_NOTES);
-  warnings.push(
-    '各 rarity 内では、公開索引に載っている魚を等確率で割り当てる近似モデルを使用しています。',
-  );
-  warnings.push(
-    'Luck / Big Catch / Max Weight の期待値反映には、まだ推定の部分があります。詳細は左の「この計算で使う値」を確認してください。',
-  );
-  if (normalizedParams.timeModelMode === 'estimated') {
-    warnings.push(
-      '「装備から自動で見積もる」は、Attraction / Strength / Expertise を使った推定です。',
-    );
-  }
-  if (model.inactiveEnchantReason) {
-    warnings.push(model.inactiveEnchantReason);
-  }
-  warnings.push(...model.unsupportedNotes.map((note) => `未対応特殊効果: ${note}`));
 
   const effectiveRarityWeights = getEffectiveRarityWeights(
     eligibleFish,
@@ -499,7 +707,9 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
   if (totalRarityWeight <= 0) {
     warnings.push('有効な rarity 重みが 0 です。レアリティ設定を確認してください。');
     return {
-      params: normalizedParams,
+      areaId,
+      timeOfDay,
+      weatherType,
       model,
       fishResults: [],
       expectedValuePerCatch: 0,
@@ -511,19 +721,33 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
     };
   }
 
-  const catchProbabilityScale = 1 - model.effectiveMissRate;
-  const catchesPerHour = 3600 / model.effectiveAvgCatchTimeSec;
-
   const fishResults: FishResult[] = [];
   const missingPriceFish: FishEntry[] = [];
+  const effectiveCastTimeSec = model.effectiveCastTimeSec ?? normalizedParams.castTimeSec;
+  const effectiveBiteTimeSec = model.effectiveBiteTimeSec ?? normalizedParams.baseBiteTimeSec;
+  const effectiveHookReactionTimeSec =
+    model.effectiveHookReactionTimeSec ?? normalizedParams.hookReactionTimeSec;
+
+  let expectedMinigameTimeSec = 0;
+  let weightedEscapeRate = 0;
 
   for (const rarity of CALCULATOR_RARITIES) {
     const group = fishByRarity.get(rarity) ?? [];
     if (group.length === 0) continue;
 
     const tierWeight = effectiveRarityWeights[rarity] ?? 0;
-    const tierProbability = (tierWeight / totalRarityWeight) * catchProbabilityScale;
-    const perFishProbability = tierProbability / group.length;
+    const tierEncounterProbability = tierWeight / totalRarityWeight;
+    const perFishEncounterProbability = tierEncounterProbability / group.length;
+    const rarityEscapeFactor = RARITY_ESCAPE_FACTOR[rarity] ?? 1;
+    const rarityMinigameFactor = RARITY_MINIGAME_FACTOR[rarity] ?? 1;
+    const successRate = clamp(1 - model.effectiveMissRate * rarityEscapeFactor, 0.02, 1);
+
+    expectedMinigameTimeSec +=
+      perFishEncounterProbability *
+      group.length *
+      (model.effectiveMinigameTimeSec ?? 0) *
+      rarityMinigameFactor;
+    weightedEscapeRate += perFishEncounterProbability * group.length * (1 - successRate);
 
     for (const fish of group) {
       const baseModeledPrice = getModeledPrice(fish, model);
@@ -531,27 +755,28 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
         missingPriceFish.push(fish);
       }
 
-      // Apply the modifier EV factor: when modifiers are included (modifierEvFactor > 1),
-      // this adjusts the expected price upward to account for the average price bonus from
-      // appearance/size modifiers.  When modifiers are not included, modifierEvFactor === 1.
       const modeledPrice = (baseModeledPrice ?? 0) * model.modifierEvFactor;
-      const expectedValue = perFishProbability * modeledPrice * model.directCatchMultiplier;
+      const probability = perFishEncounterProbability * successRate;
+      const expectedValue = probability * modeledPrice * model.directCatchMultiplier;
       fishResults.push({
         fish,
-        probability: perFishProbability,
+        probability,
         expectedPrice: modeledPrice,
         expectedValue,
-        expectedValuePerHour: expectedValue * catchesPerHour,
+        expectedValuePerHour: 0,
       });
     }
   }
 
-  if (missingPriceFish.length > 0) {
-    warnings.push(
-      `価格レンジ未取得の魚が ${missingPriceFish.length} 種あります。期待値はそれらを 0G 扱いした下限値です: ${missingPriceFish
-        .map((fish) => fish.nameEn)
-        .join(', ')}`,
-    );
+  const expectedAttemptTimeSec =
+    effectiveCastTimeSec +
+    effectiveBiteTimeSec +
+    effectiveHookReactionTimeSec +
+    expectedMinigameTimeSec;
+  const catchesPerHour = 3600 / Math.max(1, expectedAttemptTimeSec);
+
+  for (const row of fishResults) {
+    row.expectedValuePerHour = row.expectedValue * catchesPerHour;
   }
 
   const expectedValuePerCatch = fishResults.reduce((sum, row) => sum + row.expectedValue, 0);
@@ -559,8 +784,15 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
   const totalFishProbability = fishResults.reduce((sum, row) => sum + row.probability, 0);
 
   return {
-    params: normalizedParams,
-    model,
+    areaId,
+    timeOfDay,
+    weatherType,
+    model: {
+      ...model,
+      effectiveAvgCatchTimeSec: expectedAttemptTimeSec,
+      effectiveMinigameTimeSec: expectedMinigameTimeSec,
+      effectiveMissRate: weightedEscapeRate,
+    },
     fishResults,
     expectedValuePerCatch,
     expectedValuePerHour,
@@ -568,6 +800,175 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
     missingPriceFish,
     effectiveRarityWeights,
     warnings,
+  };
+}
+
+export function calculateDistribution(params: CalculatorParams): DistributionResult {
+  const normalizedParams = normalizeParams(params);
+  const areaCandidates = getAreaCandidateIds(normalizedParams.areaId);
+  const conditionScenarios = getConditionScenarios(
+    normalizedParams.timeOfDay,
+    normalizedParams.weatherType,
+  );
+  const displayModel = deriveModelSummary(normalizedParams);
+  const warnings: string[] = [...DEFAULT_RARITY_WEIGHT_NOTES];
+
+  const areaResults = areaCandidates
+    .map((areaId) => {
+      const scenarioResults = conditionScenarios.map((scenario) =>
+        calculateAreaConditionDistribution(
+          normalizedParams,
+          areaId,
+          scenario.timeOfDay,
+          scenario.weatherType,
+        ),
+      );
+
+      const fishMap = new Map<string, FishResult>();
+      const missingPriceMap = new Map<string, FishEntry>();
+      const rarityWeightTotals: Partial<Record<Rarity, number>> = {};
+      const scenarioWarnings = new Set<string>();
+
+      let expectedValuePerCatch = 0;
+      let expectedValuePerHour = 0;
+      let totalFishProbability = 0;
+      let effectiveAvgCatchTimeSec = 0;
+      let effectiveMissRate = 0;
+      let effectiveMinigameTimeSec = 0;
+
+      for (let i = 0; i < scenarioResults.length; i += 1) {
+        const scenarioResult = scenarioResults[i];
+        const weight = conditionScenarios[i].weight;
+        expectedValuePerCatch += scenarioResult.expectedValuePerCatch * weight;
+        expectedValuePerHour += scenarioResult.expectedValuePerHour * weight;
+        totalFishProbability += scenarioResult.totalFishProbability * weight;
+        effectiveAvgCatchTimeSec += scenarioResult.model.effectiveAvgCatchTimeSec * weight;
+        effectiveMissRate += scenarioResult.model.effectiveMissRate * weight;
+        effectiveMinigameTimeSec += (scenarioResult.model.effectiveMinigameTimeSec ?? 0) * weight;
+
+        scenarioResult.warnings.forEach((warning) => scenarioWarnings.add(warning));
+        scenarioResult.missingPriceFish.forEach((fish) => missingPriceMap.set(fish.id, fish));
+        Object.entries(scenarioResult.effectiveRarityWeights).forEach(([rarity, weightValue]) => {
+          rarityWeightTotals[rarity as Rarity] =
+            (rarityWeightTotals[rarity as Rarity] ?? 0) + (weightValue ?? 0) * weight;
+        });
+
+        for (const row of scenarioResult.fishResults) {
+          const current = fishMap.get(row.fish.id);
+          if (current) {
+            current.probability += row.probability * weight;
+            current.expectedPrice += row.expectedPrice * weight;
+            current.expectedValue += row.expectedValue * weight;
+            current.expectedValuePerHour += row.expectedValuePerHour * weight;
+          } else {
+            fishMap.set(row.fish.id, {
+              fish: row.fish,
+              probability: row.probability * weight,
+              expectedPrice: row.expectedPrice * weight,
+              expectedValue: row.expectedValue * weight,
+              expectedValuePerHour: row.expectedValuePerHour * weight,
+            });
+          }
+        }
+      }
+
+      const fishResults = Array.from(fishMap.values()).sort(
+        (a, b) => b.expectedValuePerHour - a.expectedValuePerHour,
+      );
+
+      return {
+        areaId,
+        fishResults,
+        expectedValuePerCatch,
+        expectedValuePerHour,
+        totalFishProbability,
+        missingPriceFish: Array.from(missingPriceMap.values()),
+        effectiveRarityWeights: rarityWeightTotals,
+        warnings: Array.from(scenarioWarnings),
+        effectiveAvgCatchTimeSec,
+        effectiveMissRate,
+        effectiveMinigameTimeSec,
+      };
+    })
+    .filter((result) => result.fishResults.length > 0);
+
+  if (areaResults.length === 0) {
+    warnings.push('選択した条件に一致する魚データがありません。');
+    return {
+      params: normalizedParams,
+      model: displayModel,
+      fishResults: [],
+      expectedValuePerCatch: 0,
+      expectedValuePerHour: 0,
+      totalFishProbability: 0,
+      missingPriceFish: [],
+      effectiveRarityWeights: {},
+      warnings,
+    };
+  }
+
+  const bestAreaResult = areaResults.reduce((best, current) =>
+    current.expectedValuePerHour > best.expectedValuePerHour ? current : best,
+  );
+
+  if (normalizedParams.areaId === BEST_AREA_ID) {
+    warnings.push(
+      'Fishing Area は自動選択です。各候補ごとに期待値/時間が最も高いエリアを採用しています。',
+    );
+  } else {
+    warnings.push('Fishing Area は固定です。選んだエリアの中だけで比較しています。');
+  }
+
+  if (normalizedParams.timeOfDay === 'any') {
+    warnings.push('Time of Day は固定せず、Morning / Day / Evening / Night を自動平均しています。');
+  } else {
+    warnings.push(`Time of Day は ${normalizedParams.timeOfDay} に固定しています。`);
+  }
+  if (normalizedParams.weatherType === 'any') {
+    warnings.push(
+      'Weather は固定せず、Clear / Rainy / Moonrain / Stormy / Foggy を自動平均しています。',
+    );
+  } else {
+    warnings.push(`Weather は ${normalizedParams.weatherType} に固定しています。`);
+  }
+
+  warnings.push(
+    '各 rarity 内では、公開索引に載っている魚を等確率で割り当てる近似モデルを使用しています。',
+  );
+  warnings.push('Luck / Big Catch Rate / Max Weight の期待値反映には、まだ推定の部分があります。');
+  warnings.push(
+    '逃がしやすさは rarity ごとに変わる推定モデルです。魚ごとの正確な内部式は公開されていません。',
+  );
+  if (displayModel.inactiveEnchantReason) {
+    warnings.push(displayModel.inactiveEnchantReason);
+  }
+  warnings.push(...bestAreaResult.warnings);
+  warnings.push(...displayModel.unsupportedNotes.map((note) => `未対応特殊効果: ${note}`));
+
+  if (bestAreaResult.missingPriceFish.length > 0) {
+    warnings.push(
+      `価格レンジ未取得の魚が ${bestAreaResult.missingPriceFish.length} 種あります。期待値はそれらを 0G 扱いした下限値です: ${bestAreaResult.missingPriceFish
+        .map((fish) => fish.nameEn)
+        .join(', ')}`,
+    );
+  }
+
+  return {
+    params: normalizedParams,
+    model: {
+      ...displayModel,
+      autoSelectedAreaId: bestAreaResult.areaId,
+      effectiveAvgCatchTimeSec: bestAreaResult.effectiveAvgCatchTimeSec,
+      effectiveMissRate: bestAreaResult.effectiveMissRate,
+      effectiveMinigameTimeSec: bestAreaResult.effectiveMinigameTimeSec,
+    },
+    fishResults: bestAreaResult.fishResults,
+    expectedValuePerCatch: bestAreaResult.expectedValuePerCatch,
+    expectedValuePerHour: bestAreaResult.expectedValuePerHour,
+    totalFishProbability: bestAreaResult.totalFishProbability,
+    missingPriceFish: bestAreaResult.missingPriceFish,
+    effectiveRarityWeights: bestAreaResult.effectiveRarityWeights,
+    warnings: Array.from(new Set(warnings)),
   };
 }
 
@@ -595,23 +996,26 @@ export function formatWeightRange(fish: FishEntry): string {
   return '—';
 }
 
-export function getDefaultParams(areaId = 'coconut-bay'): CalculatorParams {
+export function getDefaultParams(areaId = BEST_AREA_ID): CalculatorParams {
   return {
     areaId,
     weatherType: 'any',
     timeOfDay: 'any',
     loadout: {
-      rodId: 'sunleaf-rod',
+      rodId: 'stick-and-string',
       lineId: 'basic-line',
       bobberId: 'basic-bobber',
       enchantId: 'no-enchant',
     },
-    timeModelMode: 'observed',
+    timeModelMode: 'estimated',
     observedAvgCatchTimeSec: 60,
     observedMissRate: 0.1,
     baseBiteTimeSec: 20,
-    baseMinigameTimeSec: 40,
-    baseMissRate: 0.1,
+    baseMinigameTimeSec: 12,
+    baseMissRate: 0.04,
+    castTimeSec: 1.2,
+    hookReactionTimeSec: 0.2,
+    playerMistakeRate: 0.04,
     modifierAssumptions: {
       includeModifiers: true,
       assumeCursedToBlessed: true,

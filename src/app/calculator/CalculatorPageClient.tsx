@@ -10,7 +10,7 @@ import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { RankingView } from '@/components/Calculator/RankingView';
 import { ResultTable } from '@/components/Calculator/ResultTable';
 import { WarningBanner } from '@/components/Calculator/WarningBanner';
-import { RARITY_LABELS, TIME_OF_DAY_LABELS, WEATHER_TYPE_LABELS } from '@/data/fish';
+import { AREA_MAP, RARITY_LABELS, TIME_OF_DAY_LABELS, WEATHER_TYPE_LABELS } from '@/data/fish';
 import { calculateDistribution, formatCurrency, getDefaultParams } from '@/lib/calculator';
 import { rankAllSlots, RankSlot } from '@/lib/ranking';
 import {
@@ -35,6 +35,14 @@ const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
   'full-build': '全部まとめて',
 };
 
+function formatSelectedTimeLabel(value: CalculatorParams['timeOfDay']): string {
+  return value === 'any' ? '自動平均' : TIME_OF_DAY_LABELS[value];
+}
+
+function formatSelectedWeatherLabel(value: CalculatorParams['weatherType']): string {
+  return value === 'any' ? '自動平均' : WEATHER_TYPE_LABELS[value];
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function initState(): {
@@ -43,13 +51,13 @@ function initState(): {
   urlRestoreError?: string;
 } {
   if (typeof window === 'undefined') {
-    const first = createDefaultBuild('coconut-bay');
+    const first = createDefaultBuild();
     return { builds: [first], activeId: first.id };
   }
   const hash = window.location.hash;
   const { state, failureReason } = decodeUrlStateWithReason(hash);
   if (state) return { ...state };
-  const first = createDefaultBuild('coconut-bay');
+  const first = createDefaultBuild();
   return { builds: [first], activeId: first.id, urlRestoreError: failureReason };
 }
 
@@ -303,20 +311,20 @@ export function CalculatorPageClient() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">📊 装備込みの期待値比較</h1>
         <p className="mt-1 text-sm text-gray-500">
-          いまの装備から何を変えると一番伸びるかを、1回ごと・1時間ごとの期待値で比べます。
+          いまの装備から何を変えると一番伸びるかを、上から順に条件を入れながら比べます。
         </p>
         <ol className="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-4">
           <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            1. 上から順に、場所と今の装備を入れる
+            1. 今の装備を入れる
           </li>
           <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            2. 次に、何を比べたいかを選ぶ
+            2. 必要なら場所と条件を絞る
           </li>
           <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            3. 候補を追加して、組み合わせを並べる
+            3. 次に、何を比べたいかを選ぶ
           </li>
           <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            4. 最後に、期待値/時間で比べる
+            4. 候補を追加して、期待値/時間で比べる
           </li>
         </ol>
       </div>
@@ -327,9 +335,12 @@ export function CalculatorPageClient() {
             <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
               Step 1-3
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">まずは場所と今の装備を入れる</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              上から順に、今の装備と条件を決める
+            </h2>
             <p className="mt-1 text-sm text-gray-500">
-              このページは、ここから順に埋めていけば使えます。まだ比べる候補を決めていなくても大丈夫です。
+              まずは装備だけで大丈夫です。場所は自動選択、Time of Day と Weather
+              は自動平均のまま使い始められます。
             </p>
           </div>
           <ParameterForm
@@ -344,9 +355,11 @@ export function CalculatorPageClient() {
             <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
               Step 4
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">次に、何を比べたいか選ぶ</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              次に、どこを変えて比べるか決める
+            </h2>
             <p className="mt-1 text-sm text-gray-500">
-              1 つだけ変えて比べるか、全部まとめて比べるかを選びます。
+              まずは 1 か所だけ変えて比べるのがおすすめです。全部まとめて比べるのは最後で十分です。
             </p>
           </div>
 
@@ -429,10 +442,10 @@ export function CalculatorPageClient() {
             <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
               Step 5
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">候補を追加する</h2>
+            <h2 className="text-lg font-semibold text-gray-900">おすすめ候補を 1 つ追加する</h2>
             <p className="mt-1 text-sm text-gray-500">
-              ここでは、比べる候補を追加します。まずは 1
-              件だけ追加してから、次の比較結果を見るのがおすすめです。
+              ここでは、次に試す候補を追加します。まずは 1
+              件だけ追加して、そのまますぐ下で結果を比べるのがおすすめです。
             </p>
           </div>
 
@@ -462,7 +475,7 @@ export function CalculatorPageClient() {
               </div>
               <h2 className="text-lg font-semibold text-gray-900">追加した組み合わせを比べる</h2>
               <p className="mt-1 text-sm text-gray-500">
-                候補を追加したら、ここで並べて見ます。気になる組み合わせを押すと、その内容を下に表示します。
+                候補を追加したら、ここで横並びに見ます。迷ったら、まずは期待値/時間だけ比べてください。
               </p>
             </div>
             <button
@@ -487,7 +500,7 @@ export function CalculatorPageClient() {
           {!hasComparisons ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
               まだ比較する候補がありません。上の「この候補を追加」か「この組み合わせを追加」で 1
-              件追加すると、 ここに比較結果が出ます。
+              件追加すると、ここに比較結果が出ます。
             </div>
           ) : (
             <ComparisonSummary
@@ -565,7 +578,7 @@ export function CalculatorPageClient() {
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">期待値/時間</div>
-              周回効率を比べるときに一番見る数字です。実測値を使うと、よりプレイ感に近づきます。
+              周回効率を比べるときに一番見る数字です。いまは装備と入力条件から自動で見積もっています。
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">試行回数/時間</div>
@@ -579,20 +592,21 @@ export function CalculatorPageClient() {
 
           <div className="flex flex-wrap gap-2 text-xs">
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
+              使っている場所:{' '}
+              {AREA_MAP[activeResult.model.autoSelectedAreaId ?? activeResult.params.areaId]
+                ?.nameEn ?? '—'}
+            </div>
+            <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
               対象魚種: {activeResult.fishResults.length}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
               価格レンジ未取得: {activeResult.missingPriceFish.length}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              時間帯: {TIME_OF_DAY_LABELS[activeResult.params.timeOfDay]}
+              Time of Day: {formatSelectedTimeLabel(activeResult.params.timeOfDay)}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              天気: {WEATHER_TYPE_LABELS[activeResult.params.weatherType]}
-            </div>
-            <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              時間の計算方法:{' '}
-              {activeResult.params.timeModelMode === 'observed' ? '実測値' : '装備から見積もる'}
+              Weather: {formatSelectedWeatherLabel(activeResult.params.weatherType)}
             </div>
           </div>
 

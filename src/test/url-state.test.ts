@@ -32,9 +32,9 @@ describe('createDefaultBuild', () => {
     expect(build.params.areaId).toBe('open-sea');
   });
 
-  it('defaults to coconut-bay', () => {
+  it('defaults to automatic best-area selection', () => {
     const build = createDefaultBuild();
-    expect(build.params.areaId).toBe('coconut-bay');
+    expect(build.params.areaId).toBe('best-area');
   });
 
   it('has a non-empty id and name', () => {
@@ -79,6 +79,9 @@ describe('encodeUrlState / decodeUrlState round-trip', () => {
     const build = makeBuild('Params Build');
     build.params.observedAvgCatchTimeSec = 73;
     build.params.observedMissRate = 0.15;
+    build.params.castTimeSec = 1.7;
+    build.params.hookReactionTimeSec = 0.3;
+    build.params.playerMistakeRate = 0.08;
     build.params.modifierAssumptions = { includeModifiers: true, assumeCursedToBlessed: true };
 
     const state = { builds: [build], activeId: build.id };
@@ -87,6 +90,9 @@ describe('encodeUrlState / decodeUrlState round-trip', () => {
     expect(decoded).not.toBeNull();
     expect(decoded!.builds[0].params.observedAvgCatchTimeSec).toBe(73);
     expect(decoded!.builds[0].params.observedMissRate).toBe(0.15);
+    expect(decoded!.builds[0].params.castTimeSec).toBe(1.7);
+    expect(decoded!.builds[0].params.hookReactionTimeSec).toBe(0.3);
+    expect(decoded!.builds[0].params.playerMistakeRate).toBe(0.08);
     expect(decoded!.builds[0].params.modifierAssumptions.includeModifiers).toBe(true);
   });
 });

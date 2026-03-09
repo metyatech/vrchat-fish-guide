@@ -1,6 +1,6 @@
 {
   "name": "vrchat-fish-guide",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "description": "Unofficial community guide and probability calculator for the VRChat world Fish!",
   "homepage": "https://metyatech.github.io/vrchat-fish-guide/",
@@ -18,7 +18,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "npx serve@latest out --no-clipboard",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix --max-warnings=0",
     "format": "prettier --write .",
@@ -27,7 +27,7 @@
     "test": "npm run test:unit && npm run test:a11y",
     "test:unit": "vitest run src/test/calculator.test.ts src/test/distributions.test.ts src/test/next-config.test.ts src/test/metadata-routes.test.ts src/test/url-state.test.ts src/test/ranking.test.ts",
     "test:a11y": "vitest run src/test/accessibility.test.tsx",
-    "test:e2e": "playwright install chromium && playwright test",
+    "test:e2e": "playwright install chromium && npm run build && playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e",

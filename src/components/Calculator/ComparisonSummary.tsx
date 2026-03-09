@@ -30,7 +30,7 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
         <span className="ml-1 inline-block rounded bg-green-100 px-1.5 py-0.5 font-semibold text-green-700">
           緑
         </span>{' '}
-        はその列で一番良い値です。名前を押すと、その組み合わせを左の入力欄に表示します。
+        はその列で一番良い値です。名前を押すと、その組み合わせを上の入力欄に表示します。
       </p>
 
       <div className="overflow-x-auto">

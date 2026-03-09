@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-03-09
+
+### Changed
+
+- **Calculator now starts from current gear, not area selection**: The first step now focuses on Rod / Line / Bobber / Enchant. Fishing Area moved to an optional narrowing step, with automatic best-area selection as the default.
+- **Time of Day / Weather now auto-average by default**: Instead of asking users to lock changing conditions up front, the calculator now averages published Time of Day and Weather states by default and only fixes them when the user chooses to narrow conditions.
+- **Play speed is now always derived from gear first**: The calculator now estimates cast time, bite wait, reaction delay, minigame time, and escape rate from equipment stats, while still letting users nudge cast time, reaction delay, and mistake tendency.
+- **Step 4 and Step 5 are more direct**: Users now choose what single part to compare first, then see only the strongest candidates for that part before opening broader comparisons.
+- **Plainer user-facing wording**: Replaced leftover mixed English/internal wording in the calculator with more ordinary Japanese task language, especially around automatic conditions, comparison guidance, and timing assumptions.
+- **Ranking view now centers only the chosen part first**: Instead of showing every slot at once, the page shows the selected part first and keeps the other parts behind an explicit reveal, reducing first-use cognitive load.
+- **Playwright now tests the exported static site**: E2E no longer depends on `next dev`; the smoke suite now builds the site and serves `out/` for more stable verification.
+
 ## [0.8.0] - 2026-03-09
 
 ### Changed

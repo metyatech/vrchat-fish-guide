@@ -105,7 +105,7 @@ describe('gear model helpers', () => {
       enchantId: 'missing',
     });
 
-    expect(selected.rod.id).toBe('sunleaf-rod');
+    expect(selected.rod.id).toBe('stick-and-string');
     expect(selected.line.id).toBe('basic-line');
     expect(selected.bobber.id).toBe('basic-bobber');
     expect(selected.enchant.id).toBe('no-enchant');
@@ -138,7 +138,7 @@ describe('gear model helpers', () => {
     });
 
     expect(model.totalStats.luck).toBe(170);
-    expect(model.totalStats.bigCatch).toBe(97);
+    expect(model.totalStats.bigCatch).toBeCloseTo(97, 5);
     expect(model.directValueMultiplier).toBeCloseTo(1.2, 5);
     expect(model.directCatchMultiplier).toBeCloseTo(1, 5);
   });
@@ -164,23 +164,24 @@ describe('gear model helpers', () => {
     expect(model.effectiveMissRate).toBeLessThan(0.2);
   });
 
-  it('keeps observed timing untouched in observed mode', () => {
+  it('always derives timing from gear and player adjustments', () => {
     const model = deriveModelSummary({
       ...getDefaultParams('coconut-bay'),
-      timeModelMode: 'observed',
       loadout: {
         rodId: 'speedy-rod',
         lineId: 'aquamarine-line',
         bobberId: 'paulie-s-bobber',
         enchantId: 'messenger-of-the-heavens',
       },
-      observedAvgCatchTimeSec: 73,
-      observedMissRate: 0.31,
+      castTimeSec: 1.4,
+      hookReactionTimeSec: 0.35,
+      playerMistakeRate: 0.12,
     });
 
-    expect(model.effectiveAvgCatchTimeSec).toBe(73);
-    expect(model.effectiveMissRate).toBe(0.31);
-    expect(model.effectiveBiteTimeSec).toBeUndefined();
+    expect(model.effectiveCastTimeSec).toBe(1.4);
+    expect(model.effectiveHookReactionTimeSec).toBe(0.35);
+    expect(model.effectiveBiteTimeSec).toBeDefined();
+    expect(model.effectiveAvgCatchTimeSec).toBeGreaterThan(0);
   });
 });
 
@@ -192,13 +193,13 @@ describe('calculateDistribution', () => {
     expect(result.fishResults.length).toBeGreaterThan(0);
   });
 
-  it('probabilities sum to approximately 1 - effectiveMissRate', () => {
+  it('probabilities sum to approximately 1 - modeled escape rate', () => {
     const result = calculateDistribution({
       ...defaultParams,
-      observedMissRate: 0.1,
+      playerMistakeRate: 0.1,
     });
 
-    expect(result.totalFishProbability).toBeCloseTo(0.9, 5);
+    expect(result.totalFishProbability).toBeCloseTo(1 - result.model.effectiveMissRate, 5);
   });
 
   it('normalizes observed and baseline params', () => {
@@ -225,14 +226,14 @@ describe('calculateDistribution', () => {
     expect(result.expectedValuePerCatch).toBeCloseTo(expectedValue, 5);
   });
 
-  it('matches expectedValuePerHour to expectedValuePerCatch * catchesPerHour', () => {
+  it('matches expectedValuePerHour to the sum of individual hourly contributions', () => {
     const result = calculateDistribution({
       ...defaultParams,
-      observedAvgCatchTimeSec: 60,
-      observedMissRate: 0.1,
+      playerMistakeRate: 0.1,
     });
 
-    expect(result.expectedValuePerHour).toBeCloseTo(result.expectedValuePerCatch * 60, 5);
+    const hourlyValue = result.fishResults.reduce((sum, row) => sum + row.expectedValuePerHour, 0);
+    expect(result.expectedValuePerHour).toBeCloseTo(hourlyValue, 5);
   });
 
   it('returns no fish for an unknown area', () => {
@@ -243,7 +244,7 @@ describe('calculateDistribution', () => {
     expect(result.expectedValuePerHour).toBe(0);
   });
 
-  it('warns when time or weather filters are enabled', () => {
+  it('warns when time or weather are fixed instead of automatically averaged', () => {
     const result = calculateDistribution({
       ...defaultParams,
       areaId: 'open-sea',
@@ -251,7 +252,7 @@ describe('calculateDistribution', () => {
       weatherType: 'rainy',
     });
 
-    expect(result.warnings.some((warning) => warning.includes('時間帯・天候タグ'))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes('Time of Day'))).toBe(true);
   });
 
   it('raises EV when a direct value enchant is equipped', () => {
@@ -273,7 +274,7 @@ describe('calculateDistribution', () => {
     expect(boostedResult.expectedValuePerCatch).toBeGreaterThan(baseResult.expectedValuePerCatch);
   });
 
-  it('raises EV with Double Up!! without changing catch probability', () => {
+  it('raises EV with Double Up!!', () => {
     const baseResult = calculateDistribution({
       ...defaultParams,
       loadout: {
@@ -290,7 +291,6 @@ describe('calculateDistribution', () => {
     });
 
     expect(boostedResult.expectedValuePerCatch).toBeGreaterThan(baseResult.expectedValuePerCatch);
-    expect(boostedResult.totalFishProbability).toBeCloseTo(baseResult.totalFishProbability, 5);
   });
 
   it('uses zero probability for a tier whose custom weight is zeroed out', () => {
@@ -407,7 +407,7 @@ describe('modifier EV model', () => {
       modifierAssumptions: { includeModifiers: false, assumeCursedToBlessed: true },
     });
 
-    expect(model.modifierEvFactor).toBe(1.0);
+    expect(model.modifierEvFactor).toBeCloseTo(1.0, 10);
   });
 
   it('deriveModelSummary modifierEvFactor is >1 when modifiers included', () => {
@@ -520,8 +520,8 @@ describe('getDefaultParams', () => {
     expect(getDefaultParams('open-sea').areaId).toBe('open-sea');
   });
 
-  it('defaults to coconut-bay', () => {
-    expect(getDefaultParams().areaId).toBe('coconut-bay');
+  it('defaults to automatic best-area selection', () => {
+    expect(getDefaultParams().areaId).toBe('best-area');
   });
 
   it('returns sane defaults', () => {
@@ -534,6 +534,9 @@ describe('getDefaultParams', () => {
     expect(params.baseMinigameTimeSec).toBeGreaterThan(0);
     expect(params.baseMissRate).toBeGreaterThanOrEqual(0);
     expect(params.baseMissRate).toBeLessThan(1);
+    expect(params.castTimeSec).toBeGreaterThanOrEqual(0);
+    expect(params.hookReactionTimeSec).toBeGreaterThanOrEqual(0);
+    expect(params.playerMistakeRate).toBeGreaterThanOrEqual(0);
     expect(params.loadout.rodId).toBeTruthy();
   });
 });

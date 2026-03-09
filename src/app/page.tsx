@@ -45,7 +45,7 @@ export default function HomePage() {
             装備を比べる
           </h2>
           <p className="text-sm leading-relaxed text-gray-600">
-            場所と今の装備を入れると、「次に何を変えると伸びるか」をすぐ見られます。比べたい候補は1クリックで追加できます。
+            まず今の装備を入れると、「次に何を変えると伸びるか」をすぐ見られます。場所は自動選択のままでも使えます。
           </p>
           <div className="mt-4 text-sm font-medium text-ocean-600 transition-colors group-hover:text-ocean-700">
             計算してみる →
@@ -87,7 +87,8 @@ export default function HomePage() {
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <div className="mb-2 text-sm font-semibold text-ocean-700">1. 条件を入れる</div>
             <p className="text-sm leading-relaxed text-gray-600">
-              `装備を比べる` で、場所と今の装備を入れます。最初は細かい設定を触らなくても使えます。
+              `装備を比べる` で、まず今の装備を入れます。場所は自動選択、Time of Day と Weather
+              は自動平均のままでも使えます。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -113,7 +114,7 @@ export default function HomePage() {
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <h3 className="mb-2 text-sm font-semibold text-gray-800">どの場所が効率的か</h3>
             <p className="text-sm leading-relaxed text-gray-600">
-              同じプレイ時間でも、エリアや条件で `期待値/時間` がどう変わるかを比較できます。
+              今の装備なら、どの Fishing Area が一番効率的かを自動選択込みで比較できます。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -125,7 +126,8 @@ export default function HomePage() {
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
             <h3 className="mb-2 text-sm font-semibold text-gray-800">条件で何が消えるか</h3>
             <p className="text-sm leading-relaxed text-gray-600">
-              Time of Day と Weather を変えると、対象魚種数と魚一覧がどう変わるか分かります。
+              Time of Day と Weather
+              を固定して見たいときは、魚一覧と期待値がどう変わるか確認できます。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">

@@ -34,12 +34,16 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.goto('/calculator/');
 
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'まずは場所と今の装備を入れる' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '次に、何を比べたいか選ぶ' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '候補を追加する' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '上から順に、今の装備と条件を決める' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '次に、どこを変えて比べるか決める' }),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'おすすめ候補を 1 つ追加する' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '追加した組み合わせを比べる' })).toBeVisible();
   await expect(page.getByText('現在の装備の合計ステータス', { exact: true })).toBeVisible();
-  await expect(page.locator('summary').getByText('詳細調整')).toBeVisible();
+  await expect(page.locator('summary').getByText('細かい調整と前提')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rod' })).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'この候補で比べる組み合わせを追加' }),
@@ -51,23 +55,24 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     .textContent();
   const initialRowCount = await page.locator('tbody tr').count();
 
-  await page.getByLabel('Fishing Area').selectOption({ label: 'Open Sea' });
-  await page.getByLabel('Rod').selectOption({ label: 'Fortunate Rod' });
-  await page.getByLabel('Line').selectOption({ label: 'Lucky Line' });
-  await page.getByLabel('Bobber').selectOption({ label: 'Lucky Bobber' });
-  await page.getByLabel('Enchant').selectOption({ label: 'Money Maker' });
-  await page.getByLabel('Time of Day').selectOption({ label: 'Night' });
-  await page.getByLabel('Weather').selectOption({ label: 'Rainy' });
-  await page.getByLabel('1回にかかる平均時間（秒）').fill('30');
-  await page.getByLabel('逃がす割合').fill('0.2');
+  await page.getByLabel('Rod').selectOption('fortunate-rod');
+  await page.getByLabel('Line').selectOption('lucky-line');
+  await page.getByLabel('Bobber').selectOption('lucky-bobber');
+  await page.getByLabel('Enchant').selectOption('money-maker');
+  await page.getByLabel('Fishing Area').selectOption('open-sea');
+  await page.getByLabel('Time of Day').selectOption('night');
+  await page.getByLabel('Weather').selectOption('rainy');
+  await page.getByLabel('投げてから着水まで (sec)').fill('1.4');
+  await page.getByLabel('`!` が出てから反応するまで (sec)').fill('0.25');
+  await page.getByLabel('プレイミスの多さ').fill('0.12');
 
   await page.getByRole('button', { name: 'Enchant' }).click();
   await expect(
     page.getByRole('button', { name: 'この候補で比べる組み合わせを追加' }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'この候補で比べる組み合わせを追加' }).click();
-  await expect(page.getByText('比較中 2 件')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '組み合わせを並べて比べる' })).toBeVisible();
+  await expect(page.getByText('いま比べている候補 2 件')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '追加した組み合わせを比べる' })).toBeVisible();
 
   await expect(page.getByText('対象魚種:')).toBeVisible();
   await expect(page.getByRole('table').getByText('Abyssal Serpentfish').first()).toBeVisible();
@@ -79,7 +84,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   const updatedRowCount = await page.locator('tbody tr').count();
 
   expect(updatedExpectedValuePerHour).not.toBe(initialExpectedValuePerHour);
-  expect(updatedRowCount).toBeLessThan(initialRowCount);
+  expect(updatedRowCount).not.toBe(initialRowCount);
 });
 
 test('sources page shows data governance and current source set', async ({ page }) => {

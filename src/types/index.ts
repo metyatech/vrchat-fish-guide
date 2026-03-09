@@ -150,6 +150,12 @@ export interface CalculatorParams {
   baseMinigameTimeSec: number;
   /** Player baseline miss rate before experimental Strength/Expertise scaling */
   baseMissRate: number;
+  /** Time from casting to splashdown. User-controlled habit adjustment. */
+  castTimeSec: number;
+  /** Delay between the "!" appearing and the player starting the minigame. */
+  hookReactionTimeSec: number;
+  /** Baseline player mistake tendency before gear/rarity scaling. */
+  playerMistakeRate: number;
   /** Optional: custom rarity-tier relative weight override */
   customRarityWeights?: Partial<Record<Rarity, number>>;
   /** Modifier EV assumptions (appearance/size bonuses). Default: modifiers not included. */
@@ -160,12 +166,17 @@ export interface DerivedModelSummary {
   loadout: EquipmentLoadout;
   totalStats: StatBlock;
   enchantActive: boolean;
+  enchantState?: 'active' | 'inactive' | 'conditional';
+  enchantStatusText?: string;
   inactiveEnchantReason?: string;
+  autoSelectedAreaId?: string;
   effectiveLuckMultiplier: number;
   effectiveAvgCatchTimeSec: number;
   effectiveMissRate: number;
   effectiveBiteTimeSec?: number;
   effectiveMinigameTimeSec?: number;
+  effectiveCastTimeSec?: number;
+  effectiveHookReactionTimeSec?: number;
   weightPercentile: number;
   directValueMultiplier: number;
   directCatchMultiplier: number;
