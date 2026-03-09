@@ -12,6 +12,8 @@ const TOTAL_COMBINATIONS = RODS.length * LINES.length * BOBBERS.length * ENCHANT
 interface OptimizerViewProps {
   /** Base params to optimize against (area, conditions, time model, etc.) */
   baseParams: CalculatorParams;
+  /** Expand by default */
+  initialExpanded?: boolean;
 }
 
 function isEnchantItem(item: { category: string }): item is EnchantItem {
@@ -81,8 +83,8 @@ function ResultTable({ result }: { result: FullBuildOptimizerResult }) {
   );
 }
 
-export function OptimizerView({ baseParams }: OptimizerViewProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function OptimizerView({ baseParams, initialExpanded = false }: OptimizerViewProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [result, setResult] = useState<FullBuildOptimizerResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 

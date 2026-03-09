@@ -13,6 +13,7 @@ import { WarningBanner } from '@/components/Calculator/WarningBanner';
 import { Sidebar } from '@/components/Layout/Sidebar';
 import { RARITY_LABELS, TIME_OF_DAY_LABELS, WEATHER_TYPE_LABELS } from '@/data/fish';
 import { calculateDistribution, formatCurrency, getDefaultParams } from '@/lib/calculator';
+import { rankAllSlots, RankSlot } from '@/lib/ranking';
 import {
   createBuildFrom,
   createDefaultBuild,
@@ -24,6 +25,16 @@ import {
   updateBuildParams,
 } from '@/lib/url-state';
 import { BuildConfig, CalculatorParams, DistributionResult, Rarity } from '@/types';
+
+type CompareTarget = RankSlot | 'full-build';
+
+const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
+  rod: 'Rod',
+  line: 'Line',
+  bobber: 'Bobber',
+  enchant: 'Enchant',
+  'full-build': 'Full build',
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -54,6 +65,7 @@ export function CalculatorPageClient() {
   const [activeId, setActiveId] = useState(initialActiveId);
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
   const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
+  const [compareTarget, setCompareTarget] = useState<CompareTarget>('rod');
 
   // Sync URL hash whenever builds/activeId change
   useEffect(() => {
@@ -132,6 +144,37 @@ export function CalculatorPageClient() {
     setBuilds((prev) => renameBuild(prev, id, name));
   }, []);
 
+  const handleCreateRecommendationBuild = useCallback(() => {
+    if (!activeBuild || compareTarget === 'full-build') return;
+    const rankedBySlot = rankAllSlots(activeBuild.params);
+    const bestEntry = rankedBySlot[compareTarget][0];
+    if (!bestEntry) return;
+
+    const currentItemId =
+      compareTarget === 'rod'
+        ? activeBuild.params.loadout.rodId
+        : compareTarget === 'line'
+          ? activeBuild.params.loadout.lineId
+          : compareTarget === 'bobber'
+            ? activeBuild.params.loadout.bobberId
+            : activeBuild.params.loadout.enchantId;
+
+    if (bestEntry.item.id === currentItemId) return;
+
+    const nextBuild = createBuildFrom(activeBuild, builds.length);
+    nextBuild.name = `${bestEntry.item.nameEn} test`;
+    nextBuild.params = {
+      ...nextBuild.params,
+      loadout: {
+        ...nextBuild.params.loadout,
+        [`${compareTarget}Id`]: bestEntry.item.id,
+      },
+    };
+
+    setBuilds((prev) => [...prev, nextBuild]);
+    setActiveId(nextBuild.id);
+  }, [activeBuild, builds.length, compareTarget]);
+
   // ── Calculations ───────────────────────────────────────────────────────────
 
   const results: DistributionResult[] = useMemo(
@@ -141,6 +184,37 @@ export function CalculatorPageClient() {
 
   const activeResult = results[builds.findIndex((b) => b.id === activeId)] ?? results[0];
   const catchesPerHour = 3600 / Math.max(1, activeResult.model.effectiveAvgCatchTimeSec);
+  const rankedBySlot = useMemo(() => rankAllSlots(activeBuild.params), [activeBuild.params]);
+
+  const bestNextTry = useMemo(() => {
+    if (compareTarget === 'full-build') return null;
+
+    const entries = rankedBySlot[compareTarget];
+    const bestEntry = entries[0];
+    const currentItemId =
+      compareTarget === 'rod'
+        ? activeBuild.params.loadout.rodId
+        : compareTarget === 'line'
+          ? activeBuild.params.loadout.lineId
+          : compareTarget === 'bobber'
+            ? activeBuild.params.loadout.bobberId
+            : activeBuild.params.loadout.enchantId;
+    const currentEntry = entries.find((entry) => entry.item.id === currentItemId);
+
+    if (!bestEntry || !currentEntry) return null;
+
+    return {
+      bestEntry,
+      currentEntry,
+      alreadyBest: bestEntry.item.id === currentEntry.item.id,
+      upliftPct:
+        currentEntry.expectedValuePerHour > 0
+          ? ((bestEntry.expectedValuePerHour - currentEntry.expectedValuePerHour) /
+              currentEntry.expectedValuePerHour) *
+            100
+          : 0,
+    };
+  }, [activeBuild.params, compareTarget, rankedBySlot]);
 
   // ── Share URL ──────────────────────────────────────────────────────────────
 
@@ -186,48 +260,103 @@ export function CalculatorPageClient() {
           📊 Equipment-aware probability calculator
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          エリア、Time of Day、Weather、Rod / Line / Bobber / Enchant、時間モデルをもとに、 公開
-          community data から期待値分布を近似計算します。
+          いまの条件で何を変えると一番伸びるかを、装備ごとの期待値で比べます。
         </p>
       </div>
 
       <section className="mb-6 rounded-2xl border border-ocean-100 bg-white p-6 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold text-gray-900">ギア比較の手順</h2>
-        <p className="mb-4 text-xs text-gray-500">
-          「どの Rod / Enchant が一番稼げるか」を探す場合、この順で操作してください。
+        <h2 className="mb-1 text-lg font-semibold text-gray-900">まず何を比べたいですか？</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Area と現在の装備を入れたら、次は 1
+          つだけ比べます。目的を選ぶと、次に試す候補を先に出します。
         </p>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-1 text-xs font-bold text-ocean-700">Step 1 — エリアと条件</div>
-            <p className="text-xs leading-relaxed text-gray-600">
-              Fishing Area を選び、Time of Day / Weather
-              を実際の環境に合わせる。ここを変えると候補魚が大きく変わります。
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-1 text-xs font-bold text-ocean-700">Step 2 — ベース loadout</div>
-            <p className="text-xs leading-relaxed text-gray-600">
-              現在の Rod / Line / Bobber / Enchant を選択。これが比較の基準になります。`Observed
-              values` に実測値を入れると最も正確です。
-            </p>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-1 text-xs font-bold text-ocean-700">
-              Step 3 — ビルドを追加して比較
+
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(Object.keys(COMPARE_TARGET_LABELS) as CompareTarget[]).map((target) => (
+            <button
+              key={target}
+              onClick={() => setCompareTarget(target)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                compareTarget === target
+                  ? 'bg-ocean-600 text-white'
+                  : 'border border-gray-200 bg-gray-50 text-gray-700 hover:border-ocean-300 hover:text-ocean-700'
+              }`}
+            >
+              {COMPARE_TARGET_LABELS[target]}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
+          <div className="rounded-xl border border-ocean-200 bg-ocean-50 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              次にやること
             </div>
-            <p className="text-xs leading-relaxed text-gray-600">
-              タブの <strong>「+ 追加」</strong> や <strong>「複製」</strong>{' '}
-              で新しいビルドを作り、1 スロットだけ変えて <strong>「ビルド比較」</strong>{' '}
-              テーブルで期待値/時間を比較します。
-            </p>
+            {compareTarget === 'full-build' ? (
+              <div className="mt-2 space-y-3 text-sm text-ocean-950">
+                <p>
+                  1 スロットずつではなく、全部まとめて最適化したい状態です。下の
+                  <strong>「フルビルド最適化」</strong>{' '}
+                  を見ると、全組み合わせから上位候補を出します。
+                </p>
+                <p className="text-xs text-ocean-900">
+                  まずは左の入力で
+                  Area・条件・現在の装備を入れてから、最適化結果を確認してください。
+                </p>
+              </div>
+            ) : bestNextTry ? (
+              <div className="mt-2 space-y-3 text-sm text-ocean-950">
+                <p>
+                  いまの <strong>{COMPARE_TARGET_LABELS[compareTarget]}</strong>{' '}
+                  を比べるなら、次に試す候補は <strong>{bestNextTry.bestEntry.item.nameEn}</strong>{' '}
+                  です。
+                </p>
+                <div className="rounded-xl border border-white/60 bg-white/80 p-3 text-xs text-gray-700">
+                  現在: <strong>{bestNextTry.currentEntry.item.nameEn}</strong>
+                  <br />
+                  候補: <strong>{bestNextTry.bestEntry.item.nameEn}</strong>
+                  <br />
+                  期待値/時間:{' '}
+                  <strong>{formatCurrency(bestNextTry.currentEntry.expectedValuePerHour)}</strong>
+                  {' → '}
+                  <strong>{formatCurrency(bestNextTry.bestEntry.expectedValuePerHour)}</strong>
+                  {!bestNextTry.alreadyBest ? (
+                    <>
+                      <br />
+                      伸び幅: <strong>{bestNextTry.upliftPct.toFixed(1)}%</strong>
+                    </>
+                  ) : null}
+                </div>
+                {!bestNextTry.alreadyBest ? (
+                  <button
+                    onClick={handleCreateRecommendationBuild}
+                    className="rounded-lg bg-ocean-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ocean-700"
+                  >
+                    この候補で比較ビルドを作る
+                  </button>
+                ) : (
+                  <p className="text-xs text-ocean-900">
+                    いまの装備がこの枠ではすでに最上位です。別の枠に切り替えて比較してください。
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-ocean-950">
+                まず左の入力で Area と現在の装備を入れてください。
+              </p>
+            )}
           </div>
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-1 text-xs font-bold text-ocean-700">Step 4 — 前提を確認</div>
-            <p className="text-xs leading-relaxed text-gray-600">
-              `Derived model` で supported / experimental
-              の範囲を確認。数字が大きく変わった場合、experimental
-              な仮定が効いている可能性があります。
-            </p>
+
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              使い方
+            </div>
+            <ol className="space-y-2 text-sm leading-relaxed">
+              <li>1. 左で Area と現在の装備を入れる</li>
+              <li>2. 上で比べたい枠を 1 つ選ぶ</li>
+              <li>3. おすすめ候補を比較ビルドとして追加する</li>
+              <li>4. 下のビルド比較で期待値/時間を見る</li>
+            </ol>
           </div>
         </div>
       </section>
@@ -235,7 +364,7 @@ export function CalculatorPageClient() {
       {/* Build tabs */}
       <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">ビルド管理</h2>
+          <h2 className="text-sm font-semibold text-gray-700">比較ビルド</h2>
           <button
             onClick={handleCopyLink}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
@@ -254,8 +383,7 @@ export function CalculatorPageClient() {
           onRename={handleRenameBuild}
         />
         <p className="mt-2 text-xs text-gray-400">
-          ダブルクリックまたは ✏ で名前変更、⧉ で複製、✕ で削除。URL
-          をコピーして他の人と共有できます。
+          今の装備を基準に、1 枠だけ変えた比較ビルドを増やしていく使い方を想定しています。
         </p>
       </div>
 
@@ -272,10 +400,9 @@ export function CalculatorPageClient() {
           <WarningBanner warnings={activeResult.warnings} />
 
           <div className="rounded-xl border border-ocean-100 bg-ocean-50 px-4 py-3 text-xs text-ocean-900">
-            <span className="font-semibold">比較の見方:</span> ギアを変えたとき、
-            <strong>期待値/時間</strong> が上がれば周回効率が改善しています。
-            <strong>期待値/回</strong> は一投の強さ、<strong>魚が釣れる確率</strong> は miss
-            込みの安定度の指標です。複数ビルドを作ると下の「ビルド比較」テーブルで並べて確認できます。
+            <span className="font-semibold">見る順番:</span> まず
+            <strong>期待値/時間</strong> を見て、次に <strong>期待値/回</strong> と
+            <strong>魚が釣れる確率</strong> を確認してください。
           </div>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -363,10 +490,19 @@ export function CalculatorPageClient() {
           />
 
           {/* Per-slot ranking */}
-          <RankingView baseParams={activeBuild.params} />
+          <RankingView
+            key={`ranking-${compareTarget}`}
+            baseParams={activeBuild.params}
+            focusSlot={compareTarget === 'full-build' ? 'rod' : compareTarget}
+            initialExpanded={compareTarget !== 'full-build'}
+          />
 
           {/* Full-build optimizer */}
-          <OptimizerView baseParams={activeBuild.params} />
+          <OptimizerView
+            key={`optimizer-${compareTarget}`}
+            baseParams={activeBuild.params}
+            initialExpanded={compareTarget === 'full-build'}
+          />
 
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">

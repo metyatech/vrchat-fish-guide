@@ -10,6 +10,10 @@ interface RankingViewProps {
   baseParams: CalculatorParams;
   /** Top-N entries to show per slot (default: 5) */
   topN?: number;
+  /** Slot to emphasize first in the UI */
+  focusSlot?: RankSlot;
+  /** Expand by default */
+  initialExpanded?: boolean;
 }
 
 const SLOT_LABELS: Record<RankSlot, string> = {
@@ -101,10 +105,16 @@ function SlotTable({
   );
 }
 
-export function RankingView({ baseParams, topN = 5 }: RankingViewProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function RankingView({
+  baseParams,
+  topN = 5,
+  focusSlot = 'rod',
+  initialExpanded = false,
+}: RankingViewProps) {
+  const [isExpanded, setIsExpanded] = useState(initialExpanded);
 
   const ranked = useMemo(() => rankAllSlots(baseParams), [baseParams]);
+  const orderedSlots = [focusSlot, ...SLOT_ORDER.filter((slot) => slot !== focusSlot)];
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
@@ -112,7 +122,8 @@ export function RankingView({ baseParams, topN = 5 }: RankingViewProps) {
         <div>
           <h2 className="text-base font-semibold text-gray-800">スロット別ランキング</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            現在のエリア・条件のまま、各スロットの装備を総当たりして EV/時間 でランキングします。
+            いま比較したい {SLOT_LABELS[focusSlot]} を先頭に、各スロットの装備を総当たりして EV/時間
+            でランキングします。
             <span className="text-amber-700">experimental モデル前提</span>
             の結果です。
           </p>
@@ -135,7 +146,7 @@ export function RankingView({ baseParams, topN = 5 }: RankingViewProps) {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {SLOT_ORDER.map((slot) => (
+            {orderedSlots.map((slot) => (
               <SlotTable
                 key={slot}
                 slot={slot}

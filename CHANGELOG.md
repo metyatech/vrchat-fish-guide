@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-09
+
+### Changed
+
+- **Single-flow calculator UX**: Reworked the calculator so users stay on one natural comparison path instead of juggling a dense all-at-once form. The top of the page now asks what slot or goal to compare first and surfaces the next recommended action immediately.
+- **Next recommendation card**: Added a top-level recommendation panel that shows the best next Rod / Line / Bobber / Enchant candidate for the current conditions and lets the user create a comparison build with one click.
+- **Lower initial cognitive load**: The parameter form is now grouped into `Step 1`, `Step 2`, `Step 3`, with advanced assumptions moved into a single `詳細調整` disclosure section. Core inputs remain in the same page; no beginner/expert mode split was introduced.
+- **Ranking focus follows the selected comparison goal**: The per-slot ranking view now prioritizes the currently selected slot and opens in context, while full-build optimization opens directly when `Full build` is selected.
+- **Build management wording updated**: Renamed the top build area and add button to emphasize side-by-side comparison builds rather than generic tabs.
+- **Updated docs and E2E coverage**: README workflow guidance and Playwright smoke tests now reflect the single-flow comparison UX.
+
 ## [0.5.0] - 2026-03-09
 
 ### Changed

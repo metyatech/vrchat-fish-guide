@@ -36,10 +36,12 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(
     page.getByRole('heading', { name: '📊 Equipment-aware probability calculator' }),
   ).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'ギア比較の手順' })).toBeVisible();
-  await expect(page.getByText('ビルド管理')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'まず何を比べたいですか？' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '比較ビルド' })).toBeVisible();
   await expect(page.getByText('Total Stats', { exact: true })).toBeVisible();
-  await expect(page.getByText('Derived model', { exact: true })).toBeVisible();
+  await expect(page.locator('summary').getByText('詳細調整')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Rod' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'この候補で比較ビルドを作る' })).toBeVisible();
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')
@@ -55,6 +57,12 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByLabel('Weather').selectOption({ label: 'Rainy' });
   await page.getByLabel('Observed average catch time (sec/attempt)').fill('30');
   await page.getByLabel('Observed miss rate').fill('0.2');
+
+  await page.getByRole('button', { name: 'Enchant' }).click();
+  await expect(page.getByRole('button', { name: 'この候補で比較ビルドを作る' })).toBeVisible();
+  await page.getByRole('button', { name: 'この候補で比較ビルドを作る' }).click();
+  await expect(page.getByText('2 ビルド')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ビルド比較' })).toBeVisible();
 
   await expect(page.getByText('対象魚種:')).toBeVisible();
   await expect(page.getByRole('table').getByText('Abyssal Serpentfish').first()).toBeVisible();
