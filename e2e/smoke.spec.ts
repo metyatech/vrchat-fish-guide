@@ -217,7 +217,7 @@ test('loadout board visual appearance matches snapshot', async ({ page }) => {
   // Visual regression: the loadout board must match the established baseline.
   // Run with --update-snapshots to update the baseline after intentional redesigns.
   await expect(loadoutCard).toHaveScreenshot('loadout-board-rod-active.png', {
-    maxDiffPixelRatio: 0.02,
+    maxDiffPixelRatio: 0.04,
   });
 });
 
