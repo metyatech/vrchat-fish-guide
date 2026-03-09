@@ -142,3 +142,92 @@ body {
 .animate-hud-pulse {
   animation: hud-pulse 2.4s ease-in-out infinite;
 }
+
+/* ── Game loadout: active slot glow (amber / rod) ── */
+@keyframes slot-glow-amber {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(245, 158, 11, 0.4),
+      0 0 14px rgba(245, 158, 11, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(245, 158, 11, 0.7),
+      0 0 28px rgba(245, 158, 11, 0.4);
+  }
+}
+
+/* ── Game loadout: active slot glow (sky / line) ── */
+@keyframes slot-glow-sky {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(56, 189, 248, 0.4),
+      0 0 14px rgba(56, 189, 248, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(56, 189, 248, 0.7),
+      0 0 28px rgba(56, 189, 248, 0.4);
+  }
+}
+
+/* ── Game loadout: active slot glow (rose / bobber) ── */
+@keyframes slot-glow-rose {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(251, 113, 133, 0.4),
+      0 0 14px rgba(251, 113, 133, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(251, 113, 133, 0.7),
+      0 0 28px rgba(251, 113, 133, 0.4);
+  }
+}
+
+/* ── Game loadout: active slot glow (violet / enchant) ── */
+@keyframes slot-glow-violet {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(167, 139, 250, 0.4),
+      0 0 14px rgba(167, 139, 250, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(167, 139, 250, 0.7),
+      0 0 28px rgba(167, 139, 250, 0.4);
+  }
+}
+
+.animate-slot-glow-amber {
+  animation: slot-glow-amber 2s ease-in-out infinite;
+}
+.animate-slot-glow-sky {
+  animation: slot-glow-sky 2s ease-in-out infinite;
+}
+.animate-slot-glow-rose {
+  animation: slot-glow-rose 2s ease-in-out infinite;
+}
+.animate-slot-glow-violet {
+  animation: slot-glow-violet 2s ease-in-out infinite;
+}
+
+/* ── Inventory drawer: stronger slide for game panel ── */
+@keyframes inventory-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(36px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-inventory-slide-in {
+  animation: inventory-slide-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}

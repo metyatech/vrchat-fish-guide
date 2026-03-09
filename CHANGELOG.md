@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-03-10
+
+### Changed
+
+- **Step 1 now uses a darker, game-like loadout board instead of a generic web form**: the current Rod / Line / Bobber / Enchant rows live on a HUD-style slate panel with stronger slot colors, animated selection glow, and a clearer sense of "current loadout" before you edit anything.
+- **The right-side picker now behaves more like an inventory drawer**: the active slot is shown inside a darker in-panel header, the close action no longer wraps, and the left "current loadout" board and right picker feel like one connected interaction instead of two unrelated cards.
+- **Slot identity is now easier to follow visually**: the active row, connector lane, slot chip, and total-stat update hint now share the same slot color so users can tell what is selected now, what they are choosing from, and where the result will apply.
+- **Visual regression and layout guards were strengthened again**: automated checks now cover the redesigned loadout board for overflow and wrapping regressions, and Playwright now keeps a screenshot baseline for the Step 1 loadout board itself so large visual drift is caught before release.
+
 ## [0.11.0] - 2026-03-09
 
 ### Changed

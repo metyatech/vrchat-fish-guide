@@ -143,13 +143,24 @@ const NEXT_LOADOUT_SLOT: Record<LoadoutSlot, LoadoutSlot | null> = {
   enchant: null,
 };
 
+/** Slot-specific active row class on the dark loadout board. ring-{color}-400 must be present for ui-quality tests. */
+const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
+  rod: 'relative bg-gradient-to-r from-amber-950/70 via-slate-800 to-slate-800/80 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900 animate-slot-glow-amber before:absolute before:inset-y-2.5 before:left-0 before:w-1 before:rounded-r-full before:bg-amber-400',
+  line: 'relative bg-gradient-to-r from-sky-950/70 via-slate-800 to-slate-800/80 ring-2 ring-sky-400 ring-offset-2 ring-offset-slate-900 animate-slot-glow-sky before:absolute before:inset-y-2.5 before:left-0 before:w-1 before:rounded-r-full before:bg-sky-400',
+  bobber:
+    'relative bg-gradient-to-r from-rose-950/70 via-slate-800 to-slate-800/80 ring-2 ring-rose-400 ring-offset-2 ring-offset-slate-900 animate-slot-glow-rose before:absolute before:inset-y-2.5 before:left-0 before:w-1 before:rounded-r-full before:bg-rose-400',
+  enchant:
+    'relative bg-gradient-to-r from-violet-950/70 via-slate-800 to-slate-800/80 ring-2 ring-violet-400 ring-offset-2 ring-offset-slate-900 animate-slot-glow-violet before:absolute before:inset-y-2.5 before:left-0 before:w-1 before:rounded-r-full before:bg-violet-400',
+};
+
+/** Badge shown in the inventory picker. Must have whitespace-nowrap for tests. */
 function LoadoutSelectionBadge({ selected }: { selected: boolean }) {
   return (
     <span
       className={`whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
         selected
-          ? 'border-green-500 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-[0_8px_20px_rgba(34,197,94,0.35)] ring-2 ring-green-300/70'
-          : 'border-gray-300 bg-white text-gray-500 hover:border-ocean-300'
+          ? 'border-green-500 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-[0_6px_18px_rgba(34,197,94,0.35)] ring-2 ring-green-300/60'
+          : 'border-slate-300 bg-white text-slate-500 hover:border-ocean-300'
       }`}
     >
       {selected ? '✓ 使用中' : '選択'}
@@ -174,76 +185,57 @@ function StatBadge({ stat, value }: { stat: StatThemeKey; value: string }) {
   );
 }
 
-function StatTableHeader({ stat, short = false }: { stat: StatThemeKey; short?: boolean }) {
+function StatCard({ stat, label, value }: { stat: StatThemeKey; label?: string; value: string }) {
   const theme = STAT_THEME[stat];
+
+  return (
+    <div
+      className="rounded-xl border p-3 text-center shadow-sm"
+      style={{
+        borderColor: theme.cardBorder,
+        backgroundColor: theme.cardBackground,
+      }}
+    >
+      <div className="flex justify-center">
+        <span
+          className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+          style={{
+            backgroundColor: theme.accent,
+            color: theme.pillText,
+          }}
+        >
+          {label ?? theme.label}
+        </span>
+      </div>
+      <div className="mt-2 text-sm font-bold text-gray-900">{value}</div>
+    </div>
+  );
+}
+
+/** Slot label chip. Pass dark=true for use on slate-900 dark loadout board. */
+function SlotLabelChip({
+  slot,
+  label,
+  dark = false,
+}: {
+  slot: 'rod' | 'line' | 'bobber' | 'enchant';
+  label: string;
+  dark?: boolean;
+}) {
   return (
     <span
-      className="inline-flex whitespace-nowrap rounded-full px-2 py-1 text-[11px] font-semibold"
-      style={{ backgroundColor: theme.cardBackground, color: theme.surfaceText }}
+      className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+        dark ? SLOT_THEME[slot].boardChipClassName : SLOT_THEME[slot].chipClassName
+      }`}
     >
-      {short ? theme.shortLabel : theme.label}
+      <span
+        className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+        aria-hidden="true"
+      />
+      {label}
     </span>
   );
 }
-
-function LoadoutStatCells({
-  item,
-  cellClassName = 'px-2 py-2 align-top text-xs font-semibold',
-}: {
-  item: EquipmentItem | EnchantItem;
-  cellClassName?: string;
-}) {
-  return (
-    <>
-      <td
-        className={`hidden lg:table-cell ${cellClassName}`}
-        style={{ color: STAT_THEME.luck.surfaceText }}
-      >
-        {formatSignedDisplayNumber(item.luck)}
-      </td>
-      <td
-        className={`hidden lg:table-cell ${cellClassName}`}
-        style={{ color: STAT_THEME.strength.surfaceText }}
-      >
-        {formatSignedDisplayNumber(item.strength)}
-      </td>
-      <td
-        className={`hidden lg:table-cell ${cellClassName}`}
-        style={{ color: STAT_THEME.expertise.surfaceText }}
-      >
-        {formatSignedDisplayNumber(item.expertise)}
-      </td>
-      <td
-        className={`hidden lg:table-cell ${cellClassName}`}
-        style={{ color: STAT_THEME.attractionRate.surfaceText }}
-      >
-        {formatSignedDisplayNumber(item.attractionPct, '%')}
-      </td>
-      <td
-        className={`hidden lg:table-cell ${cellClassName}`}
-        style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
-      >
-        {formatSignedDisplayNumber(item.bigCatch)}
-      </td>
-      <td
-        className={`hidden lg:table-cell ${cellClassName}`}
-        style={{ color: STAT_THEME.maxWeight.surfaceText }}
-      >
-        {formatWeightKg(item.maxWeightKg)}
-      </td>
-    </>
-  );
-}
-
-/** Slot-specific row highlight class for the active row, colour-matched to the slot chip. */
-const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
-  rod: 'relative bg-gradient-to-r from-amber-50 via-white to-white ring-2 ring-amber-400 ring-offset-1 shadow-[0_16px_40px_rgba(245,158,11,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-amber-400',
-  line: 'relative bg-gradient-to-r from-sky-50 via-white to-white ring-2 ring-sky-400 ring-offset-1 shadow-[0_16px_40px_rgba(56,189,248,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-sky-400',
-  bobber:
-    'relative bg-gradient-to-r from-rose-50 via-white to-white ring-2 ring-rose-400 ring-offset-1 shadow-[0_16px_40px_rgba(251,113,133,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-rose-400',
-  enchant:
-    'relative bg-gradient-to-r from-violet-50 via-white to-white ring-2 ring-violet-400 ring-offset-1 shadow-[0_16px_40px_rgba(167,139,250,0.18)] before:absolute before:inset-y-2 before:left-2 before:w-1 before:rounded-full before:bg-violet-400',
-};
 
 function CurrentLoadoutTable({
   activeSlot,
@@ -266,23 +258,31 @@ function CurrentLoadoutTable({
   return (
     <div
       data-testid="current-loadout-card"
-      className="overflow-visible rounded-[22px] border border-white/80 bg-white/85 shadow-[0_20px_48px_rgba(15,23,42,0.10)]"
+      className="overflow-visible rounded-2xl border border-slate-700/60 bg-slate-900 shadow-[0_24px_56px_rgba(0,0,0,0.5)]"
     >
-      <div className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(241,247,255,0.95))] px-4 py-4">
-        <div className="text-sm font-semibold text-gray-800">今の装備の表</div>
-        <p className="mt-1 text-xs leading-relaxed text-gray-500">
-          行を押すと、右にその欄の候補が出ます。
+      {/* Game panel header */}
+      <div className="border-b border-slate-700/80 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-ocean-400 shadow-[0_0_6px_rgba(59,150,243,0.8)]" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            装備中
+          </span>
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+          行を押すと右のインベントリが開きます
         </p>
       </div>
+
       <div className="px-3 pb-3">
+        {/* table keeps data-testid for tests; thead required by tests (must not contain Luck/Strength/Expertise) */}
         <table
           data-testid="current-loadout-table"
           className="w-full border-separate border-spacing-y-2 text-sm"
         >
           <thead>
-            <tr className="text-left text-xs text-gray-600">
+            <tr className="sr-only text-left text-xs">
               <th className="px-2 py-1">欄</th>
-              <th className="px-2 py-1">いまの装備</th>
+              <th className="px-2 py-1">装備中</th>
             </tr>
           </thead>
           <tbody>
@@ -310,26 +310,34 @@ function CurrentLoadoutTable({
                   data-state={isActive ? 'active' : 'inactive'}
                   onClick={activate}
                   onKeyDown={handleKeyDown}
-                  className={`cursor-pointer outline-none transition-all duration-200 ${
+                  className={`cursor-pointer rounded-xl outline-none transition-all duration-200 ${
                     isActive
                       ? SLOT_ACTIVE_ROW_CLASS[slot]
-                      : 'bg-white/70 hover:bg-ocean-50/70 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
+                      : 'bg-slate-800/70 hover:bg-slate-700/80 hover:shadow-[0_4px_16px_rgba(0,0,0,0.4)] focus:bg-slate-800 focus:ring-2 focus:ring-slate-500 focus:ring-offset-1 focus:ring-offset-slate-900'
                   } ${isUpdated ? 'animate-loadout-settle' : ''}`}
                 >
-                  <td className="rounded-l-xl px-2 py-3 align-top md:w-[132px]">
+                  {/* Slot label column */}
+                  <td className="rounded-l-xl px-3 py-3 align-top md:w-[120px]">
                     <div className="flex flex-col gap-1.5">
-                      <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                      <span className="text-[11px] font-medium text-gray-500">
-                        {isActive ? '▶ 右で選択中' : '押すと候補を開く'}
+                      <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} dark />
+                      <span
+                        className={`text-[10px] font-semibold tracking-wide ${
+                          isActive ? 'text-slate-300' : 'text-slate-500'
+                        }`}
+                      >
+                        {isActive ? '▶ 選択中' : '押して変更'}
                       </span>
                     </div>
                   </td>
-                  <td className="px-2 py-3 align-top">
+                  {/* Item info column */}
+                  <td className="rounded-r-xl px-3 py-3 align-top">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-gray-900">
+                      <div
+                        className={`truncate text-sm font-bold ${isActive ? 'text-white' : 'text-slate-100'}`}
+                      >
                         {item.nameEn}
                       </div>
-                      <div className="mt-1 text-xs leading-relaxed text-gray-500">
+                      <div className="mt-0.5 text-xs leading-relaxed text-slate-400">
                         {formatItemDetail(item)}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1">
@@ -370,90 +378,50 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const selectedItem = items.find((item) => item.id === selectedId);
 
   return (
+    // bg-white/95 must remain on this element for ui-quality tests
     <aside
       key={slot}
       data-testid="slot-picker-panel"
-      className={`animate-slide-in-right overflow-hidden rounded-[24px] border bg-white/95 shadow-[0_24px_56px_rgba(15,23,42,0.14)] ${theme.panelBorderClassName}`}
+      className={`animate-inventory-slide-in overflow-hidden rounded-[24px] border bg-white/95 shadow-[0_24px_56px_rgba(15,23,42,0.18)] ${theme.panelBorderClassName}`}
     >
-      <div className="border-b border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(247,250,255,0.92))] px-4 py-4">
+      {/* Dark game header inside the white panel */}
+      <div className="rounded-t-[23px] border-b border-slate-700 bg-slate-900 px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-              <span className="text-[11px] font-semibold tracking-[0.18em] text-gray-400">
-                いま変更する欄
+              <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} dark />
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                を編集中
               </span>
             </div>
-            <h3 className="mt-2 text-sm font-semibold text-gray-900">
+            <h3 className="mt-2 text-base font-bold text-white">
               {LOADOUT_SLOT_LABELS[slot]} の候補一覧
             </h3>
-            <p className="mt-1 text-xs leading-relaxed text-gray-600">
-              左で光っている {LOADOUT_SLOT_LABELS[slot]}{' '}
-              の行を、ここで選び直します。行のどこを押しても反映されます。
-            </p>
+            {selectedItem ? (
+              <p className="mt-1 text-xs text-slate-400">現在: {selectedItem.nameEn}</p>
+            ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm transition hover:bg-white"
+            className="shrink-0 rounded-full border border-slate-600 bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300 shadow-sm transition hover:bg-slate-700 hover:text-white"
           >
-            閉じる
+            <span className="whitespace-nowrap">閉じる</span>
           </button>
         </div>
       </div>
 
+      {/* Inventory list body */}
       <div className="max-h-[68vh] overflow-auto px-4 py-3">
-        <div className={`mb-3 rounded-2xl border bg-white/90 p-3 ${theme.panelBorderClassName}`}>
-          <div className="text-[11px] font-semibold tracking-[0.18em] text-gray-400">
-            左でいま選んでいる装備
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-gray-900">
-                {selectedItem?.nameEn ?? '未選択'}
-              </div>
-              <div className="mt-1 text-xs leading-relaxed text-gray-500">
-                {selectedItem ? formatItemDetail(selectedItem) : '候補を選ぶとここが更新されます。'}
-              </div>
-            </div>
-            <div className="hidden shrink-0 items-center gap-2 md:flex">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${theme.dotClassName}`}
-                aria-hidden="true"
-              />
-              <span className="text-xs font-semibold text-gray-600">
-                {LOADOUT_SLOT_LABELS[slot]}
-              </span>
-            </div>
-          </div>
-        </div>
-
+        {/* id="loadout-picker-{slot}" with tbody tr is required for E2E tests */}
         <table
           id={`loadout-picker-${slot}`}
           className="w-full border-separate border-spacing-y-2 text-sm"
         >
-          <thead>
-            <tr className="text-left text-xs text-gray-600">
-              <th className="px-2 py-1">選択</th>
-              <th className="px-2 py-1">候補</th>
-              <th className="hidden px-2 py-1 lg:table-cell">
-                <StatTableHeader stat="luck" />
-              </th>
-              <th className="hidden px-2 py-1 lg:table-cell">
-                <StatTableHeader stat="strength" />
-              </th>
-              <th className="hidden px-2 py-1 lg:table-cell">
-                <StatTableHeader stat="expertise" />
-              </th>
-              <th className="hidden px-2 py-1 lg:table-cell">
-                <StatTableHeader stat="attractionRate" />
-              </th>
-              <th className="hidden px-2 py-1 lg:table-cell">
-                <StatTableHeader stat="bigCatchRate" />
-              </th>
-              <th className="hidden px-2 py-1 lg:table-cell">
-                <StatTableHeader stat="maxWeight" />
-              </th>
+          <thead className="sr-only">
+            <tr>
+              <th>選択</th>
+              <th>候補</th>
             </tr>
           </thead>
           <tbody>
@@ -476,22 +444,26 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                   aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
                   onClick={selectItem}
                   onKeyDown={handleKeyDown}
-                  className={`cursor-pointer outline-none transition-all duration-150 ${
+                  className={`cursor-pointer rounded-xl outline-none transition-all duration-150 ${
                     selected
-                      ? 'bg-gradient-to-r from-green-50 to-white shadow-[0_12px_32px_rgba(16,185,129,0.18)] ring-2 ring-green-500 ring-offset-1'
-                      : 'bg-white/70 hover:bg-ocean-50/50 hover:shadow-sm focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
+                      ? 'bg-gradient-to-r from-emerald-50 to-white shadow-[0_0_0_2px_rgba(16,185,129,0.5),0_8px_24px_rgba(16,185,129,0.12)] ring-2 ring-emerald-400 ring-offset-1'
+                      : 'bg-white/80 hover:bg-slate-50 hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)] focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
                   }`}
                 >
-                  <td className="rounded-l-lg px-2 py-2 align-top md:w-[120px]">
+                  {/* Badge column */}
+                  <td className="rounded-l-xl px-3 py-2.5 align-top md:w-[100px]">
                     <LoadoutSelectionBadge selected={selected} />
                   </td>
-                  <td className="px-2 py-2 align-top">
+                  {/* Item info column */}
+                  <td className="rounded-r-xl px-2 py-2.5 align-top">
                     <div className="min-w-0">
-                      <div className="truncate font-semibold text-gray-900">{item.nameEn}</div>
-                      <div className="mt-1 text-xs leading-relaxed text-gray-500">
+                      <div className="truncate text-sm font-semibold text-gray-900">
+                        {item.nameEn}
+                      </div>
+                      <div className="mt-0.5 text-xs leading-relaxed text-gray-500">
                         {formatItemDetail(item)}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-1 lg:hidden">
+                      <div className="mt-1.5 flex flex-wrap gap-1">
                         <StatBadge stat="luck" value={formatSignedDisplayNumber(item.luck)} />
                         <StatBadge
                           stat="strength"
@@ -513,7 +485,6 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                       </div>
                     </div>
                   </td>
-                  <LoadoutStatCells item={item} />
                 </tr>
               );
             })}
@@ -521,53 +492,6 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </table>
       </div>
     </aside>
-  );
-}
-
-function StatCard({ stat, label, value }: { stat: StatThemeKey; label?: string; value: string }) {
-  const theme = STAT_THEME[stat];
-
-  return (
-    <div
-      className="rounded-lg border p-3 text-center shadow-sm"
-      style={{
-        borderColor: theme.cardBorder,
-        backgroundColor: theme.cardBackground,
-      }}
-    >
-      <div className="flex justify-center">
-        <span
-          className="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-          style={{
-            backgroundColor: theme.accent,
-            color: theme.pillText,
-          }}
-        >
-          {label ?? theme.label}
-        </span>
-      </div>
-      <div className="mt-2 text-sm font-bold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function SlotLabelChip({
-  slot,
-  label,
-}: {
-  slot: 'rod' | 'line' | 'bobber' | 'enchant';
-  label: string;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold ${SLOT_THEME[slot].chipClassName}`}
-    >
-      <span
-        className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
-        aria-hidden="true"
-      />
-      {label}
-    </span>
   );
 }
 
@@ -658,57 +582,54 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
   return (
     <div className="space-y-5">
-      <section className="animate-slide-in-up space-y-4 rounded-[24px] border border-ocean-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.35),_rgba(255,255,255,0.94)_45%,_rgba(255,255,255,0.98)_100%)] p-5 shadow-[0_16px_48px_rgba(37,120,232,0.12)]">
+      {/* ─── Step 1: Game HUD loadout section ─── */}
+      <section className="animate-slide-in-up space-y-4 rounded-[20px] border border-slate-700/50 bg-[linear-gradient(145deg,#111827,#1a2035)] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+        {/* Section header */}
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ocean-600 text-[10px] font-bold text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ocean-500 text-[10px] font-bold text-white shadow-[0_0_8px_rgba(59,150,243,0.6)]">
               1
             </span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              Step 1
-            </span>
+            <span className="text-xs font-bold uppercase tracking-wide text-ocean-400">Step 1</span>
           </div>
-          <h2 className="text-sm font-semibold text-gray-800">まずは今の装備を表でそろえる</h2>
-          <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            左で今の装備を見て、変えたい欄を押します。すると右にその欄の候補表が出るので、行を押して選びます。
+          <h2 className="text-sm font-semibold text-white">まずは今の装備を表でそろえる</h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-400">
+            左のボードで変えたい欄を押す → 右のインベントリから選ぶ → 下の合計ステータスに反映
           </p>
         </div>
 
-        <div className="rounded-[22px] border border-white/80 bg-white/75 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-600">
-            <span className="rounded-full border border-white/80 bg-white/80 px-3 py-1 text-gray-500">
-              いまの流れ
-            </span>
-            <span className="text-gray-500">左の装備表 → 右の候補一覧 → 下の合計ステータス</span>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-full border border-white/80 bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700">
-              <span className="h-2 w-2 rounded-full bg-ocean-500" aria-hidden="true" />
+        {/* HUD flow breadcrumb */}
+        <div className="rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 rounded-full border border-slate-600/60 bg-slate-700/80 px-3 py-1 text-xs font-semibold text-slate-300">
+              <span className="h-2 w-2 rounded-full bg-ocean-400 shadow-[0_0_5px_rgba(59,150,243,0.7)]" />
               今の装備
             </div>
-            <span className="text-xs text-gray-400">▶</span>
+            <span className="text-slate-500">▶</span>
             <div
               data-testid="active-slot-indicator"
-              className={`animate-hud-pulse flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold text-gray-700 ${
-                activeSlotTheme?.chipClassName ?? 'border-slate-200 bg-slate-50'
+              className={`animate-hud-pulse flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                activeSlotTheme
+                  ? activeSlotTheme.boardChipClassName
+                  : 'border-slate-600/60 bg-slate-700/80 text-slate-300'
               }`}
             >
               <span
                 className={`h-2.5 w-2.5 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
-                aria-hidden="true"
               />
               {activeSlotLabel}
-              <span className="text-[10px] font-medium text-gray-500">を編集中</span>
+              <span className="text-[10px] font-medium opacity-70">を編集中</span>
             </div>
-            <span className="text-xs text-gray-400">▶</span>
-            <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+            <span className="text-slate-500">▶</span>
+            <div className="flex items-center gap-2 rounded-full border border-emerald-700/40 bg-emerald-900/30 px-3 py-1 text-xs font-semibold text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
               合計ステータス
             </div>
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_auto_minmax(0,1fr)]">
+        {/* Loadout board + connector + inventory drawer */}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_auto_minmax(0,1fr)]">
           <CurrentLoadoutTable
             activeSlot={activeSlot}
             selectedIds={{
@@ -721,32 +642,35 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             onActivate={activateSlot}
           />
 
+          {/* Connector — xl only */}
           <div className="hidden xl:flex">
             <div
               data-testid="loadout-connector"
-              className={`flex min-h-[22rem] flex-col items-center justify-center gap-3 rounded-full border bg-white/80 px-3 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] ${
-                activeSlotTheme?.panelClassName ?? 'border-slate-200 bg-slate-50'
+              className={`flex min-h-[22rem] flex-col items-center justify-center gap-3 rounded-full border bg-slate-800/80 px-3 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${
+                activeSlotTheme?.boardBorderClassName ?? 'border-slate-700'
               }`}
             >
-              <span className="text-center text-[10px] font-semibold tracking-[0.18em] text-gray-400">
-                左の行が
-                <br />
-                ここで開きます
-              </span>
               <div className="flex flex-col items-center gap-2">
                 <div
-                  className={`h-10 w-1 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
+                  className={`h-10 w-1 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-600'} opacity-60`}
                 />
-                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+                <span
+                  className={`rounded-full border px-3 py-1 text-[10px] font-bold tracking-wide ${
+                    activeSlotTheme
+                      ? activeSlotTheme.boardChipClassName
+                      : 'border-slate-600 bg-slate-700 text-slate-400'
+                  }`}
+                >
                   {activeSlotLabel}
                 </span>
                 <div
-                  className={`h-10 w-1 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
+                  className={`h-10 w-1 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-600'} opacity-60`}
                 />
               </div>
             </div>
           </div>
 
+          {/* Inventory drawer / empty state */}
           <div className="min-h-[22rem]">
             {activeSlot ? (
               <LoadoutPickerPanel
@@ -757,11 +681,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 onClose={() => setActiveSlot(null)}
               />
             ) : (
-              <div className="animate-fade-in flex h-full min-h-[22rem] items-center justify-center rounded-[24px] border border-dashed border-white/80 bg-white/60 px-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+              <div className="animate-fade-in flex h-full min-h-[22rem] items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-800/40 px-6 text-center">
                 <div>
-                  <div className="text-sm font-semibold text-gray-700">右に候補一覧を出す</div>
-                  <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                    左の今の装備の表で、変えたい欄の行を押してください。
+                  <div className="text-sm font-semibold text-slate-300">インベントリを開く</div>
+                  <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                    左のボードで変えたい欄を押してください。
                   </p>
                 </div>
               </div>
@@ -769,42 +693,44 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           </div>
         </div>
 
+        {/* Total stats */}
         <div
           data-testid="total-stats-section"
-          className="overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(140deg,rgba(255,255,255,0.96),rgba(248,251,255,0.98))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_12px_40px_rgba(15,23,42,0.08)]"
+          className="overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-800/80 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
         >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-gray-800">現在の装備の合計ステータス</div>
-              <p className="mt-1 text-xs leading-relaxed text-gray-500">
+              <div className="text-sm font-semibold text-slate-100">現在の装備の合計ステータス</div>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">
                 いま選んでいる装備を全部足した値です。
               </p>
             </div>
             <span
               className={`rounded-full border px-3 py-1 text-xs font-medium shadow-sm ${
                 model.enchantState === 'active'
-                  ? 'border-green-200 bg-green-100/90 text-green-700'
+                  ? 'border-emerald-600/50 bg-emerald-900/50 text-emerald-400'
                   : model.enchantState === 'conditional'
-                    ? 'border-ocean-200 bg-ocean-100/90 text-ocean-700'
-                    : 'border-gray-200 bg-gray-100/90 text-gray-600'
+                    ? 'border-ocean-600/50 bg-ocean-900/50 text-ocean-400'
+                    : 'border-slate-600 bg-slate-700/60 text-slate-400'
               }`}
             >
               {model.enchantStatusText ?? 'No Enchant selected'}
             </span>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-            <span className="rounded-full border border-white/80 bg-white/80 px-3 py-1 font-semibold text-gray-600">
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+            <span className="rounded-full border border-slate-600 bg-slate-700/60 px-3 py-1 font-semibold text-slate-300">
               結果は
             </span>
             <span
               className={`flex items-center gap-2 rounded-full border px-3 py-1 font-semibold ${
-                activeSlotTheme?.chipClassName ?? 'border-slate-200 bg-slate-50 text-slate-700'
+                activeSlotTheme
+                  ? activeSlotTheme.boardChipClassName
+                  : 'border-slate-600 bg-slate-700/60 text-slate-400'
               }`}
             >
               <span
                 className={`h-2 w-2 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
-                aria-hidden="true"
               />
               {activeSlotLabel}
             </span>
@@ -812,7 +738,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           </div>
 
           {model.inactiveEnchantReason ? (
-            <p className="mb-3 text-xs leading-relaxed text-amber-700">
+            <p className="mb-3 text-xs leading-relaxed text-amber-400">
               {model.inactiveEnchantReason}
             </p>
           ) : null}
@@ -840,15 +766,14 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <section className="animate-slide-in-up space-y-4 rounded-[24px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(243,247,252,0.98))] p-5 shadow-[0_16px_48px_rgba(15,23,42,0.08)]">
+      {/* ─── Step 2: Conditions ─── */}
+      <section className="animate-slide-in-up space-y-4 rounded-[20px] border border-slate-700/30 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(241,245,255,0.99))] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] font-bold text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-[10px] font-bold text-white">
               2
             </span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              Step 2
-            </span>
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Step 2</span>
           </div>
           <h2 className="text-sm font-semibold text-gray-800">必要なら、場所と条件を絞る</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
@@ -930,15 +855,14 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <section className="animate-slide-in-up space-y-4 rounded-[24px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(243,247,252,0.98))] p-5 shadow-[0_16px_48px_rgba(15,23,42,0.08)]">
+      {/* ─── Step 3: Play speed ─── */}
+      <section className="animate-slide-in-up space-y-4 rounded-[20px] border border-slate-700/30 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(241,245,255,0.99))] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] font-bold text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-[10px] font-bold text-white">
               3
             </span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              Step 3
-            </span>
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Step 3</span>
           </div>
           <h2 className="text-sm font-semibold text-gray-800">あなたのプレイ速度</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
@@ -1039,7 +963,8 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <div className="animate-slide-in-up rounded-[24px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(243,247,252,0.98))] p-5 shadow-[0_16px_48px_rgba(15,23,42,0.08)]">
+      {/* ─── Advanced / Step 4 ─── */}
+      <div className="animate-slide-in-up rounded-[20px] border border-slate-700/30 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(241,245,255,0.99))] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
         <button
           type="button"
           className="flex w-full items-center justify-between gap-3 text-left"

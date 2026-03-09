@@ -158,6 +158,21 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
     .first();
   await expect(activeRow).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補一覧');
+
+  // ── New: game loadout board region must not overflow horizontally ──
+  const loadoutBoardOverflow = await page.evaluate(() => {
+    const card = document.querySelector(
+      '[data-testid="current-loadout-card"]',
+    ) as HTMLElement | null;
+    if (!card) return { error: 'current-loadout-card not found' };
+    return {
+      scrollWidth: card.scrollWidth,
+      clientWidth: card.clientWidth,
+      overflow: card.scrollWidth > card.clientWidth + 1,
+    };
+  });
+  expect(loadoutBoardOverflow).not.toHaveProperty('error');
+  expect((loadoutBoardOverflow as { overflow: boolean }).overflow).toBe(false);
 });
 
 test('calculator avoids horizontal scrolling on a narrow viewport', async ({ page }) => {
@@ -179,6 +194,25 @@ test('calculator avoids horizontal scrolling on a narrow viewport', async ({ pag
 
   expect((pageOverflow as { overflow: boolean }).overflow).toBe(false);
   expect((pageOverflow as { scrollX: number }).scrollX).toBe(0);
+});
+
+test('loadout board visual appearance matches snapshot', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/calculator/');
+
+  // Wait for the loadout board to be fully rendered and animated.
+  const loadoutCard = page.getByTestId('current-loadout-card');
+  await expect(loadoutCard).toBeVisible();
+  // Ensure the active slot indicator shows Rod (default state).
+  await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod');
+  // Wait a tick for CSS animations to settle.
+  await page.waitForTimeout(500);
+
+  // Visual regression: the loadout board must match the established baseline.
+  // Run with --update-snapshots to update the baseline after intentional redesigns.
+  await expect(loadoutCard).toHaveScreenshot('loadout-board-rod-active.png', {
+    maxDiffPixels: 80,
+  });
 });
 
 test('sources page shows data governance and current source set', async ({ page }) => {

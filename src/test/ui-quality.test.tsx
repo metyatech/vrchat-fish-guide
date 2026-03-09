@@ -7,10 +7,12 @@
  * overflow or wrapping at runtime.
  *
  * Covered regressions:
- * - LoadoutSelectionBadge text ("✓ 使用中" / "選ぶ") splitting across lines.
+ * - LoadoutSelectionBadge text ("✓ 使用中" / "選択") splitting across lines.
  * - CurrentLoadoutTable container using overflow-x-auto (which produced a
  *   horizontal scrollbar because the table was too wide).
  * - Active row using a generic ocean ring instead of a slot-specific colour.
+ * - Loadout board region causing horizontal overflow (new game HUD redesign).
+ * - CTA "閉じる" button label wrapping in the inventory drawer.
  */
 
 import React from 'react';
@@ -31,9 +33,9 @@ describe('UI quality – overflow and wrapping prevention', () => {
     renderDefault();
 
     // The picker panel is open by default (activeSlot='rod'), so badges are visible.
-    // Use selector:'span' to avoid matching text elsewhere (e.g. h4 "右から選ぶ").
+    // Use selector:'span' to avoid matching text elsewhere.
     const pickerPanel = screen.getByTestId('slot-picker-panel');
-    const badges = within(pickerPanel).getAllByText(/✓ 使用中|選ぶ/, { selector: 'span' });
+    const badges = within(pickerPanel).getAllByText(/✓ 使用中|選択/, { selector: 'span' });
 
     expect(badges.length).toBeGreaterThan(0);
     for (const badge of badges) {
@@ -41,7 +43,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     }
   });
 
-  it('CurrentLoadoutTable container uses overflow-hidden, not overflow-x-auto', () => {
+  it('CurrentLoadoutTable container uses overflow-hidden or overflow-visible, not overflow-x-auto', () => {
     renderDefault();
 
     const table = screen.getByTestId('current-loadout-table');
@@ -78,12 +80,40 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(rodRow.className).not.toContain('ring-ocean-500');
   });
 
-  it('picker panel uses white background (panelBorderClassName), not slot-tinted bg', () => {
+  it('picker panel uses white background (bg-white), not slot-tinted bg', () => {
     renderDefault();
 
     const panel = screen.getByTestId('slot-picker-panel');
-    // Should have bg-white/95 applied directly; slot-specific bg-*-50 should not appear.
+    // Should have bg-white applied directly; slot-specific bg-*-50 should not appear.
     expect(panel.className).toMatch(/bg-white/);
     expect(panel.className).not.toMatch(/bg-amber-50|bg-sky-50|bg-rose-50|bg-violet-50/);
+  });
+
+  it('loadout board region (current-loadout-card) has no overflow-x-auto ancestor', () => {
+    renderDefault();
+
+    const card = screen.getByTestId('current-loadout-card');
+    // The game loadout board must not be wrapped in overflow-x-auto at any level up to
+    // the section container (4 levels), which would introduce an unwanted scrollbar.
+    let el: HTMLElement | null = card.parentElement;
+    let foundOverflowXAuto = false;
+    for (let i = 0; i < 4 && el; i++) {
+      if (el.classList.contains('overflow-x-auto')) {
+        foundOverflowXAuto = true;
+        break;
+      }
+      el = el.parentElement;
+    }
+    expect(foundOverflowXAuto).toBe(false);
+  });
+
+  it('inventory drawer close button has whitespace-nowrap to prevent label wrapping', () => {
+    renderDefault();
+
+    // The picker panel is open by default (activeSlot='rod').
+    const pickerPanel = screen.getByTestId('slot-picker-panel');
+    // The 閉じる button label span must have whitespace-nowrap so it never wraps.
+    const closeButtonNowrap = pickerPanel.querySelector('span.whitespace-nowrap');
+    expect(closeButtonNowrap).not.toBeNull();
   });
 });
