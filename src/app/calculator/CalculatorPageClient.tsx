@@ -72,6 +72,7 @@ export function CalculatorPageClient() {
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
   const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
   const [compareTarget, setCompareTarget] = useState<CompareTarget>('rod');
+  const [notesOpen, setNotesOpen] = useState(false);
 
   // Sync URL hash whenever builds/activeId change
   useEffect(() => {
@@ -662,60 +663,79 @@ export function CalculatorPageClient() {
             </p>
           </div>
 
-          <details className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-xs leading-relaxed text-gray-600">
-            <summary className="cursor-pointer list-none font-semibold text-gray-700">
-              📝 この数字の出し方を見る
-            </summary>
-            <ul className="mt-3 space-y-1.5">
-              <li>
-                • <strong>対象魚の絞り込み</strong>:
-                場所ごとの魚一覧と、時間帯・天気の条件タグを使います。
-              </li>
-              <li>
-                • <strong>装備のステータス</strong>: 公開されている Rod / Line / Bobber / Enchant
-                の値を合計します。
-              </li>
-              <li>
-                • <strong>レア度の出やすさ</strong>: 公開 rarity table
-                を基準に、同じレア度の中では等分配します。
-              </li>
-              <li>
-                • <strong>Luck の扱い</strong>:{' '}
-                {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x
-                の補正として入れています。ここはまだ正確式が分かっていないため推定です。
-              </li>
-              <li>
-                • <strong>Big Catch / Max Weight の扱い</strong>:{' '}
-                {(activeResult.model.weightPercentile * 100).toFixed(0)}%
-                ぶん重さを上に寄せる推定で入れています。
-              </li>
-              <li>
-                • <strong>見た目・サイズ補正</strong>:{' '}
-                {activeResult.params.modifierAssumptions.includeModifiers
-                  ? `${activeResult.model.modifierEvFactor.toFixed(3)}x の補正を入れています。ここも推定です。`
-                  : '現在は入れていません。左の「詳細調整」でオンにできます。'}
-              </li>
-              <li>
-                • <strong>期待値/回</strong>: 各魚の確率 × 推定売値 × 直接効果
-                {activeResult.params.modifierAssumptions.includeModifiers
-                  ? ' × 見た目・サイズ補正'
-                  : ''}
-                です。
-              </li>
-              <li>
-                • <strong>期待値/時間</strong>: 期待値/回 × (3600 ÷ 1回にかかる時間) です。
-              </li>
-              <li>
-                • <strong>いま使っているレア度の重み</strong>:{' '}
-                {Object.entries(activeResult.effectiveRarityWeights)
-                  .map(
-                    ([rarity, weight]) =>
-                      `${RARITY_LABELS[rarity as Rarity]} ${weight?.toFixed(2)}`,
-                  )
-                  .join(', ') || 'なし'}
-              </li>
-            </ul>
-          </details>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-xs leading-relaxed text-gray-600">
+            <button
+              type="button"
+              onClick={() => setNotesOpen((current) => !current)}
+              aria-expanded={notesOpen}
+              aria-controls="calculation-notes-panel"
+              className="flex w-full items-center justify-between gap-3 text-left font-semibold text-gray-700"
+            >
+              <span>📝 この数字の出し方を見る</span>
+              <span className="text-xs text-gray-500">{notesOpen ? '閉じる' : '開く'}</span>
+            </button>
+            <div
+              id="calculation-notes-panel"
+              aria-hidden={!notesOpen}
+              className="mt-3 grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+              style={{
+                gridTemplateRows: notesOpen ? '1fr' : '0fr',
+                opacity: notesOpen ? 1 : 0,
+              }}
+            >
+              <div className="overflow-hidden">
+                <ul className="space-y-1.5">
+                  <li>
+                    • <strong>対象魚の絞り込み</strong>:
+                    場所ごとの魚一覧と、時間帯・天気の条件タグを使います。
+                  </li>
+                  <li>
+                    • <strong>装備のステータス</strong>: 公開されている Rod / Line / Bobber /
+                    Enchant の値を合計します。
+                  </li>
+                  <li>
+                    • <strong>レア度の出やすさ</strong>: 公開 rarity table
+                    を基準に、同じレア度の中では等分配します。
+                  </li>
+                  <li>
+                    • <strong>Luck の扱い</strong>:{' '}
+                    {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x
+                    の補正として入れています。ここはまだ正確式が分かっていないため推定です。
+                  </li>
+                  <li>
+                    • <strong>Big Catch / Max Weight の扱い</strong>:{' '}
+                    {(activeResult.model.weightPercentile * 100).toFixed(0)}%
+                    ぶん重さを上に寄せる推定で入れています。
+                  </li>
+                  <li>
+                    • <strong>見た目・サイズ補正</strong>:{' '}
+                    {activeResult.params.modifierAssumptions.includeModifiers
+                      ? `${activeResult.model.modifierEvFactor.toFixed(3)}x の補正を入れています。ここも推定です。`
+                      : '現在は入れていません。左の「詳細調整」でオンにできます。'}
+                  </li>
+                  <li>
+                    • <strong>期待値/回</strong>: 各魚の確率 × 推定売値 × 直接効果
+                    {activeResult.params.modifierAssumptions.includeModifiers
+                      ? ' × 見た目・サイズ補正'
+                      : ''}
+                    です。
+                  </li>
+                  <li>
+                    • <strong>期待値/時間</strong>: 期待値/回 × (3600 ÷ 1回にかかる時間) です。
+                  </li>
+                  <li>
+                    • <strong>いま使っているレア度の重み</strong>:{' '}
+                    {Object.entries(activeResult.effectiveRarityWeights)
+                      .map(
+                        ([rarity, weight]) =>
+                          `${RARITY_LABELS[rarity as Rarity]} ${weight?.toFixed(2)}`,
+                      )
+                      .join(', ') || 'なし'}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </div>

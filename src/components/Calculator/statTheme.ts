@@ -9,7 +9,8 @@ export type StatThemeKey =
 export interface StatTheme {
   label: string;
   accent: string;
-  accentText: string;
+  pillText: string;
+  surfaceText: string;
   cardBackground: string;
   cardBorder: string;
 }
@@ -31,11 +32,17 @@ function withAlpha(hex: string, alpha: number): string {
   return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
-function createTheme(label: string, accent: string, accentText: string): StatTheme {
+function createTheme(
+  label: string,
+  accent: string,
+  pillText: string,
+  surfaceText = pillText,
+): StatTheme {
   return {
     label,
     accent,
-    accentText,
+    pillText,
+    surfaceText,
     cardBackground: withAlpha(accent, 0.12),
     cardBorder: withAlpha(accent, 0.36),
   };
@@ -52,7 +59,7 @@ export const STAT_THEME: Record<StatThemeKey, StatTheme> = {
   expertise: createTheme('Expertise', '#4BBCE0', '#0D4257'),
   attractionRate: createTheme('Attraction Rate', '#92D5BC', '#184634'),
   bigCatchRate: createTheme('Big Catch Rate', '#FFD76D', '#5E4300'),
-  maxWeight: createTheme('Max Weight', '#9254BA', '#FFFFFF'),
+  maxWeight: createTheme('Max Weight', '#9254BA', '#FFFFFF', '#4C2567'),
 };
 
 export const STAT_THEME_ORDER: StatThemeKey[] = [

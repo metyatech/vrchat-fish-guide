@@ -43,7 +43,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('heading', { name: 'Rod の候補を 1 つ追加する' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '追加した候補を今の装備と比べる' })).toBeVisible();
   await expect(page.getByText('現在の装備の合計ステータス', { exact: true })).toBeVisible();
-  await expect(page.locator('summary').getByText('細かい調整と前提')).toBeVisible();
+  await expect(page.getByRole('button', { name: /細かい調整と前提/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rod を変える' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'まずはこの候補を比較へ追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
@@ -72,16 +72,20 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     'background-color',
     'rgb(146, 84, 186)',
   );
+  await expect(page.locator('thead span', { hasText: 'Max Weight' }).first()).toHaveCSS(
+    'color',
+    'rgb(76, 37, 103)',
+  );
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')
     .textContent();
   const initialRowCount = await page.locator('tbody tr').count();
 
-  await page.getByRole('button', { name: 'Fortunate Rod を選ぶ' }).click();
-  await page.getByRole('button', { name: 'Lucky Line を選ぶ' }).click();
-  await page.getByRole('button', { name: 'Lucky Bobber を選ぶ' }).click();
-  await page.getByRole('button', { name: 'Money Maker を選ぶ' }).click();
+  await page.locator('#loadout-table-rod tbody tr', { hasText: 'Fortunate Rod' }).click();
+  await page.locator('#loadout-table-line tbody tr', { hasText: 'Lucky Line' }).click();
+  await page.locator('#loadout-table-bobber tbody tr', { hasText: 'Lucky Bobber' }).click();
+  await page.locator('#loadout-table-enchant tbody tr', { hasText: 'Money Maker' }).click();
   await page.getByLabel('Fishing Area').selectOption('open-sea');
   await page.getByLabel('Time of Day').selectOption('night');
   await page.getByLabel('Weather').selectOption('rainy');

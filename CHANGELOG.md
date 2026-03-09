@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.4] - 2026-03-09
+
+### Changed
+
+- **Step 1 rows are now selectable anywhere, not just on a small button**: Each Rod / Line / Bobber / Enchant row can now be clicked directly, so choosing gear feels like table selection instead of button hunting.
+- **Stat contrast was corrected, including Max Weight**: The calculator now uses separate text colors for colored pills vs. white/light surfaces, which fixes the unreadable Max Weight text and keeps the stat table legible.
+- **Toggle panels now open with visible motion and guidance**: Step 1 gear tables, fine-tuning controls, the calculation-notes panel, and the full-build optimizer now expand with animated transitions instead of appearing instantly, and Step 1 auto-scrolls to the next opened section.
+
 ## [0.10.3] - 2026-03-09
 
 ### Changed

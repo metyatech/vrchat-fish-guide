@@ -161,47 +161,57 @@ export function OptimizerView({
             aria-expanded={isExpanded}
             aria-controls="optimizer-results"
           >
-            {isExpanded ? '閉じる ▲' : '表示 ▼'}
+            {isExpanded ? '閉じる' : '開く'}
           </button>
         ) : null}
       </div>
 
-      {isVisible && (
-        <div id="optimizer-results" className="mt-4 space-y-4">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-            <strong>見方:</strong>
-            <ul className="mt-1 list-inside list-disc space-y-0.5">
-              <li>
-                Luck や Big Catch Rate
-                など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。
-              </li>
-              <li>
-                全 <strong>{(result?.searchedCount ?? displayedTotal).toLocaleString()}</strong>{' '}
-                通りをすべて評価しています。装備の除外はありません。
-              </li>
-              <li>
-                1欄だけの比較とは結果が変わることがあります。ここでは全部まとめて入れ替えた場合を見ています。
-              </li>
-            </ul>
-          </div>
+      <div
+        id="optimizer-results"
+        aria-hidden={!isVisible}
+        className="mt-4 grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+        style={{
+          gridTemplateRows: isVisible ? '1fr' : '0fr',
+          opacity: isVisible ? 1 : 0,
+        }}
+      >
+        <div className="overflow-hidden">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+              <strong>見方:</strong>
+              <ul className="mt-1 list-inside list-disc space-y-0.5">
+                <li>
+                  Luck や Big Catch Rate
+                  など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。
+                </li>
+                <li>
+                  全 <strong>{(result?.searchedCount ?? displayedTotal).toLocaleString()}</strong>{' '}
+                  通りをすべて評価しています。装備の除外はありません。
+                </li>
+                <li>
+                  1欄だけの比較とは結果が変わることがあります。ここでは全部まとめて入れ替えた場合を見ています。
+                </li>
+              </ul>
+            </div>
 
-          {isLoading && (
-            <p className="text-xs text-gray-500">
-              計算中… ({displayedTotal.toLocaleString()} 通り)
+            {isLoading && (
+              <p className="text-xs text-gray-500">
+                計算中… ({displayedTotal.toLocaleString()} 通り)
+              </p>
+            )}
+
+            {!isLoading && result && result.topBuilds.length > 0 ? (
+              <ResultTable result={result} onPickBuild={onPickBuild} />
+            ) : !isLoading ? (
+              <p className="text-xs text-gray-500">結果がありません。</p>
+            ) : null}
+
+            <p className="text-xs text-gray-400">
+              ※ 気になる候補は「この組み合わせを追加」を押すと、上の比較一覧に追加できます。
             </p>
-          )}
-
-          {!isLoading && result && result.topBuilds.length > 0 ? (
-            <ResultTable result={result} onPickBuild={onPickBuild} />
-          ) : !isLoading ? (
-            <p className="text-xs text-gray-500">結果がありません。</p>
-          ) : null}
-
-          <p className="text-xs text-gray-400">
-            ※ 気になる候補は「この組み合わせを追加」を押すと、上の比較一覧に追加できます。
-          </p>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
