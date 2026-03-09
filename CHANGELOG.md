@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.3] - 2026-03-09
+
+### Changed
+
+- **Step 1 gear selection is now table-based and collapsible**: Rod, Line, Bobber, and Enchant now open as comparison tables with all six stats visible in columns, making it easier to scan several candidates at once without horizontal scrolling.
+- **Step 1 now advances naturally from top to bottom**: Choosing one row closes the current gear decision and opens the next slot, so users can set up their current loadout in a single straight flow.
+- **Regression coverage updated for the table picker flow**: Unit and Playwright smoke tests now exercise row selection and the new Step 1 structure.
+
 ## [0.10.2] - 2026-03-09
 
 ### Changed

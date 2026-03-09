@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { STAT_THEME } from '@/components/Calculator/statTheme';
@@ -12,31 +12,30 @@ describe('ParameterForm', () => {
 
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
-    const selectedRodCard = screen.getByRole('button', { name: /Stick and String/ });
-    expect(selectedRodCard).toHaveAttribute('aria-pressed', 'true');
+    const selectedRodButton = screen.getByRole('button', { name: 'Stick and String は使用中' });
+    expect(selectedRodButton).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByText('Luck')[0]).toHaveStyle({ color: STAT_THEME.luck.accentText });
 
-    const attractionLabel = screen
-      .getAllByText('Attraction Rate')
-      .find((element) => element.className.includes('rounded-full'));
-    const bigCatchLabel = screen
-      .getAllByText('Big Catch Rate')
-      .find((element) => element.className.includes('rounded-full'));
+    const totalStatsSection = screen
+      .getByText('現在の装備の合計ステータス')
+      .closest('div.rounded-xl');
+    expect(totalStatsSection).not.toBeNull();
 
-    expect(attractionLabel).toBeDefined();
-    expect(bigCatchLabel).toBeDefined();
+    const attractionLabel = within(totalStatsSection as HTMLElement).getByText('Attraction Rate');
+    const bigCatchLabel = within(totalStatsSection as HTMLElement).getByText('Big Catch Rate');
+
     expect(attractionLabel).toHaveStyle({ backgroundColor: STAT_THEME.attractionRate.accent });
     expect(bigCatchLabel).toHaveStyle({ backgroundColor: STAT_THEME.bigCatchRate.accent });
   });
 
-  it('updates loadout when a gear card is clicked', () => {
+  it('updates loadout when a table row is selected', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
     const onChange = vi.fn();
 
     render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Fortunate Rod/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fortunate Rod を選ぶ' }));
 
     expect(onChange).toHaveBeenCalledWith({
       ...params,

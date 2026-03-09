@@ -59,56 +59,6 @@ function formatSignedStat(value: number, suffix = ''): string {
   return `${value > 0 ? '+' : ''}${value}${suffix}`;
 }
 
-function formatItemOption(
-  name: string,
-  stats: {
-    luck: number;
-    strength: number;
-    expertise: number;
-    attractionPct: number;
-    bigCatch: number;
-    maxWeightKg: number;
-  },
-): string {
-  return `${name} | Luck ${stats.luck >= 0 ? '+' : ''}${stats.luck} | Strength ${
-    stats.strength >= 0 ? '+' : ''
-  }${stats.strength} | Expertise ${stats.expertise >= 0 ? '+' : ''}${stats.expertise} | Attraction Rate ${
-    stats.attractionPct >= 0 ? '+' : ''
-  }${stats.attractionPct}% | Big Catch Rate ${stats.bigCatch >= 0 ? '+' : ''}${stats.bigCatch} | Max Weight ${stats.maxWeightKg}kg`;
-}
-
-function StatMiniCard({ stat, value }: { stat: StatThemeKey; value: string }) {
-  const theme = STAT_THEME[stat];
-
-  return (
-    <div
-      className="rounded-lg border px-2 py-1.5"
-      style={{
-        borderColor: theme.cardBorder,
-        backgroundColor: theme.cardBackground,
-      }}
-    >
-      <div className="text-[11px] font-semibold" style={{ color: theme.accentText }}>
-        {theme.label}
-      </div>
-      <div className="mt-0.5 text-xs font-semibold text-gray-900">{value}</div>
-    </div>
-  );
-}
-
-function ItemStatGrid({ item }: { item: EquipmentItem | EnchantItem }) {
-  return (
-    <div className="mt-3 grid grid-cols-2 gap-2">
-      <StatMiniCard stat="luck" value={formatSignedStat(item.luck)} />
-      <StatMiniCard stat="strength" value={formatSignedStat(item.strength)} />
-      <StatMiniCard stat="expertise" value={formatSignedStat(item.expertise)} />
-      <StatMiniCard stat="attractionRate" value={formatSignedStat(item.attractionPct, '%')} />
-      <StatMiniCard stat="bigCatchRate" value={formatSignedStat(item.bigCatch)} />
-      <StatMiniCard stat="maxWeight" value={`${item.maxWeightKg.toLocaleString()}kg`} />
-    </div>
-  );
-}
-
 function formatItemDetail(item: EquipmentItem | EnchantItem): string {
   if ('specialEffect' in item) {
     if (item.id === 'no-enchant') {
@@ -134,79 +84,197 @@ function formatItemDetail(item: EquipmentItem | EnchantItem): string {
   return `${item.location} / ${item.price.toLocaleString()}G`;
 }
 
-function LoadoutOptionCard<T extends EquipmentItem | EnchantItem>({
-  slot,
-  item,
-  selected,
-  onSelect,
-}: {
-  slot: 'rod' | 'line' | 'bobber' | 'enchant';
-  item: T;
-  selected: boolean;
-  onSelect: (id: string) => void;
-}) {
-  const theme = SLOT_THEME[slot];
+type LoadoutSlot = 'rod' | 'line' | 'bobber' | 'enchant';
 
+const NEXT_LOADOUT_SLOT: Record<LoadoutSlot, LoadoutSlot | null> = {
+  rod: 'line',
+  line: 'bobber',
+  bobber: 'enchant',
+  enchant: null,
+};
+
+function LoadoutSelectButton({
+  selected,
+  itemName,
+  onClick,
+}: {
+  selected: boolean;
+  itemName: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       aria-pressed={selected}
-      aria-label={formatItemOption(item.nameEn, item)}
-      onClick={() => onSelect(item.id)}
-      className={`w-72 shrink-0 snap-start rounded-xl border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-ocean-500 ${
+      aria-label={selected ? `${itemName} は使用中` : `${itemName} を選ぶ`}
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
         selected
-          ? `${theme.panelClassName} border-current shadow-sm`
-          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+          ? 'border-green-600 bg-green-600 text-white'
+          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50'
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-900">{item.nameEn}</div>
-          <div className="mt-1 text-xs leading-relaxed text-gray-600">{formatItemDetail(item)}</div>
-        </div>
-        {selected ? (
-          <span
-            className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${theme.chipClassName}`}
-          >
-            使用中
-          </span>
-        ) : null}
-      </div>
-      <ItemStatGrid item={item} />
+      {selected ? '使用中' : '選ぶ'}
     </button>
   );
 }
 
-function LoadoutPickerSection<T extends EquipmentItem | EnchantItem>({
+function StatTableHeader({ stat }: { stat: StatThemeKey }) {
+  const theme = STAT_THEME[stat];
+
+  return (
+    <span
+      className="inline-flex rounded-full px-2 py-1 text-[11px] font-semibold"
+      style={{
+        backgroundColor: theme.cardBackground,
+        color: theme.accentText,
+      }}
+    >
+      {theme.label}
+    </span>
+  );
+}
+
+function LoadoutTableSection<T extends EquipmentItem | EnchantItem>({
   slot,
   label,
   items,
   selectedId,
+  expanded,
+  onToggle,
   onSelect,
 }: {
-  slot: 'rod' | 'line' | 'bobber' | 'enchant';
+  slot: LoadoutSlot;
   label: string;
   items: readonly T[];
   selectedId: string;
+  expanded: boolean;
+  onToggle: () => void;
   onSelect: (id: string) => void;
 }) {
+  const theme = SLOT_THEME[slot];
+  const selectedItem = items.find((item) => item.id === selectedId) ?? items[0];
+
   return (
-    <div className={`rounded-xl border p-3 ${SLOT_THEME[slot].panelClassName}`}>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <SlotLabelChip slot={slot} label={label} />
-        <span className="text-[11px] text-gray-500">横にスクロールして見比べる</span>
-      </div>
-      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
-        {items.map((item) => (
-          <LoadoutOptionCard
-            key={item.id}
-            slot={slot}
-            item={item}
-            selected={item.id === selectedId}
-            onSelect={onSelect}
-          />
-        ))}
-      </div>
+    <div className={`rounded-xl border ${theme.panelClassName}`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        aria-label={expanded ? `${label} の候補表を閉じる` : `${label} の候補表を開く`}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <SlotLabelChip slot={slot} label={label} />
+            <span className="text-[11px] text-gray-500">
+              {expanded ? '表を閉じる' : '表を開く'}
+            </span>
+          </div>
+          <div className="mt-2 text-sm font-semibold text-gray-900">
+            現在: {selectedItem.nameEn}
+          </div>
+          <div className="mt-1 text-xs leading-relaxed text-gray-600">
+            {formatItemDetail(selectedItem)}
+          </div>
+        </div>
+      </button>
+
+      {expanded ? (
+        <div className="border-t border-white/70 bg-white/80 px-4 py-3">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-600">
+                  <th className="px-2 py-1">選択</th>
+                  <th className="px-2 py-1">名前</th>
+                  <th className="px-2 py-1">入手場所 / 効果</th>
+                  <th className="px-2 py-1">
+                    <StatTableHeader stat="luck" />
+                  </th>
+                  <th className="px-2 py-1">
+                    <StatTableHeader stat="strength" />
+                  </th>
+                  <th className="px-2 py-1">
+                    <StatTableHeader stat="expertise" />
+                  </th>
+                  <th className="px-2 py-1">
+                    <StatTableHeader stat="attractionRate" />
+                  </th>
+                  <th className="px-2 py-1">
+                    <StatTableHeader stat="bigCatchRate" />
+                  </th>
+                  <th className="px-2 py-1">
+                    <StatTableHeader stat="maxWeight" />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => {
+                  const selected = item.id === selectedId;
+
+                  return (
+                    <tr
+                      key={item.id}
+                      className={selected ? 'bg-white shadow-sm' : 'bg-white/70 hover:bg-white'}
+                    >
+                      <td className="rounded-l-lg px-2 py-2 align-top">
+                        <LoadoutSelectButton
+                          selected={selected}
+                          itemName={item.nameEn}
+                          onClick={() => onSelect(item.id)}
+                        />
+                      </td>
+                      <td className="px-2 py-2 align-top font-semibold text-gray-900">
+                        {item.nameEn}
+                      </td>
+                      <td className="px-2 py-2 align-top text-xs leading-relaxed text-gray-600">
+                        {formatItemDetail(item)}
+                      </td>
+                      <td
+                        className="px-2 py-2 align-top text-xs font-semibold"
+                        style={{ color: STAT_THEME.luck.accentText }}
+                      >
+                        {formatSignedStat(item.luck)}
+                      </td>
+                      <td
+                        className="px-2 py-2 align-top text-xs font-semibold"
+                        style={{ color: STAT_THEME.strength.accentText }}
+                      >
+                        {formatSignedStat(item.strength)}
+                      </td>
+                      <td
+                        className="px-2 py-2 align-top text-xs font-semibold"
+                        style={{ color: STAT_THEME.expertise.accentText }}
+                      >
+                        {formatSignedStat(item.expertise)}
+                      </td>
+                      <td
+                        className="px-2 py-2 align-top text-xs font-semibold"
+                        style={{ color: STAT_THEME.attractionRate.accentText }}
+                      >
+                        {formatSignedStat(item.attractionPct, '%')}
+                      </td>
+                      <td
+                        className="px-2 py-2 align-top text-xs font-semibold"
+                        style={{ color: STAT_THEME.bigCatchRate.accentText }}
+                      >
+                        {formatSignedStat(item.bigCatch)}
+                      </td>
+                      <td
+                        className="rounded-r-lg px-2 py-2 align-top text-xs font-semibold"
+                        style={{ color: STAT_THEME.maxWeight.accentText }}
+                      >
+                        {item.maxWeightKg.toLocaleString()}kg
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -259,6 +327,8 @@ function SlotLabelChip({
 }
 
 export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
+  const [expandedSlot, setExpandedSlot] = React.useState<LoadoutSlot | null>('rod');
+
   const handleChange = <K extends keyof CalculatorParams>(field: K, value: CalculatorParams[K]) => {
     onChange({ ...params, [field]: value });
   };
@@ -274,6 +344,19 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         [field]: value,
       },
     });
+  };
+
+  const handleLoadoutSelect = (
+    slot: LoadoutSlot,
+    field: keyof CalculatorParams['loadout'],
+    value: string,
+  ) => {
+    updateLoadout(field, value);
+    setExpandedSlot(NEXT_LOADOUT_SLOT[slot]);
+  };
+
+  const toggleLoadoutSection = (slot: LoadoutSlot) => {
+    setExpandedSlot((current) => (current === slot ? null : slot));
   };
 
   const fieldId = {
@@ -299,38 +382,46 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 1</div>
           <h3 className="text-sm font-semibold text-gray-800">まずは今の装備</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            各候補をカードで見比べながら選べます。今の装備に近いものをそのまま押してください。
+            各候補を表で見比べながら選べます。1つ選ぶと次の欄へ進むので、上から順に今の装備をそろえてください。
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <LoadoutPickerSection
+        <div className="space-y-4">
+          <LoadoutTableSection
             slot="rod"
             label="Rod"
             items={RODS}
             selectedId={params.loadout.rodId}
-            onSelect={(id) => updateLoadout('rodId', id)}
+            expanded={expandedSlot === 'rod'}
+            onToggle={() => toggleLoadoutSection('rod')}
+            onSelect={(id) => handleLoadoutSelect('rod', 'rodId', id)}
           />
-          <LoadoutPickerSection
+          <LoadoutTableSection
             slot="line"
             label="Line"
             items={LINES}
             selectedId={params.loadout.lineId}
-            onSelect={(id) => updateLoadout('lineId', id)}
+            expanded={expandedSlot === 'line'}
+            onToggle={() => toggleLoadoutSection('line')}
+            onSelect={(id) => handleLoadoutSelect('line', 'lineId', id)}
           />
-          <LoadoutPickerSection
+          <LoadoutTableSection
             slot="bobber"
             label="Bobber"
             items={BOBBERS}
             selectedId={params.loadout.bobberId}
-            onSelect={(id) => updateLoadout('bobberId', id)}
+            expanded={expandedSlot === 'bobber'}
+            onToggle={() => toggleLoadoutSection('bobber')}
+            onSelect={(id) => handleLoadoutSelect('bobber', 'bobberId', id)}
           />
-          <LoadoutPickerSection
+          <LoadoutTableSection
             slot="enchant"
             label="Enchant"
             items={ENCHANTS}
             selectedId={params.loadout.enchantId}
-            onSelect={(id) => updateLoadout('enchantId', id)}
+            expanded={expandedSlot === 'enchant'}
+            onToggle={() => toggleLoadoutSection('enchant')}
+            onSelect={(id) => handleLoadoutSelect('enchant', 'enchantId', id)}
           />
         </div>
 

@@ -78,10 +78,10 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     .textContent();
   const initialRowCount = await page.locator('tbody tr').count();
 
-  await page.getByRole('button', { name: /Fortunate Rod/ }).click();
-  await page.getByRole('button', { name: /Lucky Line/ }).click();
-  await page.getByRole('button', { name: /Lucky Bobber/ }).click();
-  await page.getByRole('button', { name: /Money Maker/ }).click();
+  await page.getByRole('button', { name: 'Fortunate Rod を選ぶ' }).click();
+  await page.getByRole('button', { name: 'Lucky Line を選ぶ' }).click();
+  await page.getByRole('button', { name: 'Lucky Bobber を選ぶ' }).click();
+  await page.getByRole('button', { name: 'Money Maker を選ぶ' }).click();
   await page.getByLabel('Fishing Area').selectOption('open-sea');
   await page.getByLabel('Time of Day').selectOption('night');
   await page.getByLabel('Weather').selectOption('rainy');
