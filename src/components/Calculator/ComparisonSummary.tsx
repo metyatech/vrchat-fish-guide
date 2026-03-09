@@ -23,7 +23,7 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
   const bestCatchProb = Math.max(...catchProb);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="rounded-[24px] border border-white/80 bg-white/90 p-5 shadow-[0_18px_48px_rgba(15,23,42,0.10)] backdrop-blur-sm">
       <h2 className="mb-1 text-base font-semibold text-gray-800">組み合わせを並べて比べる</h2>
       <p className="mb-4 text-xs text-gray-500">
         いま保存している組み合わせを横並びで比べます。
@@ -58,7 +58,9 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
                 <tr
                   key={build.id}
                   className={`border-b border-gray-50 transition-all duration-150 ${
-                    isActive ? 'bg-gradient-to-r from-ocean-50 to-white' : 'hover:bg-gray-50/70'
+                    isActive
+                      ? 'bg-[linear-gradient(90deg,rgba(239,248,255,0.92),rgba(255,255,255,1))]'
+                      : 'hover:bg-gray-50/70'
                   }`}
                 >
                   <td className="py-2.5">

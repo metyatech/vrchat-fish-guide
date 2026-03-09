@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.6] - 2026-03-09
+
+### Changed
+
+- **Total stat displays no longer leak floating-point noise**: Combined equipment stats and the related explanation text now round for human-readable display, so values such as `11.999999999999996` show as `12`.
+- **Added regression coverage for display precision**: Unit, component, and Playwright smoke checks now guard against long raw float strings reappearing in the total-stat area.
+- **Calculator visuals were refined again without changing the step flow**: The input panels, hero area, build tabs, comparison block, and key summary cards now use richer glass/gradient surfaces and stronger hierarchy while keeping the same top-to-bottom usage order.
+
 ## [0.10.5] - 2026-03-09
 
 ### Changed

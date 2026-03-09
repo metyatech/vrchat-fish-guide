@@ -15,7 +15,10 @@ import {
   calculateDistribution,
   deriveModelSummary,
   formatCurrency,
+  formatDisplayNumber,
   formatPriceRange,
+  formatSignedDisplayNumber,
+  formatWeightKg,
   formatWeightRange,
   getDefaultParams,
   getEligibleFish,
@@ -339,6 +342,19 @@ describe('calculateDistribution', () => {
 });
 
 describe('format helpers', () => {
+  it('rounds integer-like floating point values for display', () => {
+    expect(formatSignedDisplayNumber(11.999999999999996)).toBe('+12');
+    expect(formatSignedDisplayNumber(16.999999999999996)).toBe('+17');
+    expect(formatDisplayNumber(15.000000000000002)).toBe('15');
+    expect(formatWeightKg(24.999999999999996)).toBe('25kg');
+  });
+
+  it('keeps meaningful fractional values while trimming noise', () => {
+    expect(formatSignedDisplayNumber(12.3456)).toBe('+12.35');
+    expect(formatSignedDisplayNumber(-3.5)).toBe('-3.5');
+    expect(formatSignedDisplayNumber(8.125, '%')).toBe('+8.13%');
+  });
+
   it('formats values below 1000 as XG', () => {
     expect(formatCurrency(0)).toBe('0G');
     expect(formatCurrency(999)).toBe('999G');

@@ -42,7 +42,7 @@ export function BuildTabs({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2.5">
       {builds.map((build) => {
         const isActive = build.id === activeId;
         const isEditing = editingId === build.id;
@@ -50,10 +50,10 @@ export function BuildTabs({
         return (
           <div
             key={build.id}
-            className={`group flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-all duration-200 ${
+            className={`animate-pop-in group flex items-center gap-1 rounded-2xl border px-3 py-2 text-sm transition-all duration-200 ${
               isActive
-                ? 'border-ocean-500 bg-gradient-to-br from-ocean-500 to-ocean-700 text-white shadow-md'
-                : 'border-gray-200 bg-white text-gray-700 shadow-sm hover:border-ocean-300 hover:bg-ocean-50 hover:shadow-md'
+                ? 'border-ocean-500 bg-[linear-gradient(145deg,rgba(59,150,243,1),rgba(29,99,213,1))] text-white shadow-[0_16px_40px_rgba(37,120,232,0.24)]'
+                : 'border-white/80 bg-white/90 text-gray-700 shadow-[0_12px_30px_rgba(15,23,42,0.08)] hover:border-ocean-300 hover:bg-ocean-50 hover:shadow-[0_16px_36px_rgba(37,120,232,0.10)]'
             }`}
           >
             {isEditing ? (
@@ -110,7 +110,7 @@ export function BuildTabs({
       <button
         onClick={onAdd}
         title="比べる候補を追加"
-        className="flex items-center gap-1 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500 shadow-sm transition-all duration-150 hover:border-ocean-400 hover:shadow-md hover:text-ocean-600"
+        className="flex items-center gap-1 rounded-2xl border border-dashed border-gray-300 bg-white/90 px-3 py-2 text-sm text-gray-500 shadow-[0_12px_30px_rgba(15,23,42,0.08)] transition-all duration-150 hover:border-ocean-400 hover:shadow-[0_16px_36px_rgba(37,120,232,0.10)] hover:text-ocean-600"
       >
         <span className="text-base leading-none">+</span>
         <span>比べる候補を追加</span>

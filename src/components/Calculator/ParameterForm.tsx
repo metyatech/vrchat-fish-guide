@@ -11,7 +11,7 @@ import {
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { SLOT_THEME } from '@/components/Calculator/slotTheme';
 import { STAT_THEME, StatThemeKey } from '@/components/Calculator/statTheme';
-import { BEST_AREA_ID } from '@/lib/calculator';
+import { BEST_AREA_ID, formatSignedDisplayNumber, formatWeightKg } from '@/lib/calculator';
 import {
   CalculatorParams,
   DerivedModelSummary,
@@ -52,11 +52,6 @@ function parseNumberInput(value: string, fallback: number, min: number, max: num
     return fallback;
   }
   return Math.min(max, Math.max(min, parsed));
-}
-
-function formatSignedStat(value: number, suffix = ''): string {
-  if (value === 0) return `0${suffix}`;
-  return `${value > 0 ? '+' : ''}${value}${suffix}`;
 }
 
 function formatItemDetail(item: EquipmentItem | EnchantItem): string {
@@ -253,37 +248,37 @@ function LoadoutTableSection<T extends EquipmentItem | EnchantItem>({
                           className="px-2 py-2 align-top text-xs font-semibold"
                           style={{ color: STAT_THEME.luck.surfaceText }}
                         >
-                          {formatSignedStat(item.luck)}
+                          {formatSignedDisplayNumber(item.luck)}
                         </td>
                         <td
                           className="px-2 py-2 align-top text-xs font-semibold"
                           style={{ color: STAT_THEME.strength.surfaceText }}
                         >
-                          {formatSignedStat(item.strength)}
+                          {formatSignedDisplayNumber(item.strength)}
                         </td>
                         <td
                           className="px-2 py-2 align-top text-xs font-semibold"
                           style={{ color: STAT_THEME.expertise.surfaceText }}
                         >
-                          {formatSignedStat(item.expertise)}
+                          {formatSignedDisplayNumber(item.expertise)}
                         </td>
                         <td
                           className="px-2 py-2 align-top text-xs font-semibold"
                           style={{ color: STAT_THEME.attractionRate.surfaceText }}
                         >
-                          {formatSignedStat(item.attractionPct, '%')}
+                          {formatSignedDisplayNumber(item.attractionPct, '%')}
                         </td>
                         <td
                           className="px-2 py-2 align-top text-xs font-semibold"
                           style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
                         >
-                          {formatSignedStat(item.bigCatch)}
+                          {formatSignedDisplayNumber(item.bigCatch)}
                         </td>
                         <td
                           className="rounded-r-lg px-2 py-2 align-top text-xs font-semibold"
                           style={{ color: STAT_THEME.maxWeight.surfaceText }}
                         >
-                          {item.maxWeightKg.toLocaleString()}kg
+                          {formatWeightKg(item.maxWeightKg)}
                         </td>
                       </tr>
                     );
@@ -412,7 +407,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
   } as const;
 
   return (
-    <div className="space-y-4 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+    <div className="space-y-5 rounded-[28px] border border-white/70 bg-white/80 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-sm">
       <div className="border-b border-gray-100 pb-3">
         <h2 className="text-lg font-semibold text-gray-800">入力</h2>
         <p className="mt-1 text-sm text-gray-500">
@@ -420,7 +415,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </p>
       </div>
 
-      <section className="space-y-4 rounded-xl border border-ocean-200 bg-gradient-to-br from-ocean-50 via-ocean-50/70 to-white p-4 shadow-sm">
+      <section className="animate-slide-in-up space-y-4 rounded-[24px] border border-ocean-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.35),_rgba(255,255,255,0.94)_45%,_rgba(255,255,255,0.98)_100%)] p-5 shadow-[0_16px_48px_rgba(37,120,232,0.12)]">
         <div>
           <div className="mb-1 flex items-center gap-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ocean-600 text-[10px] font-bold text-white">
@@ -499,7 +494,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div
+          data-testid="total-stats-section"
+          className="overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(140deg,rgba(255,255,255,0.96),rgba(248,251,255,0.98))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_12px_40px_rgba(15,23,42,0.08)]"
+        >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-gray-800">現在の装備の合計ステータス</div>
@@ -508,12 +506,12 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               </p>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`rounded-full border px-3 py-1 text-xs font-medium shadow-sm ${
                 model.enchantState === 'active'
-                  ? 'bg-green-100 text-green-700'
+                  ? 'border-green-200 bg-green-100/90 text-green-700'
                   : model.enchantState === 'conditional'
-                    ? 'bg-ocean-100 text-ocean-700'
-                    : 'bg-gray-100 text-gray-600'
+                    ? 'border-ocean-200 bg-ocean-100/90 text-ocean-700'
+                    : 'border-gray-200 bg-gray-100/90 text-gray-600'
               }`}
             >
               {model.enchantStatusText ?? 'No Enchant selected'}
@@ -527,23 +525,29 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           ) : null}
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-            <StatCard stat="luck" value={formatSignedStat(model.totalStats.luck)} />
-            <StatCard stat="strength" value={formatSignedStat(model.totalStats.strength)} />
-            <StatCard stat="expertise" value={formatSignedStat(model.totalStats.expertise)} />
+            <StatCard stat="luck" value={formatSignedDisplayNumber(model.totalStats.luck)} />
+            <StatCard
+              stat="strength"
+              value={formatSignedDisplayNumber(model.totalStats.strength)}
+            />
+            <StatCard
+              stat="expertise"
+              value={formatSignedDisplayNumber(model.totalStats.expertise)}
+            />
             <StatCard
               stat="attractionRate"
-              value={formatSignedStat(model.totalStats.attractionPct, '%')}
+              value={formatSignedDisplayNumber(model.totalStats.attractionPct, '%')}
             />
-            <StatCard stat="bigCatchRate" value={formatSignedStat(model.totalStats.bigCatch)} />
             <StatCard
-              stat="maxWeight"
-              value={`${model.totalStats.maxWeightKg.toLocaleString()}kg`}
+              stat="bigCatchRate"
+              value={formatSignedDisplayNumber(model.totalStats.bigCatch)}
             />
+            <StatCard stat="maxWeight" value={formatWeightKg(model.totalStats.maxWeightKg)} />
           </div>
         </div>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+      <section className="animate-slide-in-up space-y-4 rounded-[24px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(243,247,252,0.98))] p-5 shadow-[0_16px_48px_rgba(15,23,42,0.08)]">
         <div>
           <div className="mb-1 flex items-center gap-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] font-bold text-white">
@@ -633,7 +637,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+      <section className="animate-slide-in-up space-y-4 rounded-[24px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(243,247,252,0.98))] p-5 shadow-[0_16px_48px_rgba(15,23,42,0.08)]">
         <div>
           <div className="mb-1 flex items-center gap-2">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] font-bold text-white">
@@ -742,7 +746,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4">
+      <div className="animate-slide-in-up rounded-[24px] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(243,247,252,0.98))] p-5 shadow-[0_16px_48px_rgba(15,23,42,0.08)]">
         <button
           type="button"
           className="flex w-full items-center justify-between gap-3 text-left"

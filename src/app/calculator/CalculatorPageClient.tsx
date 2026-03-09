@@ -295,7 +295,15 @@ export function CalculatorPageClient() {
   if (!activeBuild) return null;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="relative mx-auto max-w-7xl px-4 py-8">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden"
+      >
+        <div className="absolute left-[-5%] top-10 h-56 w-56 rounded-full bg-ocean-200/40 blur-3xl" />
+        <div className="absolute right-[5%] top-0 h-72 w-72 rounded-full bg-cyan-200/35 blur-3xl" />
+        <div className="absolute left-[35%] top-32 h-48 w-48 rounded-full bg-white/60 blur-3xl" />
+      </div>
       {/* URL restore failure banner — shown only when a share link was present but invalid */}
       {urlRestoreError && (
         <div
@@ -318,13 +326,13 @@ export function CalculatorPageClient() {
       )}
 
       <div className="mb-8">
-        <div className="rounded-2xl border border-ocean-300 bg-gradient-to-br from-ocean-600 via-ocean-600 to-ocean-700 px-6 py-5 text-white shadow-lg">
+        <div className="overflow-hidden rounded-[30px] border border-white/30 bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.34),_rgba(37,120,232,0.98)_36%,_rgba(12,74,153,1)_100%)] px-6 py-6 text-white shadow-[0_28px_90px_rgba(37,120,232,0.28)]">
           <h1 className="text-2xl font-bold tracking-tight">📊 装備込みの期待値比較</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ocean-100">
             いまの装備から何を変えると一番伸びるかを、上から順に条件を入れながら比べます。
           </p>
         </div>
-        <ol className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-5">
+        <ol className="mt-4 grid grid-cols-1 gap-2.5 text-sm md:grid-cols-5">
           {[
             '今の装備を入れる',
             '必要なら場所と条件を絞る',
@@ -334,7 +342,7 @@ export function CalculatorPageClient() {
           ].map((label, i) => (
             <li
               key={i}
-              className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-3 shadow-sm"
+              className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/85 px-3 py-3 shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur-sm"
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white">
                 {i + 1}
@@ -346,7 +354,7 @@ export function CalculatorPageClient() {
       </div>
 
       <div className="space-y-6">
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
+        <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="mb-4">
             <div className="mb-1 flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
@@ -371,7 +379,7 @@ export function CalculatorPageClient() {
           />
         </section>
 
-        <section className="rounded-2xl border border-ocean-100 bg-white p-6 shadow-md">
+        <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="mb-4">
             <div className="mb-1 flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
@@ -407,7 +415,9 @@ export function CalculatorPageClient() {
             ))}
           </div>
 
-          <div className={`rounded-xl border p-4 ${compareTargetTheme.panelClassName}`}>
+          <div
+            className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
+          >
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
               いま選んだ欄
             </div>
@@ -418,7 +428,7 @@ export function CalculatorPageClient() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
+        <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div>
             <div className="mb-1 flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
@@ -439,7 +449,9 @@ export function CalculatorPageClient() {
           </div>
 
           {compareTarget !== 'full-build' && bestNextTry ? (
-            <div className={`rounded-xl border p-4 ${compareTargetTheme.panelClassName}`}>
+            <div
+              className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
+            >
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
                 まずはこの候補
               </div>
@@ -494,7 +506,7 @@ export function CalculatorPageClient() {
           )}
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
+        <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="mb-1 flex items-center gap-2">
@@ -578,7 +590,7 @@ export function CalculatorPageClient() {
             className="animate-flash-update grid grid-cols-2 gap-3 md:grid-cols-4"
           >
             <div
-              className="rounded-xl border border-ocean-200 bg-gradient-to-br from-ocean-50 to-white p-4 text-center shadow-sm"
+              className="rounded-2xl border border-ocean-200/80 bg-[linear-gradient(145deg,rgba(239,248,255,0.95),rgba(255,255,255,1))] p-4 text-center shadow-[0_16px_40px_rgba(37,120,232,0.10)]"
               data-testid="summary-expected-value-per-catch"
             >
               <div className="text-2xl font-bold text-ocean-700">
@@ -587,7 +599,7 @@ export function CalculatorPageClient() {
               <div className="mt-1.5 text-xs font-medium text-ocean-500">期待値/回</div>
             </div>
             <div
-              className="rounded-xl border-2 border-ocean-400 bg-gradient-to-br from-ocean-100 to-ocean-50 p-4 text-center shadow-md"
+              className="rounded-2xl border-2 border-ocean-400 bg-[linear-gradient(145deg,rgba(219,238,254,0.95),rgba(239,248,255,0.96))] p-4 text-center shadow-[0_18px_48px_rgba(37,120,232,0.20)]"
               data-testid="summary-expected-value-per-hour"
             >
               <div className="text-3xl font-bold text-ocean-700">
@@ -596,14 +608,14 @@ export function CalculatorPageClient() {
               <div className="mt-1.5 text-xs font-semibold text-ocean-600">期待値/時間</div>
             </div>
             <div
-              className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 text-center shadow-sm"
+              className="rounded-2xl border border-white/80 bg-[linear-gradient(145deg,rgba(249,250,251,0.92),rgba(255,255,255,1))] p-4 text-center shadow-[0_14px_36px_rgba(15,23,42,0.08)]"
               data-testid="summary-catches-per-hour"
             >
               <div className="text-2xl font-bold text-gray-700">{catchesPerHour.toFixed(0)}回</div>
               <div className="mt-1.5 text-xs font-medium text-gray-500">試行回数/時間</div>
             </div>
             <div
-              className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 text-center shadow-sm"
+              className="rounded-2xl border border-white/80 bg-[linear-gradient(145deg,rgba(249,250,251,0.92),rgba(255,255,255,1))] p-4 text-center shadow-[0_14px_36px_rgba(15,23,42,0.08)]"
               data-testid="summary-total-fish-probability"
             >
               <div className="text-2xl font-bold text-gray-700">

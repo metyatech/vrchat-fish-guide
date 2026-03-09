@@ -100,8 +100,48 @@ const RARITY_ESCAPE_FACTOR: Partial<Record<Rarity, number>> = {
 
 export const BEST_AREA_ID = 'best-area';
 
+const DISPLAY_NUMBER_FORMATTERS = new Map<number, Intl.NumberFormat>();
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function getDisplayFormatter(maxFractionDigits: number): Intl.NumberFormat {
+  const existing = DISPLAY_NUMBER_FORMATTERS.get(maxFractionDigits);
+  if (existing) return existing;
+
+  const formatter = new Intl.NumberFormat('ja-JP', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: maxFractionDigits,
+  });
+  DISPLAY_NUMBER_FORMATTERS.set(maxFractionDigits, formatter);
+  return formatter;
+}
+
+export function roundDisplayValue(value: number, maxFractionDigits = 2): number {
+  if (!Number.isFinite(value)) return 0;
+  const factor = 10 ** maxFractionDigits;
+  const rounded = Math.round((value + Number.EPSILON) * factor) / factor;
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+export function formatDisplayNumber(value: number, maxFractionDigits = 2): string {
+  const rounded = roundDisplayValue(value, maxFractionDigits);
+  return getDisplayFormatter(maxFractionDigits).format(rounded);
+}
+
+export function formatSignedDisplayNumber(
+  value: number,
+  suffix = '',
+  maxFractionDigits = 2,
+): string {
+  const rounded = roundDisplayValue(value, maxFractionDigits);
+  if (rounded === 0) return `0${suffix}`;
+  return `${rounded > 0 ? '+' : ''}${formatDisplayNumber(rounded, maxFractionDigits)}${suffix}`;
+}
+
+export function formatWeightKg(value: number, maxFractionDigits = 2): string {
+  return `${formatDisplayNumber(value, maxFractionDigits)}kg`;
 }
 
 function isDaylightTime(timeOfDay: TimeOfDay): boolean {
@@ -423,11 +463,11 @@ function deriveScenarioModel(
     ...direct.supportedNotes,
   ];
   const experimentalNotes = [
-    `Luck ${totalStats.luck >= 0 ? '+' : ''}${totalStats.luck} は、レアな魚が出やすくなる補正 ${effectiveLuckMultiplier.toFixed(2)}x として入れています。`,
-    `Attraction Rate ${totalStats.attractionPct >= 0 ? '+' : ''}${totalStats.attractionPct}% は、魚が掛かるまでの時間へ反映しています。`,
-    `Strength + Expertise (${controlScore >= 0 ? '+' : ''}${controlScore}) は、ミニゲーム時間と逃がしにくさへ反映しています。`,
-    `Big Catch Rate ${totalStats.bigCatch >= 0 ? '+' : ''}${totalStats.bigCatch} は、重い魚が出やすくなる方向へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
-    `Max Weight ${totalStats.maxWeightKg.toLocaleString()}kg は、魚ごとの重さ上限に使っています。`,
+    `Luck ${formatSignedDisplayNumber(totalStats.luck)} は、レアな魚が出やすくなる補正 ${effectiveLuckMultiplier.toFixed(2)}x として入れています。`,
+    `Attraction Rate ${formatSignedDisplayNumber(totalStats.attractionPct, '%')} は、魚が掛かるまでの時間へ反映しています。`,
+    `Strength + Expertise (${formatSignedDisplayNumber(controlScore)}) は、ミニゲーム時間と逃がしにくさへ反映しています。`,
+    `Big Catch Rate ${formatSignedDisplayNumber(totalStats.bigCatch)} は、重い魚が出やすくなる方向へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
+    `Max Weight ${formatWeightKg(totalStats.maxWeightKg)} は、魚ごとの重さ上限に使っています。`,
   ];
   if (modifierAssumptions.includeModifiers) {
     experimentalNotes.push(

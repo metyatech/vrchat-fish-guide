@@ -47,9 +47,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('button', { name: 'Rod を変える' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'まずはこの候補を比較へ追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
-  const totalStatsSection = page
-    .getByText('現在の装備の合計ステータス', { exact: true })
-    .locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
+  const totalStatsSection = page.getByTestId('total-stats-section');
   await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Luck' })).toHaveCSS(
     'background-color',
     'rgb(255, 231, 86)',
@@ -76,6 +74,8 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     'color',
     'rgb(76, 37, 103)',
   );
+  await expect(totalStatsSection).not.toContainText('11.999999999999');
+  await expect(totalStatsSection).not.toContainText('16.999999999999');
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')

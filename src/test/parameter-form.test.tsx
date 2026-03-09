@@ -16,13 +16,10 @@ describe('ParameterForm', () => {
     expect(selectedRodButton).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getAllByText('Luck')[0]).toHaveStyle({ color: STAT_THEME.luck.surfaceText });
 
-    const totalStatsSection = screen
-      .getByText('現在の装備の合計ステータス')
-      .closest('div.rounded-xl');
-    expect(totalStatsSection).not.toBeNull();
+    const totalStatsSection = screen.getByTestId('total-stats-section');
 
-    const attractionLabel = within(totalStatsSection as HTMLElement).getByText('Attraction Rate');
-    const bigCatchLabel = within(totalStatsSection as HTMLElement).getByText('Big Catch Rate');
+    const attractionLabel = within(totalStatsSection).getByText('Attraction Rate');
+    const bigCatchLabel = within(totalStatsSection).getByText('Big Catch Rate');
 
     expect(attractionLabel).toHaveStyle({ backgroundColor: STAT_THEME.attractionRate.accent });
     expect(bigCatchLabel).toHaveStyle({ backgroundColor: STAT_THEME.bigCatchRate.accent });
@@ -47,5 +44,23 @@ describe('ParameterForm', () => {
         rodId: 'fortunate-rod',
       },
     });
+  });
+
+  it('does not show floating-point precision artifacts in total stats', () => {
+    const params = {
+      ...getDefaultParams(),
+      loadout: {
+        rodId: 'metallic-rod',
+        lineId: 'diamond-line',
+        bobberId: 'rainbow-slime-bobber',
+        enchantId: 'no-enchant',
+      },
+    };
+    const result = calculateDistribution(params);
+
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    expect(screen.queryByText(/11\.999999999999/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/16\.999999999999/)).not.toBeInTheDocument();
   });
 });
