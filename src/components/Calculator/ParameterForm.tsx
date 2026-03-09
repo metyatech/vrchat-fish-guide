@@ -12,6 +12,7 @@ import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import {
   CalculatorParams,
   DerivedModelSummary,
+  ModifierAssumptions,
   Rarity,
   TimeModelMode,
   TimeOfDay,
@@ -107,15 +108,25 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
       <h2 className="border-b pb-3 text-lg font-semibold text-gray-800">⚙️ Calculator Inputs</h2>
 
       <div className="rounded-xl border border-ocean-100 bg-ocean-50 p-4 text-sm text-ocean-900">
-        <p className="font-semibold">最初はこの順で触ると迷いません。</p>
+        <p className="font-semibold">ギア比較の手順（上から順に）</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-relaxed text-ocean-900">
-          <li>`Fishing Area` と `Rod / Line / Bobber / Enchant` を選ぶ</li>
-          <li>`Observed values` で実測値を入れるか、`Estimated from equipment` を選ぶ</li>
-          <li>`Total Stats` と `Derived model` を見て、何が期待値を動かしているか確認する</li>
+          <li>
+            <strong>Fishing Area</strong> を先に決める（候補魚 pool が決まります）
+          </li>
+          <li>
+            <strong>Rod / Line / Bobber / Enchant</strong> でベース loadout を設定する
+          </li>
+          <li>
+            <strong>Observed values</strong> に実測値を入れる（なければデフォルトのまま）
+          </li>
+          <li>
+            右の <strong>期待値/時間</strong> を確認 → ギアを 1 スロットだけ変えて再確認する
+          </li>
         </ol>
-        <p className="mt-2 text-xs leading-relaxed text-ocean-900">
-          まず比較を早く始めたい場合は `Observed values` を推奨します。`Estimated from equipment` は
-          Attraction / Strength / Expertise の影響まで近似反映したい場合の experimental mode です。
+        <p className="mt-2 text-xs leading-relaxed text-ocean-800">
+          1 スロットずつ変えることで、どのギアが期待値/時間に効いているかを切り分けられます。
+          `Estimated from equipment` は Attraction / Strength / Expertise の影響も近似反映する
+          experimental mode です。
         </p>
       </div>
 
@@ -515,6 +526,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             label="Weight percentile"
             value={`${(model.weightPercentile * 100).toFixed(0)}%`}
           />
+          {model.modifierEvFactor !== 1 ? (
+            <StatCard label="Modifier EV factor" value={`${model.modifierEvFactor.toFixed(3)}x`} />
+          ) : null}
         </div>
         <div className="mt-4 space-y-3 text-xs leading-relaxed">
           <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-green-800">
@@ -544,6 +558,88 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             </div>
           ) : null}
         </div>
+      </div>
+
+      <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-800">Modifier assumptions</h3>
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">
+            釣れた魚に付くことがある外見・サイズ modifier
+            の売値ボーナスを、期待値に反映するかどうかを設定します。
+          </p>
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
+          <div className="font-semibold">Experimental（近似モデル）とは</div>
+          <p>
+            コミュニティが実測・観測した数値事実と、このサイト独自の近似仮定を組み合わせて計算しています。ゲーム内部の公式計算式は確認されていないため、計算結果は「参考近似値」です。
+          </p>
+          <div className="mt-2 font-semibold">確率の内訳（Snerx community sheet 観測値）</div>
+          <ul className="space-y-1">
+            <li>
+              • <strong>P(any modifier) ≈ 22.5%</strong>: 何らかの modifier が付く割合
+            </li>
+            <li>
+              • <strong>P(外見のみ) ≈ 7.5%</strong>: 外見 modifier のみ、サイズ変化なし
+            </li>
+            <li>
+              • <strong>P(サイズのみ) ≈ 10%</strong>: サイズ modifier（Huge/Tiny）のみ、外見変化なし
+            </li>
+            <li>
+              • <strong>P(両方) ≈ 5%</strong>: 外見とサイズの両方が同時に付く割合
+            </li>
+            <li>• 外見 modifier 23 種の平均倍率 ≈ 2.404x（各種等確率を独立に仮定）</li>
+            <li>• サイズ: Huge ×1.5, Tiny ×1.0（Huge/Tiny 比率 — 50/50 を独立に仮定）</li>
+          </ul>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            id="modifier-include"
+            type="checkbox"
+            checked={params.modifierAssumptions.includeModifiers}
+            onChange={(event) =>
+              handleChange('modifierAssumptions', {
+                ...params.modifierAssumptions,
+                includeModifiers: event.target.checked,
+              } as ModifierAssumptions)
+            }
+          />
+          <label htmlFor="modifier-include" className="text-sm text-gray-700">
+            Modifier EV を期待値に含める（experimental）
+          </label>
+        </div>
+
+        {params.modifierAssumptions.includeModifiers ? (
+          <>
+            <div className="flex items-center gap-3">
+              <input
+                id="modifier-cursed-to-blessed"
+                type="checkbox"
+                checked={params.modifierAssumptions.assumeCursedToBlessed}
+                onChange={(event) =>
+                  handleChange('modifierAssumptions', {
+                    ...params.modifierAssumptions,
+                    assumeCursedToBlessed: event.target.checked,
+                  } as ModifierAssumptions)
+                }
+              />
+              <label htmlFor="modifier-cursed-to-blessed" className="text-sm text-gray-700">
+                Cursed → Blessed 変換方針を適用（このサイトは変換コスト・移動時間を 0
+                とモデル化。有効にすると外見平均倍率が ≈ 2.487x になる）
+              </label>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-700">
+              Modifier EV factor:{' '}
+              <span className="font-semibold text-amber-700">
+                {model.modifierEvFactor.toFixed(3)}x
+              </span>
+              <span className="ml-1 text-gray-500">
+                （期待価格・期待値/回・期待値/時間 に乗算済み）
+              </span>
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div>

@@ -95,6 +95,15 @@ export const SOURCES: DataSource[] = [
     notes:
       'Exact in-game formulas for Luck, Big Catch, Attraction, Strength, Expertise, and weight-to-price conversion remain excluded. Experimental mappings in the calculator are independent approximations, not copied formulas.',
   },
+  {
+    id: 'community-modifier-data',
+    name: 'Community modifier probability / multiplier data',
+    sourceStatus: 'community',
+    reuseMode: 'fact-only',
+    licenseStatus: 'unclear — numeric facts only; no expressive content reproduced',
+    notes:
+      'Used for the optional modifier EV model. Extracted facts: P(any modifier)≈22.5%, P(both size+appearance)≈5%, 23 distinct appearance modifier kinds, mean appearance multiplier ≈2.404x (≈2.487x with Cursed→Blessed conversion), Huge size multiplier 1.5x, Tiny 1.0x. The appearance-only/size-only probability split is an independent symmetric approximation — not from any source.',
+  },
 ];
 
 export const SOURCE_MAP: Record<string, DataSource> = Object.fromEntries(

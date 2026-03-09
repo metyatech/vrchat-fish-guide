@@ -7,6 +7,15 @@ import {
 } from '@/data/fish';
 import { BOBBER_MAP, ENCHANT_MAP, LINE_MAP, ROD_MAP } from '@/data/equipment';
 import {
+  APPEARANCE_MODIFIER_COUNT,
+  MEAN_SIZE_MULTIPLIER,
+  P_ANY_MODIFIER,
+  P_APPEARANCE_ONLY,
+  P_BOTH_MODIFIERS,
+  P_SIZE_ONLY,
+  computeModifierEvFactor,
+} from '@/data/modifiers';
+import {
   CalculatorParams,
   DerivedModelSummary,
   DistributionResult,
@@ -14,6 +23,7 @@ import {
   EquipmentItem,
   FishEntry,
   FishResult,
+  ModifierAssumptions,
   Rarity,
   StatBlock,
   TimeOfDay,
@@ -179,6 +189,10 @@ function normalizeParams(params: CalculatorParams): CalculatorParams {
       customRarityWeights && Object.keys(customRarityWeights).length > 0
         ? customRarityWeights
         : undefined,
+    modifierAssumptions: params.modifierAssumptions ?? {
+      includeModifiers: true,
+      assumeCursedToBlessed: true,
+    },
   };
 }
 
@@ -303,6 +317,11 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
   const effectiveLuckMultiplier = clamp(1 + totalStats.luck / 100, 0.1, 5);
   const weightPercentile = clamp(0.5 + totalStats.bigCatch / 200, 0.05, 0.99);
 
+  const { modifierAssumptions } = normalizedParams;
+  const modifierEvFactor = modifierAssumptions.includeModifiers
+    ? computeModifierEvFactor(modifierAssumptions.assumeCursedToBlessed)
+    : 1.0;
+
   const supportedNotes = [
     'Rod / Line / Bobber / Enchant stat totals come from the public Fandom gear tables.',
     ...direct.supportedNotes,
@@ -312,7 +331,24 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
     `Big Catch ${totalStats.bigCatch >= 0 ? '+' : ''}${totalStats.bigCatch} is mapped to a modeled weight percentile of ${(weightPercentile * 100).toFixed(0)}%.`,
     `Max Weight ${totalStats.maxWeightKg.toLocaleString()}kg caps the top end of each fish's modeled weight range.`,
   ];
+  if (modifierAssumptions.includeModifiers) {
+    experimentalNotes.push(
+      `Modifier EV factor: ${modifierEvFactor.toFixed(3)}x applied to expected price (` +
+        `${APPEARANCE_MODIFIER_COUNT} appearance types, mean appearance ~${
+          modifierAssumptions.assumeCursedToBlessed ? '2.487' : '2.404'
+        }x${modifierAssumptions.assumeCursedToBlessed ? ' with Cursed→Blessed' : ''}, ` +
+        `mean size ${MEAN_SIZE_MULTIPLIER.toFixed(2)}x; ` +
+        `P(any)=${(P_ANY_MODIFIER * 100).toFixed(1)}%, P(app-only)=${(P_APPEARANCE_ONLY * 100).toFixed(1)}%, ` +
+        `P(size-only)=${(P_SIZE_ONLY * 100).toFixed(1)}%, P(both)=${(P_BOTH_MODIFIERS * 100).toFixed(1)}% — ` +
+        `Snerx community sheet, approximate).`,
+    );
+  }
   const unsupportedNotes = [...direct.unsupportedNotes];
+  if (!modifierAssumptions.includeModifiers) {
+    unsupportedNotes.push(
+      'Appearance/size modifiers not included in EV — enable under "Modifier assumptions" to opt in (experimental).',
+    );
+  }
 
   if (enchant.id !== 'no-enchant' && !enchantActivity.active && enchantActivity.reason) {
     experimentalNotes.push(`Selected enchant is currently inactive: ${enchantActivity.reason}`);
@@ -333,6 +369,7 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
       weightPercentile,
       directValueMultiplier: direct.directValueMultiplier,
       directCatchMultiplier: direct.directCatchMultiplier,
+      modifierEvFactor,
       supportedNotes,
       experimentalNotes,
       unsupportedNotes,
@@ -364,6 +401,7 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
     weightPercentile,
     directValueMultiplier: direct.directValueMultiplier,
     directCatchMultiplier: direct.directCatchMultiplier,
+    modifierEvFactor,
     supportedNotes,
     experimentalNotes,
     unsupportedNotes,
@@ -495,16 +533,20 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
     const perFishProbability = tierProbability / group.length;
 
     for (const fish of group) {
-      const expectedPrice = getModeledPrice(fish, model);
-      if (expectedPrice === undefined) {
+      const baseModeledPrice = getModeledPrice(fish, model);
+      if (baseModeledPrice === undefined) {
         missingPriceFish.push(fish);
       }
 
-      const expectedValue = perFishProbability * (expectedPrice ?? 0) * model.directCatchMultiplier;
+      // Apply the modifier EV factor: when modifiers are included (modifierEvFactor > 1),
+      // this adjusts the expected price upward to account for the average price bonus from
+      // appearance/size modifiers.  When modifiers are not included, modifierEvFactor === 1.
+      const modeledPrice = (baseModeledPrice ?? 0) * model.modifierEvFactor;
+      const expectedValue = perFishProbability * modeledPrice * model.directCatchMultiplier;
       fishResults.push({
         fish,
         probability: perFishProbability,
-        expectedPrice: expectedPrice ?? 0,
+        expectedPrice: modeledPrice,
         expectedValue,
         expectedValuePerHour: expectedValue * catchesPerHour,
       });
@@ -577,5 +619,9 @@ export function getDefaultParams(areaId = 'coconut-bay'): CalculatorParams {
     baseBiteTimeSec: 20,
     baseMinigameTimeSec: 40,
     baseMissRate: 0.1,
+    modifierAssumptions: {
+      includeModifiers: true,
+      assumeCursedToBlessed: true,
+    },
   };
 }

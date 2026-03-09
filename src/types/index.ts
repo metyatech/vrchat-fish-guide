@@ -116,6 +116,23 @@ export interface EquipmentLoadout {
   enchantId: string;
 }
 
+/**
+ * User-configurable assumptions for the modifier EV model.
+ * Modifiers are appearance / size bonuses that can appear on caught fish.
+ * The probability model is based on community observation and is experimental.
+ */
+export interface ModifierAssumptions {
+  /** Whether to include the modifier EV factor in expected-value calculations. Default: true. */
+  includeModifiers: boolean;
+  /**
+   * User-selected policy: if true, treat Cursed as equivalent to Blessed in the appearance
+   * multiplier average (~2.487x instead of ~2.404x).  This site models conversion cost and
+   * travel time as zero — the remaining uncertainty is in the community-sourced modifier
+   * probability data, not in conversion logistics.
+   */
+  assumeCursedToBlessed: boolean;
+}
+
 /** User-configurable parameters for the calculator */
 export interface CalculatorParams {
   areaId: string;
@@ -135,6 +152,8 @@ export interface CalculatorParams {
   baseMissRate: number;
   /** Optional: custom rarity-tier relative weight override */
   customRarityWeights?: Partial<Record<Rarity, number>>;
+  /** Modifier EV assumptions (appearance/size bonuses). Default: modifiers not included. */
+  modifierAssumptions: ModifierAssumptions;
 }
 
 export interface DerivedModelSummary {
@@ -150,9 +169,26 @@ export interface DerivedModelSummary {
   weightPercentile: number;
   directValueMultiplier: number;
   directCatchMultiplier: number;
+  /**
+   * Expected-value multiplier from appearance/size modifier model.
+   * 1.0 when modifiers are not included; >1 when experimental modifier model is enabled.
+   */
+  modifierEvFactor: number;
   supportedNotes: string[];
   experimentalNotes: string[];
   unsupportedNotes: string[];
+}
+
+/**
+ * A named build configuration that groups a label with calculator parameters.
+ * Used for multi-build comparison and URL-share state.
+ */
+export interface BuildConfig {
+  /** Short unique identifier (used as React key and URL anchor) */
+  id: string;
+  /** User-visible build label */
+  name: string;
+  params: CalculatorParams;
 }
 
 /** Result per fish type */

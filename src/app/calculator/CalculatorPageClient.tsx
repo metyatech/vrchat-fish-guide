@@ -1,22 +1,148 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AdSlot } from '@/components/AdSlot';
+import { BuildTabs } from '@/components/Calculator/BuildTabs';
+import { ComparisonSummary } from '@/components/Calculator/ComparisonSummary';
 import { DistributionChart } from '@/components/Calculator/DistributionChart';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
+import { RankingView } from '@/components/Calculator/RankingView';
 import { ResultTable } from '@/components/Calculator/ResultTable';
 import { WarningBanner } from '@/components/Calculator/WarningBanner';
 import { Sidebar } from '@/components/Layout/Sidebar';
 import { RARITY_LABELS, TIME_OF_DAY_LABELS, WEATHER_TYPE_LABELS } from '@/data/fish';
 import { calculateDistribution, formatCurrency, getDefaultParams } from '@/lib/calculator';
-import { CalculatorParams, DistributionResult, Rarity } from '@/types';
+import {
+  createBuildFrom,
+  createDefaultBuild,
+  decodeUrlState,
+  duplicateBuild,
+  encodeUrlState,
+  removeBuild,
+  renameBuild,
+  updateBuildParams,
+} from '@/lib/url-state';
+import { BuildConfig, CalculatorParams, DistributionResult, Rarity } from '@/types';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function readHashState(): { builds: BuildConfig[]; activeId: string } | null {
+  if (typeof window === 'undefined') return null;
+  return decodeUrlState(window.location.hash);
+}
+
+function initState(): { builds: BuildConfig[]; activeId: string } {
+  const fromHash = readHashState();
+  if (fromHash) return fromHash;
+  const first = createDefaultBuild('coconut-bay');
+  return { builds: [first], activeId: first.id };
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function CalculatorPageClient() {
-  const [params, setParams] = useState<CalculatorParams>(getDefaultParams('coconut-bay'));
+  // initState() must only be called ONCE — two separate lazy initialisers would each call
+  // generateBuildId(), producing mismatched ids between builds and activeId.
+  const [{ builds: initialBuilds, activeId: initialActiveId }] = useState(initState);
+  const [builds, setBuilds] = useState(initialBuilds);
+  const [activeId, setActiveId] = useState(initialActiveId);
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
 
-  const result: DistributionResult = useMemo(() => calculateDistribution(params), [params]);
-  const catchesPerHour = 3600 / Math.max(1, result.model.effectiveAvgCatchTimeSec);
+  // Sync URL hash whenever builds/activeId change
+  useEffect(() => {
+    const hash = encodeUrlState({ builds, activeId });
+    if (hash) {
+      window.history.replaceState(null, '', hash);
+    }
+  }, [builds, activeId]);
+
+  // On mount, restore from hash (handles direct navigation with a share URL).
+  // We already seeded state from initState(), so this is a no-op if the hash
+  // was already applied in SSR — but it also handles browser back/forward.
+  useEffect(() => {
+    function onHashChange() {
+      const restored = decodeUrlState(window.location.hash);
+      if (restored) {
+        setBuilds(restored.builds);
+        setActiveId(restored.activeId);
+      }
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // ── Build operations ───────────────────────────────────────────────────────
+
+  const activeBuild = builds.find((b) => b.id === activeId) ?? builds[0];
+
+  const handleParamsChange = useCallback(
+    (params: CalculatorParams) => {
+      setBuilds((prev) => updateBuildParams(prev, activeId, params));
+    },
+    [activeId],
+  );
+
+  const handleAddBuild = useCallback(() => {
+    const ref = builds.find((b) => b.id === activeId) ?? builds[0];
+    const newBuild = createBuildFrom(ref, builds.length);
+    setBuilds((prev) => [...prev, newBuild]);
+    setActiveId(newBuild.id);
+  }, [builds, activeId]);
+
+  const handleDuplicateBuild = useCallback(
+    (id: string) => {
+      const src = builds.find((b) => b.id === id);
+      if (!src) return;
+      const dup = duplicateBuild(src, builds.length);
+      setBuilds((prev) => {
+        const idx = prev.findIndex((b) => b.id === id);
+        const next = [...prev];
+        next.splice(idx + 1, 0, dup);
+        return next;
+      });
+      setActiveId(dup.id);
+    },
+    [builds],
+  );
+
+  const handleRemoveBuild = useCallback(
+    (id: string) => {
+      const { builds: next, nextActiveId } = removeBuild(builds, id, activeId);
+      setBuilds(next);
+      setActiveId(nextActiveId);
+    },
+    [builds, activeId],
+  );
+
+  const handleRenameBuild = useCallback((id: string, name: string) => {
+    setBuilds((prev) => renameBuild(prev, id, name));
+  }, []);
+
+  // ── Calculations ───────────────────────────────────────────────────────────
+
+  const results: DistributionResult[] = useMemo(
+    () => builds.map((b) => calculateDistribution(b.params)),
+    [builds],
+  );
+
+  const activeResult = results[builds.findIndex((b) => b.id === activeId)] ?? results[0];
+  const catchesPerHour = 3600 / Math.max(1, activeResult.model.effectiveAvgCatchTimeSec);
+
+  // ── Share URL ──────────────────────────────────────────────────────────────
+
+  const [copied, setCopied] = useState(false);
+  const handleCopyLink = useCallback(() => {
+    const hash = encodeUrlState({ builds, activeId });
+    const url = window.location.origin + window.location.pathname + hash;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [builds, activeId]);
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  if (!activeBuild) return null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -31,45 +157,91 @@ export function CalculatorPageClient() {
       </div>
 
       <section className="mb-6 rounded-2xl border border-ocean-100 bg-white p-6 shadow-sm">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">このページの見方</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <h2 className="mb-1 text-lg font-semibold text-gray-900">ギア比較の手順</h2>
+        <p className="mb-4 text-xs text-gray-500">
+          「どの Rod / Enchant が一番稼げるか」を探す場合、この順で操作してください。
+        </p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-2 text-sm font-semibold text-ocean-700">
-              1. Loadout を先に合わせる
-            </div>
-            <p className="text-sm leading-relaxed text-gray-600">
-              まずは Rod / Line / Bobber / Enchant を実際の装備に合わせてください。下の `Total
-              Stats` で合計値をすぐ確認できます。
+            <div className="mb-1 text-xs font-bold text-ocean-700">Step 1 — エリアと条件</div>
+            <p className="text-xs leading-relaxed text-gray-600">
+              Fishing Area を選び、Time of Day / Weather
+              を実際の環境に合わせる。ここを変えると候補魚が大きく変わります。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-2 text-sm font-semibold text-ocean-700">
-              2. `期待値/時間` を主指標に見る
-            </div>
-            <p className="text-sm leading-relaxed text-gray-600">
-              周回効率を見るなら `期待値/時間` が主指標です。`期待値/回`
-              は一投の強さ、`魚が釣れる確率` は miss 込みの安定度を表します。
+            <div className="mb-1 text-xs font-bold text-ocean-700">Step 2 — ベース loadout</div>
+            <p className="text-xs leading-relaxed text-gray-600">
+              現在の Rod / Line / Bobber / Enchant を選択。これが比較の基準になります。`Observed
+              values` に実測値を入れると最も正確です。
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-2 text-sm font-semibold text-ocean-700">
-              3. `Derived model` を確認する
+            <div className="mb-1 text-xs font-bold text-ocean-700">
+              Step 3 — ビルドを追加して比較
             </div>
-            <p className="text-sm leading-relaxed text-gray-600">
-              どこまで supported で、どこから experimental かは左の `Derived model`
-              に明示しています。結果の読み方はそこに合わせてください。
+            <p className="text-xs leading-relaxed text-gray-600">
+              タブの <strong>「+ 追加」</strong> や <strong>「複製」</strong>{' '}
+              で新しいビルドを作り、1 スロットだけ変えて <strong>「ビルド比較」</strong>{' '}
+              テーブルで期待値/時間を比較します。
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="mb-1 text-xs font-bold text-ocean-700">Step 4 — 前提を確認</div>
+            <p className="text-xs leading-relaxed text-gray-600">
+              `Derived model` で supported / experimental
+              の範囲を確認。数字が大きく変わった場合、experimental
+              な仮定が効いている可能性があります。
             </p>
           </div>
         </div>
       </section>
 
+      {/* Build tabs */}
+      <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700">ビルド管理</h2>
+          <button
+            onClick={handleCopyLink}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+            title="現在の全ビルドを URL に保存してコピー"
+          >
+            {copied ? '✓ コピー済み' : '🔗 URL をコピー'}
+          </button>
+        </div>
+        <BuildTabs
+          builds={builds}
+          activeId={activeId}
+          onSelect={setActiveId}
+          onAdd={handleAddBuild}
+          onDuplicate={handleDuplicateBuild}
+          onRemove={handleRemoveBuild}
+          onRename={handleRenameBuild}
+        />
+        <p className="mt-2 text-xs text-gray-400">
+          ダブルクリックまたは ✏ で名前変更、⧉ で複製、✕ で削除。URL
+          をコピーして他の人と共有できます。
+        </p>
+      </div>
+
       <div className="flex flex-col gap-6 md:flex-row">
         <Sidebar>
-          <ParameterForm params={params} model={result.model} onChange={setParams} />
+          <ParameterForm
+            params={activeBuild.params}
+            model={activeResult.model}
+            onChange={handleParamsChange}
+          />
         </Sidebar>
 
         <div className="flex-1 space-y-6">
-          <WarningBanner warnings={result.warnings} />
+          <WarningBanner warnings={activeResult.warnings} />
+
+          <div className="rounded-xl border border-ocean-100 bg-ocean-50 px-4 py-3 text-xs text-ocean-900">
+            <span className="font-semibold">比較の見方:</span> ギアを変えたとき、
+            <strong>期待値/時間</strong> が上がれば周回効率が改善しています。
+            <strong>期待値/回</strong> は一投の強さ、<strong>魚が釣れる確率</strong> は miss
+            込みの安定度の指標です。複数ビルドを作ると下の「ビルド比較」テーブルで並べて確認できます。
+          </div>
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div
@@ -77,7 +249,7 @@ export function CalculatorPageClient() {
               data-testid="summary-expected-value-per-catch"
             >
               <div className="text-2xl font-bold text-ocean-700">
-                {formatCurrency(result.expectedValuePerCatch)}
+                {formatCurrency(activeResult.expectedValuePerCatch)}
               </div>
               <div className="mt-1 text-xs text-gray-500">期待値/回</div>
             </div>
@@ -86,7 +258,7 @@ export function CalculatorPageClient() {
               data-testid="summary-expected-value-per-hour"
             >
               <div className="text-2xl font-bold text-ocean-700">
-                {formatCurrency(result.expectedValuePerHour)}
+                {formatCurrency(activeResult.expectedValuePerHour)}
               </div>
               <div className="mt-1 text-xs text-gray-500">期待値/時間</div>
             </div>
@@ -102,7 +274,7 @@ export function CalculatorPageClient() {
               data-testid="summary-total-fish-probability"
             >
               <div className="text-2xl font-bold text-gray-700">
-                {(result.totalFishProbability * 100).toFixed(0)}%
+                {(activeResult.totalFishProbability * 100).toFixed(0)}%
               </div>
               <div className="mt-1 text-xs text-gray-500">魚が釣れる確率</div>
             </div>
@@ -131,21 +303,32 @@ export function CalculatorPageClient() {
 
           <div className="flex flex-wrap gap-2 text-xs">
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              対象魚種: {result.fishResults.length}
+              対象魚種: {activeResult.fishResults.length}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              価格レンジ未取得: {result.missingPriceFish.length}
+              価格レンジ未取得: {activeResult.missingPriceFish.length}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Time of Day: {TIME_OF_DAY_LABELS[result.params.timeOfDay]}
+              Time of Day: {TIME_OF_DAY_LABELS[activeResult.params.timeOfDay]}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Weather: {WEATHER_TYPE_LABELS[result.params.weatherType]}
+              Weather: {WEATHER_TYPE_LABELS[activeResult.params.weatherType]}
             </div>
             <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Time model: {result.params.timeModelMode}
+              Time model: {activeResult.params.timeModelMode}
             </div>
           </div>
+
+          {/* Multi-build comparison — shown only when there are 2+ builds */}
+          <ComparisonSummary
+            builds={builds}
+            results={results}
+            activeId={activeId}
+            onSelect={setActiveId}
+          />
+
+          {/* Per-slot ranking */}
+          <RankingView baseParams={activeBuild.params} />
 
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <div className="mb-4 flex items-center justify-between">
@@ -173,7 +356,7 @@ export function CalculatorPageClient() {
                 </button>
               </div>
             </div>
-            <DistributionChart result={result} mode={chartMode} />
+            <DistributionChart result={activeResult} mode={chartMode} />
             <p className="mt-3 text-xs leading-relaxed text-gray-500">
               `1回あたり` は一投ごとの寄与、`1時間あたり` は effective attempt time
               を反映した時給寄与です。比較したい軸に合わせて切り替えてください。
@@ -186,7 +369,7 @@ export function CalculatorPageClient() {
 
           <div className="rounded-xl border border-gray-200 bg-white p-6">
             <h2 className="mb-4 text-base font-semibold text-gray-800">魚種別詳細</h2>
-            <ResultTable result={result} />
+            <ResultTable result={activeResult} />
             <p className="mt-4 text-xs leading-relaxed text-gray-500">
               表では、各魚の `条件`, `売値レンジ`, `重量レンジ`, `釣獲率`, `期待値/回`,
               `期待値/時間` を確認できます。どの魚が全体期待値を押し上げているかを見るための欄です。
@@ -213,16 +396,25 @@ export function CalculatorPageClient() {
                 内では等分配します。
               </li>
               <li>
-                • <strong>Luck</strong>: {result.model.effectiveLuckMultiplier.toFixed(2)}x の
+                • <strong>Luck</strong>: {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x の
                 rarity-weight multiplier として experimental に反映しています。
               </li>
               <li>
                 • <strong>Big Catch / Max Weight</strong>:{' '}
-                {(result.model.weightPercentile * 100).toFixed(0)}% weight percentile と current Max
-                Weight cap を使う experimental price model です。
+                {(activeResult.model.weightPercentile * 100).toFixed(0)}% weight percentile と
+                current Max Weight cap を使う experimental price model です。
+              </li>
+              <li>
+                • <strong>Modifier 期待値補正</strong>:{' '}
+                {activeResult.params.modifierAssumptions.includeModifiers
+                  ? `Modifier EV factor ${activeResult.model.modifierEvFactor.toFixed(3)}x を期待値に反映中 (experimental — community 近似モデル)`
+                  : '現在は無効。左の「Modifier assumptions」でオンにできます (experimental)。'}
               </li>
               <li>
                 • <strong>期待値/回</strong>: 各魚の確率 × modeled value × direct catch effect
+                {activeResult.params.modifierAssumptions.includeModifiers
+                  ? ' × modifier EV factor'
+                  : ''}
                 です。
               </li>
               <li>
@@ -230,7 +422,7 @@ export function CalculatorPageClient() {
               </li>
               <li>
                 • <strong>現在の有効 rarity tier</strong>:{' '}
-                {Object.entries(result.effectiveRarityWeights)
+                {Object.entries(activeResult.effectiveRarityWeights)
                   .map(
                     ([rarity, weight]) =>
                       `${RARITY_LABELS[rarity as Rarity]} ${weight?.toFixed(2)}`,

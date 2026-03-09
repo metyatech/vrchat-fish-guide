@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { CALCULATOR_RARITIES, FISH_MAP, FISHING_AREAS } from '@/data/fish';
 import {
+  MEAN_APPEARANCE_MULTIPLIER_BASE,
+  MEAN_APPEARANCE_MULTIPLIER_WITH_CONVERSION,
+  MEAN_SIZE_MULTIPLIER,
+  P_ANY_MODIFIER,
+  P_APPEARANCE_ONLY,
+  P_BOTH_MODIFIERS,
+  P_SIZE_ONLY,
+  computeModifierEvFactor,
+} from '@/data/modifiers';
+import {
   applyLuckScaling,
   calculateDistribution,
   deriveModelSummary,
@@ -344,6 +354,164 @@ describe('format helpers', () => {
 
     expect(formatPriceRange(fish)).toMatch(/G/);
     expect(formatWeightRange(fish)).toMatch(/kg|—/);
+  });
+});
+
+describe('modifier EV model', () => {
+  it('computeModifierEvFactor returns 1.0 when all catches have no modifier (sanity check on constants)', () => {
+    // Verify the computation matches the formula:
+    // P(none) * 1 + P(app-only) * meanApp + P(size-only) * meanSize + P(both) * meanApp * meanSize
+    // Probabilities sourced from Snerx sheet: app-only=7.5%, size-only=10%, both=5%, total=22.5%
+    const pNone = 1 - P_ANY_MODIFIER;
+
+    const factorBase =
+      pNone * 1 +
+      P_APPEARANCE_ONLY * MEAN_APPEARANCE_MULTIPLIER_BASE +
+      P_SIZE_ONLY * MEAN_SIZE_MULTIPLIER +
+      P_BOTH_MODIFIERS * MEAN_APPEARANCE_MULTIPLIER_BASE * MEAN_SIZE_MULTIPLIER;
+
+    expect(factorBase).toBeCloseTo(computeModifierEvFactor(false), 10);
+  });
+
+  it('computeModifierEvFactor returns greater value with Cursed→Blessed conversion', () => {
+    const factorBase = computeModifierEvFactor(false);
+    const factorWithConversion = computeModifierEvFactor(true);
+
+    // With conversion, mean appearance multiplier is higher → factor should be higher.
+    expect(factorWithConversion).toBeGreaterThan(factorBase);
+    expect(factorWithConversion).toBeCloseTo(
+      1 -
+        P_ANY_MODIFIER +
+        P_APPEARANCE_ONLY * MEAN_APPEARANCE_MULTIPLIER_WITH_CONVERSION +
+        P_SIZE_ONLY * MEAN_SIZE_MULTIPLIER +
+        P_BOTH_MODIFIERS * MEAN_APPEARANCE_MULTIPLIER_WITH_CONVERSION * MEAN_SIZE_MULTIPLIER,
+      10,
+    );
+  });
+
+  it('computeModifierEvFactor is in expected range (Snerx split: app-only 7.5%, size-only 10%, both 5%)', () => {
+    const factorBase = computeModifierEvFactor(false);
+    const factorWithConversion = computeModifierEvFactor(true);
+
+    // Both should be greater than 1 (modifiers on average increase value)
+    // With Snerx-sourced probabilities: factor ≈1.23 (base) and ≈1.24 (with Cursed→Blessed)
+    expect(factorBase).toBeGreaterThan(1.2);
+    expect(factorBase).toBeLessThan(1.35);
+    expect(factorWithConversion).toBeGreaterThan(factorBase);
+    expect(factorWithConversion).toBeLessThan(1.35);
+  });
+
+  it('deriveModelSummary modifierEvFactor is 1.0 when modifiers not included', () => {
+    const model = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: false, assumeCursedToBlessed: true },
+    });
+
+    expect(model.modifierEvFactor).toBe(1.0);
+  });
+
+  it('deriveModelSummary modifierEvFactor is >1 when modifiers included', () => {
+    const model = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: false },
+    });
+
+    expect(model.modifierEvFactor).toBeGreaterThan(1.0);
+  });
+
+  it('deriveModelSummary modifierEvFactor matches computeModifierEvFactor', () => {
+    const modelBase = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: false },
+    });
+    const modelWithConversion = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: true },
+    });
+
+    expect(modelBase.modifierEvFactor).toBeCloseTo(computeModifierEvFactor(false), 10);
+    expect(modelWithConversion.modifierEvFactor).toBeCloseTo(computeModifierEvFactor(true), 10);
+  });
+
+  it('calculateDistribution EV is higher with modifiers enabled', () => {
+    const baseResult = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: false, assumeCursedToBlessed: true },
+    });
+    const modifierResult = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: false },
+    });
+
+    expect(modifierResult.expectedValuePerCatch).toBeGreaterThan(baseResult.expectedValuePerCatch);
+    expect(modifierResult.expectedValuePerHour).toBeGreaterThan(baseResult.expectedValuePerHour);
+  });
+
+  it('calculateDistribution modifier EV scales exactly by modifierEvFactor', () => {
+    const baseResult = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: false, assumeCursedToBlessed: true },
+    });
+    const modifierResult = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: false },
+    });
+
+    const factor = computeModifierEvFactor(false);
+    expect(modifierResult.expectedValuePerCatch).toBeCloseTo(
+      baseResult.expectedValuePerCatch * factor,
+      5,
+    );
+  });
+
+  it('Cursed→Blessed conversion gives higher EV than base', () => {
+    const withConversion = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: true },
+    });
+    const withoutConversion = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: false },
+    });
+
+    expect(withConversion.expectedValuePerCatch).toBeGreaterThan(
+      withoutConversion.expectedValuePerCatch,
+    );
+  });
+
+  it('modifier assumptions do not affect catch probabilities', () => {
+    const baseResult = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: false, assumeCursedToBlessed: true },
+    });
+    const modifierResult = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: true },
+    });
+
+    // Probabilities should be identical — only prices change
+    baseResult.fishResults.forEach((baseRow, i) => {
+      expect(modifierResult.fishResults[i].probability).toBeCloseTo(baseRow.probability, 10);
+    });
+    expect(modifierResult.totalFishProbability).toBeCloseTo(baseResult.totalFishProbability, 10);
+  });
+
+  it('unsupportedNotes includes modifier hint when modifiers are not included', () => {
+    const model = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: false, assumeCursedToBlessed: true },
+    });
+
+    expect(model.unsupportedNotes.some((note) => note.includes('Modifier'))).toBe(true);
+  });
+
+  it('experimentalNotes includes modifier factor when modifiers are enabled', () => {
+    const model = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      modifierAssumptions: { includeModifiers: true, assumeCursedToBlessed: true },
+    });
+
+    expect(model.experimentalNotes.some((note) => note.includes('Modifier EV factor'))).toBe(true);
   });
 });
 

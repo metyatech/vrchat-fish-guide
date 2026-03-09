@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-09
+
+### Added
+
+- **Multi-build support**: Create, manage, and compare arbitrary numbers of builds simultaneously using tabbed interface (`BuildTabs`). Builds persist across sessions via URL hash state.
+- **Build comparison table** (`ComparisonSummary`): Side-by-side table showing expected value per catch, per hour, and catch probability across multiple builds for efficient gear optimization.
+- **Per-slot ranking view** (`RankingView`): Ranked lists of top-5 gear items for each equipment slot (Rod, Line, Bobber, Enchant) based on EV/hour and EV/catch in the current area/condition context. Highlights current selection and best option.
+- **URL share and restore**: Full calculator state (all builds, active build, parameters) encoded in `window.location.hash` for easy sharing and recovery. `"🔗 URL をコピー"` button copies shareable URL. Automatic state restoration on navigation.
+- **Modifier-aware EV calculations**: Integrated fish appearance and size modifiers (Huge / Tiny / 23 appearance variants) into expected value calculations with experimental community-derived multiplier model. `ModifierAssumptions` panel allows toggling `includeModifiers` and `assumeCursedToBlessed` conversion policy.
+- **Modifier data integration** (`src/data/modifiers.ts`): Documented modifier probabilities, multipliers, and source classification (community observation vs. independent approximation).
+
+### Changed
+
+- **Calculator UI workflow**: Restructured to multi-build-centric flow with inline build management, comparison summary, and ranking view as first-class features.
+- **URL state encoding** (`src/lib/url-state.ts`): Implements versioned JSON-to-base64url encoding with strict validation; supports build operations (create, duplicate, rename, remove, update params).
+- **ParameterForm layout**: Added `Modifier assumptions` section with toggles for modifier inclusion and Cursed→Blessed policy.
+- Updated README with multi-build workflow guide, URL share explanation, ranking view documentation, and modifier assumptions description.
+- Updated `/calculator` page intro step-by-step guidance to reflect new comparison workflow.
+
 ## [0.3.0] - 2026-03-08
 
 ### Added

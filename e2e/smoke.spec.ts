@@ -36,7 +36,8 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(
     page.getByRole('heading', { name: '📊 Equipment-aware probability calculator' }),
   ).toBeVisible();
-  await expect(page.getByText('このページの見方')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ギア比較の手順' })).toBeVisible();
+  await expect(page.getByText('ビルド管理')).toBeVisible();
   await expect(page.getByText('Total Stats', { exact: true })).toBeVisible();
   await expect(page.getByText('Derived model', { exact: true })).toBeVisible();
 
