@@ -96,13 +96,13 @@ const NEXT_LOADOUT_SLOT: Record<LoadoutSlot, LoadoutSlot | null> = {
 function LoadoutSelectionBadge({ selected }: { selected: boolean }) {
   return (
     <span
-      className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
         selected
-          ? 'border-green-600 bg-green-600 text-white'
-          : 'border-gray-300 bg-white text-gray-700'
+          ? 'border-green-500 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-sm'
+          : 'border-gray-300 bg-white text-gray-500 hover:border-ocean-300'
       }`}
     >
-      {selected ? '使用中' : 'クリックで選ぶ'}
+      {selected ? '✓ 使用中' : '選ぶ'}
     </span>
   );
 }
@@ -145,7 +145,7 @@ function LoadoutTableSection<T extends EquipmentItem | EnchantItem>({
   const panelId = `loadout-table-${slot}`;
 
   return (
-    <div className={`rounded-xl border ${theme.panelClassName}`}>
+    <div className={`rounded-xl border shadow-sm ${theme.panelClassName}`}>
       <button
         type="button"
         onClick={onToggle}
@@ -168,6 +168,12 @@ function LoadoutTableSection<T extends EquipmentItem | EnchantItem>({
             {formatItemDetail(selectedItem)}
           </div>
         </div>
+        <span
+          className={`shrink-0 text-sm text-gray-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
       </button>
 
       <div
@@ -228,10 +234,10 @@ function LoadoutTableSection<T extends EquipmentItem | EnchantItem>({
                         aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
                         onClick={selectItem}
                         onKeyDown={handleRowKeyDown}
-                        className={`cursor-pointer outline-none transition ${
+                        className={`cursor-pointer outline-none transition-all duration-150 ${
                           selected
-                            ? 'bg-white shadow-sm ring-2 ring-green-400 ring-offset-1'
-                            : 'bg-white/70 hover:bg-white focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
+                            ? 'bg-gradient-to-r from-green-50 to-white shadow-sm ring-2 ring-green-500 ring-offset-1'
+                            : 'bg-white/70 hover:bg-ocean-50/50 hover:shadow-sm focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
                         }`}
                       >
                         <td className="rounded-l-lg px-2 py-2 align-top">
@@ -297,7 +303,7 @@ function StatCard({ stat, label, value }: { stat: StatThemeKey; label?: string; 
 
   return (
     <div
-      className="rounded-lg border p-3 text-center"
+      className="rounded-lg border p-3 text-center shadow-sm"
       style={{
         borderColor: theme.cardBorder,
         backgroundColor: theme.cardBackground,
@@ -314,7 +320,7 @@ function StatCard({ stat, label, value }: { stat: StatThemeKey; label?: string; 
           {label ?? theme.label}
         </span>
       </div>
-      <div className="mt-2 text-sm font-semibold text-gray-900">{value}</div>
+      <div className="mt-2 text-sm font-bold text-gray-900">{value}</div>
     </div>
   );
 }
@@ -406,17 +412,24 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
   } as const;
 
   return (
-    <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="border-b pb-3">
+    <div className="space-y-4 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="border-b border-gray-100 pb-3">
         <h2 className="text-lg font-semibold text-gray-800">入力</h2>
         <p className="mt-1 text-sm text-gray-500">
           上から順に決めれば使えます。細かい前提は下の「詳細調整」にまとめています。
         </p>
       </div>
 
-      <section className="space-y-4 rounded-xl border border-ocean-100 bg-ocean-50 p-4">
+      <section className="space-y-4 rounded-xl border border-ocean-200 bg-gradient-to-br from-ocean-50 via-ocean-50/70 to-white p-4 shadow-sm">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 1</div>
+          <div className="mb-1 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ocean-600 text-[10px] font-bold text-white">
+              1
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              Step 1
+            </span>
+          </div>
           <h3 className="text-sm font-semibold text-gray-800">まずは今の装備</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
             各候補を表で見比べながら選べます。1つ選ぶと次の欄へ進むので、上から順に今の装備をそろえてください。
@@ -530,9 +543,16 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <section className="space-y-4 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 2</div>
+          <div className="mb-1 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] font-bold text-white">
+              2
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              Step 2
+            </span>
+          </div>
           <h3 className="text-sm font-semibold text-gray-800">必要なら、場所と条件を絞る</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
             何も変えなければ、Fishing Area は自動選択、Time of Day と Weather は自動平均です。
@@ -613,9 +633,16 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <section className="space-y-4 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">Step 3</div>
+          <div className="mb-1 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] font-bold text-white">
+              3
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+              Step 3
+            </span>
+          </div>
           <h3 className="text-sm font-semibold text-gray-800">あなたのプレイ速度</h3>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
             基本は装備ステータスから自動で見積もります。ここでは、自分の癖だけ少し足し引きします。
@@ -715,7 +742,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4">
         <button
           type="button"
           className="flex w-full items-center justify-between gap-3 text-left"
@@ -729,7 +756,12 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               より細かく詰めたいときだけ開く
             </span>
           </span>
-          <span className="text-xs text-gray-500">{advancedOpen ? '閉じる' : '開く'}</span>
+          <span
+            className={`text-gray-400 transition-transform duration-300 ${advancedOpen ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          >
+            ▾
+          </span>
         </button>
 
         <div

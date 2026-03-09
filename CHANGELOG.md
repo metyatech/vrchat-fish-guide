@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.10.5] - 2026-03-09
+
+### Changed
+
+- **The calculator UI is now materially more visually modern and polished**: The page background has a subtle ocean blue gradient, section cards have stronger shadows, step numbers appear as circular ocean-blue badges throughout the form, and the "期待値/時間" summary card is visually elevated above the other metrics to draw the eye immediately to the most important number.
+- **Motion is now used deliberately across all main interactive states**: Result metric cards animate when values change (slide-in from below). Gear table panels now show a rotating chevron to indicate open/close state. The active comparison tab uses a gradient background with a stronger shadow. Comparison buttons respond visually to hover and press. "この候補を追加" buttons are now styled as ocean-tinted call-to-action buttons with a shadow lift on hover. Best-result rows in the ranking view have a subtle green tint.
+- **The hero header is now an ocean-gradient banner** with the page title and description inside it, making the entry point more visually anchored.
+- **Step flow indicators are numbered circular badges** (1–7) placed consistently at the start of each section header, reinforcing the top-to-bottom progression without adding new steps or changing any logic.
+- **Gear table rows now show a gradient green highlight when selected** and a softer ocean hover tint when not selected, making the current selection easier to spot at a glance.
+- **The chart mode toggle is now a pill-selector** (white active pill on gray background) instead of two separate button variants, improving visual consistency.
+- **Build tabs now have a gradient active state** (ocean gradient background, stronger shadow) and icon actions are always slightly visible instead of fully hidden until hover.
+
 ## [0.10.4] - 2026-03-09
 
 ### Changed

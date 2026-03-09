@@ -23,7 +23,7 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
   const bestCatchProb = Math.max(...catchProb);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <h2 className="mb-1 text-base font-semibold text-gray-800">組み合わせを並べて比べる</h2>
       <p className="mb-4 text-xs text-gray-500">
         いま保存している組み合わせを横並びで比べます。
@@ -36,12 +36,12 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100">
-              <th className="pb-2 text-left font-medium text-gray-500">組み合わせ</th>
-              <th className="pb-2 text-right font-medium text-gray-500">期待値/時間</th>
-              <th className="pb-2 text-right font-medium text-gray-500">期待値/回</th>
-              <th className="pb-2 text-right font-medium text-gray-500">釣獲確率</th>
-              <th className="pb-2 text-right font-medium text-gray-500">試行回数/時間</th>
+            <tr className="border-b-2 border-gray-100">
+              <th className="pb-2 text-left font-semibold text-gray-600">組み合わせ</th>
+              <th className="pb-2 text-right font-semibold text-gray-600">期待値/時間</th>
+              <th className="pb-2 text-right font-semibold text-gray-600">期待値/回</th>
+              <th className="pb-2 text-right font-semibold text-gray-600">釣獲確率</th>
+              <th className="pb-2 text-right font-semibold text-gray-600">試行回数/時間</th>
             </tr>
           </thead>
           <tbody>
@@ -57,31 +57,31 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
               return (
                 <tr
                   key={build.id}
-                  className={`border-b border-gray-50 transition-colors ${
-                    isActive ? 'bg-ocean-50' : 'hover:bg-gray-50'
+                  className={`border-b border-gray-50 transition-all duration-150 ${
+                    isActive ? 'bg-gradient-to-r from-ocean-50 to-white' : 'hover:bg-gray-50/70'
                   }`}
                 >
                   <td className="py-2.5">
                     <button
                       onClick={() => onSelect(build.id)}
-                      className={`text-left font-medium ${
+                      className={`text-left font-medium transition-colors ${
                         isActive ? 'text-ocean-700' : 'text-gray-700 hover:text-ocean-600'
                       }`}
                     >
                       {isActive && (
-                        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-ocean-500 align-middle" />
+                        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-ocean-500 align-middle" />
                       )}
                       {build.name}
                     </button>
                   </td>
-                  <td className="py-2.5 text-right">
+                  <td className={`py-2.5 text-right ${isTopEvHour ? 'rounded-lg' : ''}`}>
                     <span
                       className={`font-semibold ${isTopEvHour ? 'text-green-700' : 'text-gray-800'}`}
                     >
                       {formatCurrency(result.expectedValuePerHour)}
                     </span>
                     {isTopEvHour && (
-                      <span className="ml-1 rounded bg-green-100 px-1 py-0.5 text-xs text-green-700">
+                      <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-semibold text-green-700">
                         ベスト
                       </span>
                     )}
@@ -93,7 +93,7 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
                       {formatCurrency(result.expectedValuePerCatch)}
                     </span>
                     {isTopEvCatch && (
-                      <span className="ml-1 rounded bg-green-100 px-1 py-0.5 text-xs text-green-700">
+                      <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-semibold text-green-700">
                         ベスト
                       </span>
                     )}
@@ -105,7 +105,7 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
                       {(result.totalFishProbability * 100).toFixed(0)}%
                     </span>
                     {isTopCatch && (
-                      <span className="ml-1 rounded bg-green-100 px-1 py-0.5 text-xs text-green-700">
+                      <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-semibold text-green-700">
                         ベスト
                       </span>
                     )}

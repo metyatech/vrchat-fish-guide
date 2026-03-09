@@ -51,7 +51,7 @@ function SlotTable({
   const best = shown[0]?.expectedValuePerHour ?? 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <h3 className="mb-3 text-sm font-semibold text-gray-800">{SLOT_LABELS[slot]}</h3>
       <table className="w-full text-xs">
         <thead>
@@ -71,7 +71,9 @@ function SlotTable({
             return (
               <tr
                 key={entry.item.id}
-                className={`border-b border-gray-50 ${isActive ? 'bg-ocean-50' : ''}`}
+                className={`border-b border-gray-50 transition-colors ${
+                  isActive ? 'bg-ocean-50/70' : isBest ? 'bg-green-50/40' : 'hover:bg-gray-50/60'
+                }`}
               >
                 <td className="py-1.5">
                   <span
@@ -108,7 +110,7 @@ function SlotTable({
                   <button
                     type="button"
                     onClick={() => onPickItem?.(slot, entry.item.id, entry.item.nameEn)}
-                    className="rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                    className="rounded-lg border border-ocean-200 bg-ocean-50 px-2.5 py-1 text-[11px] font-medium text-ocean-700 shadow-sm transition-all duration-150 hover:border-ocean-400 hover:bg-ocean-100 hover:shadow-md active:scale-95"
                   >
                     この候補を追加
                   </button>
@@ -139,7 +141,7 @@ export function RankingView({
   const focusTheme = SLOT_THEME[focusSlot];
 
   return (
-    <div className={`rounded-xl border bg-white p-5 ${focusTheme.panelClassName}`}>
+    <div className={`rounded-xl border bg-white p-5 shadow-sm ${focusTheme.panelClassName}`}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-gray-800">

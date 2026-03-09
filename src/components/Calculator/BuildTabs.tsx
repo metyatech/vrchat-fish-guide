@@ -50,10 +50,10 @@ export function BuildTabs({
         return (
           <div
             key={build.id}
-            className={`group flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-colors ${
+            className={`group flex items-center gap-1 rounded-lg border px-3 py-2 text-sm transition-all duration-200 ${
               isActive
-                ? 'border-ocean-500 bg-ocean-600 text-white shadow-sm'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-ocean-300 hover:bg-ocean-50'
+                ? 'border-ocean-500 bg-gradient-to-br from-ocean-500 to-ocean-700 text-white shadow-md'
+                : 'border-gray-200 bg-white text-gray-700 shadow-sm hover:border-ocean-300 hover:bg-ocean-50 hover:shadow-md'
             }`}
           >
             {isEditing ? (
@@ -76,7 +76,7 @@ export function BuildTabs({
               </button>
             )}
 
-            <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="flex items-center gap-0.5 opacity-50 transition-opacity group-hover:opacity-100">
               {!isEditing && (
                 <button
                   onClick={() => startEdit(build)}
@@ -110,7 +110,7 @@ export function BuildTabs({
       <button
         onClick={onAdd}
         title="比べる候補を追加"
-        className="flex items-center gap-1 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500 transition-colors hover:border-ocean-400 hover:text-ocean-600"
+        className="flex items-center gap-1 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-500 shadow-sm transition-all duration-150 hover:border-ocean-400 hover:shadow-md hover:text-ocean-600"
       >
         <span className="text-base leading-none">+</span>
         <span>比べる候補を追加</span>

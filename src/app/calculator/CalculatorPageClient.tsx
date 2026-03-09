@@ -267,6 +267,9 @@ export function CalculatorPageClient() {
     };
   }, [activeBuild.params, compareTarget, rankedBySlot]);
 
+  // Key that changes when result values change meaningfully — drives the CSS update animation.
+  const resultAnimKey = `${Math.round(activeResult.expectedValuePerHour)}-${Math.round(activeResult.expectedValuePerCatch)}-${activeResult.fishResults.length}`;
+
   const compareTargetTheme = SLOT_THEME[compareTarget];
   const compareTargetActionLabel =
     compareTarget === 'full-build'
@@ -314,35 +317,44 @@ export function CalculatorPageClient() {
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">📊 装備込みの期待値比較</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          いまの装備から何を変えると一番伸びるかを、上から順に条件を入れながら比べます。
-        </p>
-        <ol className="mt-4 grid grid-cols-1 gap-2 text-sm text-gray-600 md:grid-cols-5">
-          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            1. 今の装備を入れる
-          </li>
-          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            2. 必要なら場所と条件を絞る
-          </li>
-          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            3. プレイ速度を微調整する
-          </li>
-          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            4. 1つだけ変えてみる欄を選ぶ
-          </li>
-          <li className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            5. 候補を追加して比べる
-          </li>
+      <div className="mb-8">
+        <div className="rounded-2xl border border-ocean-300 bg-gradient-to-br from-ocean-600 via-ocean-600 to-ocean-700 px-6 py-5 text-white shadow-lg">
+          <h1 className="text-2xl font-bold tracking-tight">📊 装備込みの期待値比較</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ocean-100">
+            いまの装備から何を変えると一番伸びるかを、上から順に条件を入れながら比べます。
+          </p>
+        </div>
+        <ol className="mt-3 grid grid-cols-1 gap-2 text-sm md:grid-cols-5">
+          {[
+            '今の装備を入れる',
+            '必要なら場所と条件を絞る',
+            'プレイ速度を微調整する',
+            '1つだけ変えてみる欄を選ぶ',
+            '候補を追加して比べる',
+          ].map((label, i) => (
+            <li
+              key={i}
+              className="flex items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-3 shadow-sm"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white">
+                {i + 1}
+              </span>
+              <span className="text-gray-700">{label}</span>
+            </li>
+          ))}
         </ol>
       </div>
 
       <div className="space-y-6">
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
           <div className="mb-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              Step 1-3
+            <div className="mb-1 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
+                1
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+                Step 1–3
+              </span>
             </div>
             <h2 className="text-lg font-semibold text-gray-900">
               上から順に、今の装備と条件を決める
@@ -359,10 +371,15 @@ export function CalculatorPageClient() {
           />
         </section>
 
-        <section className="rounded-2xl border border-ocean-100 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-ocean-100 bg-white p-6 shadow-md">
           <div className="mb-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              Step 4
+            <div className="mb-1 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
+                4
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+                Step 4
+              </span>
             </div>
             <h2 className="text-lg font-semibold text-gray-900">
               次に、どの欄を 1 つだけ変えて試すか選ぶ
@@ -377,7 +394,7 @@ export function CalculatorPageClient() {
               <button
                 key={target}
                 onClick={() => setCompareTarget(target)}
-                className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
                   compareTarget === target
                     ? SLOT_THEME[target].buttonActiveClassName
                     : SLOT_THEME[target].buttonIdleClassName
@@ -401,10 +418,15 @@ export function CalculatorPageClient() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              Step 5
+            <div className="mb-1 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
+                5
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+                Step 5
+              </span>
             </div>
             <h2 className="text-lg font-semibold text-gray-900">
               {compareTarget === 'full-build'
@@ -472,11 +494,16 @@ export function CalculatorPageClient() {
           )}
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-                Step 6
+              <div className="mb-1 flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
+                  6
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+                  Step 6
+                </span>
               </div>
               <h2 className="text-lg font-semibold text-gray-900">
                 追加した候補を今の装備と比べる
@@ -487,7 +514,7 @@ export function CalculatorPageClient() {
             </div>
             <button
               onClick={handleCopyLink}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm transition-all duration-150 hover:border-ocean-300 hover:shadow-md hover:text-ocean-700"
               title="今の比較内容を URL で共有"
             >
               {copied ? '✓ コピー済み' : '🔗 この比較を URL で共有'}
@@ -521,8 +548,13 @@ export function CalculatorPageClient() {
 
         <section className="space-y-6">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-              Step 7
+            <div className="mb-1 flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
+                7
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
+                Step 7
+              </span>
             </div>
             <h2 className="text-lg font-semibold text-gray-900">
               最後に、選んだ組み合わせの数字を見る
@@ -541,40 +573,43 @@ export function CalculatorPageClient() {
             <strong>魚が釣れる確率</strong> を確認してください。
           </div>
 
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div
+            key={resultAnimKey}
+            className="animate-flash-update grid grid-cols-2 gap-3 md:grid-cols-4"
+          >
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 text-center"
+              className="rounded-xl border border-ocean-200 bg-gradient-to-br from-ocean-50 to-white p-4 text-center shadow-sm"
               data-testid="summary-expected-value-per-catch"
             >
               <div className="text-2xl font-bold text-ocean-700">
                 {formatCurrency(activeResult.expectedValuePerCatch)}
               </div>
-              <div className="mt-1 text-xs text-gray-500">期待値/回</div>
+              <div className="mt-1.5 text-xs font-medium text-ocean-500">期待値/回</div>
             </div>
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 text-center"
+              className="rounded-xl border-2 border-ocean-400 bg-gradient-to-br from-ocean-100 to-ocean-50 p-4 text-center shadow-md"
               data-testid="summary-expected-value-per-hour"
             >
-              <div className="text-2xl font-bold text-ocean-700">
+              <div className="text-3xl font-bold text-ocean-700">
                 {formatCurrency(activeResult.expectedValuePerHour)}
               </div>
-              <div className="mt-1 text-xs text-gray-500">期待値/時間</div>
+              <div className="mt-1.5 text-xs font-semibold text-ocean-600">期待値/時間</div>
             </div>
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 text-center"
+              className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 text-center shadow-sm"
               data-testid="summary-catches-per-hour"
             >
               <div className="text-2xl font-bold text-gray-700">{catchesPerHour.toFixed(0)}回</div>
-              <div className="mt-1 text-xs text-gray-500">試行回数/時間</div>
+              <div className="mt-1.5 text-xs font-medium text-gray-500">試行回数/時間</div>
             </div>
             <div
-              className="rounded-xl border border-gray-200 bg-white p-4 text-center"
+              className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 text-center shadow-sm"
               data-testid="summary-total-fish-probability"
             >
               <div className="text-2xl font-bold text-gray-700">
                 {(activeResult.totalFishProbability * 100).toFixed(0)}%
               </div>
-              <div className="mt-1 text-xs text-gray-500">魚が釣れる確率</div>
+              <div className="mt-1.5 text-xs font-medium text-gray-500">魚が釣れる確率</div>
             </div>
           </div>
 
@@ -617,26 +652,26 @@ export function CalculatorPageClient() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-800">確率・期待値グラフ</h2>
-              <div className="flex gap-1">
+              <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
                 <button
                   onClick={() => setChartMode('per-catch')}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 ${
                     chartMode === 'per-catch'
-                      ? 'bg-ocean-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-white text-ocean-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   1回あたり
                 </button>
                 <button
                   onClick={() => setChartMode('per-hour')}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 ${
                     chartMode === 'per-hour'
-                      ? 'bg-ocean-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-white text-ocean-700 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   1時間あたり
@@ -654,7 +689,7 @@ export function CalculatorPageClient() {
             <AdSlot position="in-content" size="leaderboard" showPlaceholder={false} />
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-base font-semibold text-gray-800">魚種別詳細</h2>
             <ResultTable result={activeResult} />
             <p className="mt-4 text-xs leading-relaxed text-gray-500">
