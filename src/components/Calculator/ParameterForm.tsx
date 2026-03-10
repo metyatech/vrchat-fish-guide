@@ -284,8 +284,11 @@ function CurrentLoadoutTable({
       </div>
 
       <div className="relative overflow-visible px-3 py-4">
-        <div className="mb-3 hidden rounded-[20px] border border-slate-200/80 bg-white/70 px-4 py-3 xl:block">
-          <div className="grid grid-cols-[6.5rem_minmax(0,1.35fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] items-center gap-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+        <div
+          data-testid="current-loadout-table"
+          className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
+        >
+          <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500">
             <span>Slot</span>
             <span>Name</span>
             <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
@@ -307,185 +310,187 @@ function CurrentLoadoutTable({
               MaxWt
             </span>
           </div>
-        </div>
-        <div data-testid="current-loadout-table" className="space-y-3">
-          {LOADOUT_SLOT_ORDER.map((slot) => {
-            const item = selectedItems[slot];
-            const isActive = activeSlot === slot;
-            const isUpdated = recentlyUpdatedSlot === slot;
+          <div className="relative divide-y divide-slate-200/80">
+            {LOADOUT_SLOT_ORDER.map((slot) => {
+              const item = selectedItems[slot];
+              const isActive = activeSlot === slot;
+              const isUpdated = recentlyUpdatedSlot === slot;
 
-            const activate = () => onActivate(slot);
-            const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                activate();
-              }
-            };
+              const activate = () => onActivate(slot);
+              const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  activate();
+                }
+              };
 
-            return (
-              <div
-                key={slot}
-                data-slot={slot}
-                data-state={isActive ? 'active' : 'inactive'}
-                tabIndex={isActive ? undefined : 0}
-                role={isActive ? undefined : 'button'}
-                aria-pressed={isActive ? undefined : false}
-                aria-label={isActive ? undefined : `${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
-                onClick={isActive ? undefined : activate}
-                onKeyDown={isActive ? undefined : handleKeyDown}
-                className={`relative cursor-pointer overflow-visible rounded-[24px] border outline-none transition-all duration-200 ${
-                  isActive
-                    ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 border-transparent bg-white`
-                    : 'border-slate-200/80 bg-white/88 hover:border-ocean-200 hover:bg-white hover:shadow-[0_12px_28px_rgba(30,70,136,0.08)] focus:border-ocean-300 focus:bg-white focus:ring-2 focus:ring-ocean-300 xl:opacity-80'
-                } ${isUpdated ? 'animate-loadout-settle' : ''}`}
-              >
-                {isActive ? (
-                  <div className="xl:grid xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-stretch">
-                    <div className="relative px-4 py-4 xl:px-5 xl:py-5">
-                      <div
-                        data-testid="active-slot-indicator"
-                        className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-[0_14px_36px_rgba(15,23,42,0.18)]"
-                      >
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${SLOT_THEME[slot].dotClassName}`}
-                          aria-hidden="true"
-                        />
-                        {LOADOUT_SLOT_LABELS[slot]} を編集中
-                      </div>
+              return (
+                <div
+                  key={slot}
+                  data-slot={slot}
+                  data-state={isActive ? 'active' : 'inactive'}
+                  tabIndex={isActive ? undefined : 0}
+                  role={isActive ? undefined : 'button'}
+                  aria-pressed={isActive ? undefined : false}
+                  aria-label={isActive ? undefined : `${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
+                  onClick={isActive ? undefined : activate}
+                  onKeyDown={isActive ? undefined : handleKeyDown}
+                  className={`relative cursor-pointer overflow-visible outline-none transition-all duration-200 ${
+                    isActive
+                      ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
+                      : 'bg-white/70 hover:bg-white/92 focus:bg-white/92 focus:ring-2 focus:ring-ocean-300'
+                  } ${isUpdated ? 'animate-loadout-settle' : ''}`}
+                >
+                  {isActive ? (
+                    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(24rem,36rem)] xl:items-stretch">
+                      <div className="relative px-4 py-4 xl:px-4 xl:py-4">
+                        <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
+                          <div className="flex flex-col gap-2">
+                            <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                            <span
+                              data-testid="active-slot-indicator"
+                              className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white"
+                            >
+                              <span
+                                className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+                                aria-hidden="true"
+                              />
+                              {LOADOUT_SLOT_LABELS[slot]} を編集中
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate text-[1.05rem] font-bold text-slate-900">
+                              {item.nameEn}
+                            </div>
+                            <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                              {formatItemDetail(item)}
+                            </div>
+                            <div className="mt-1 text-xs font-semibold text-slate-600">
+                              右の一覧から選ぶと、この行だけ入れ替わります
+                            </div>
+                          </div>
+                          {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                            <div
+                              key={stat}
+                              className="flex justify-center border-l border-slate-100/80 pl-1"
+                            >
+                              <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
+                            </div>
+                          ))}
+                        </div>
 
-                      <div className="mt-3 hidden xl:grid xl:grid-cols-[6.5rem_minmax(0,1.35fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-start xl:gap-3">
-                        <div className="flex flex-col gap-2">
+                        <div className="mt-3 flex flex-wrap items-center gap-2 xl:hidden">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                            編集中
+                            右で選ぶとこの行が入れ替わります
                           </span>
                         </div>
-                        <div className="min-w-0">
+
+                        <div className="mt-4 min-w-0 xl:hidden">
                           <div className="truncate text-[1.05rem] font-bold text-slate-900">
                             {item.nameEn}
                           </div>
                           <div className="mt-1 text-sm leading-relaxed text-slate-600">
                             {formatItemDetail(item)}
                           </div>
-                          <div className="mt-3 text-xs font-semibold text-slate-600">
-                            右で選ぶとこの行が入れ替わります
+                        </div>
+
+                        <div className="mt-4 flex max-w-full flex-wrap gap-1.5 xl:hidden">
+                          {STAT_THEME_ORDER.map((stat) => (
+                            <StatBadge
+                              key={stat}
+                              stat={stat}
+                              value={formatItemStatValue(item, stat)}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-slate-600">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+                            aria-hidden="true"
+                          />
+                          選んだ候補はここに反映されます
+                        </div>
+                      </div>
+
+                      <div className="relative border-t border-slate-200/80 bg-[linear-gradient(180deg,rgba(246,250,255,0.96),rgba(255,255,255,0.98))] xl:border-l xl:border-t-0">
+                        <div
+                          data-testid="slot-picker-anchor"
+                          className="pointer-events-none absolute left-0 top-1/2 hidden h-10 w-10 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[12px] border-l border-b border-slate-200 bg-white shadow-[-10px_10px_22px_rgba(15,23,42,0.08)] xl:block"
+                        />
+                        {pickerPanel}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-4 xl:px-4 xl:py-4">
+                      <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
+                        <div className="flex flex-col gap-2">
+                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            押して変更
+                          </span>
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-bold text-slate-900">
+                            {item.nameEn}
+                          </div>
+                          <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                            {formatItemDetail(item)}
+                          </div>
+                          <div className="mt-1 text-xs font-semibold text-slate-500">
+                            この行を押して選び直す
                           </div>
                         </div>
+
                         {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                          <div key={stat} className="flex justify-center">
+                          <div
+                            key={stat}
+                            className="flex justify-center border-l border-slate-100/80 pl-1"
+                          >
                             <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
                           </div>
                         ))}
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2 xl:hidden">
-                        <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                          右で選ぶとこの行が入れ替わります
-                        </span>
-                      </div>
-
-                      <div className="mt-4 min-w-0 xl:hidden">
-                        <div className="truncate text-[1.05rem] font-bold text-slate-900">
-                          {item.nameEn}
+                      <div className="flex flex-col gap-3 xl:hidden">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                            押すと候補を開く
+                          </span>
                         </div>
-                        <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                          {formatItemDetail(item)}
+
+                        <div className="min-w-0">
+                          <div className="truncate text-base font-bold text-slate-900">
+                            {item.nameEn}
+                          </div>
+                          <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                            {formatItemDetail(item)}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="mt-4 flex max-w-full flex-wrap gap-1.5 xl:hidden">
-                        {STAT_THEME_ORDER.map((stat) => (
-                          <StatBadge
-                            key={stat}
-                            stat={stat}
-                            value={formatItemStatValue(item, stat)}
-                          />
-                        ))}
-                      </div>
-
-                      <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-slate-600">
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${SLOT_THEME[slot].dotClassName}`}
-                          aria-hidden="true"
-                        />
-                        選んだ候補はここに反映されます
-                      </div>
-                    </div>
-
-                    <div className="relative border-t border-slate-200/80 bg-[linear-gradient(180deg,rgba(246,250,255,0.96),rgba(255,255,255,0.98))] xl:border-l xl:border-t-0">
-                      <div
-                        data-testid="slot-picker-anchor"
-                        className="pointer-events-none absolute left-0 top-12 hidden h-10 w-10 -translate-x-1/2 rotate-45 rounded-[12px] border-l border-b border-slate-200 bg-white shadow-[-10px_10px_22px_rgba(15,23,42,0.08)] xl:block"
-                      />
-                      {pickerPanel}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="px-4 py-4 xl:px-5 xl:py-4">
-                    <div className="hidden xl:grid xl:grid-cols-[6.5rem_minmax(0,1.35fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-start xl:gap-3">
-                      <div className="flex flex-col gap-2">
-                        <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-                          押すと候補を開く
-                        </span>
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="truncate text-base font-bold text-slate-900">
-                          {item.nameEn}
+                        <div className="flex max-w-full flex-wrap gap-1.5">
+                          {getHighlightedStats(item).map((stat) => (
+                            <StatBadge
+                              key={stat}
+                              stat={stat}
+                              value={formatItemStatValue(item, stat)}
+                            />
+                          ))}
                         </div>
-                        <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                          {formatItemDetail(item)}
-                        </div>
-                        <div className="mt-3 text-xs font-semibold text-slate-500">
+
+                        <span className="text-xs font-semibold text-slate-500">
                           この行を押して選び直す
-                        </div>
-                      </div>
-
-                      {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                        <div key={stat} className="flex justify-center">
-                          <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex flex-col gap-3 xl:hidden">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-                          押すと候補を開く
                         </span>
                       </div>
-
-                      <div className="min-w-0">
-                        <div className="truncate text-base font-bold text-slate-900">
-                          {item.nameEn}
-                        </div>
-                        <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                          {formatItemDetail(item)}
-                        </div>
-                      </div>
-
-                      <div className="flex max-w-full flex-wrap gap-1.5">
-                        {getHighlightedStats(item).map((stat) => (
-                          <StatBadge
-                            key={stat}
-                            stat={stat}
-                            value={formatItemStatValue(item, stat)}
-                          />
-                        ))}
-                      </div>
-
-                      <span className="text-xs font-semibold text-slate-500">
-                        この行を押して選び直す
-                      </span>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

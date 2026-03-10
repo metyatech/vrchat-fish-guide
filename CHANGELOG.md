@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.5] - 2026-03-10
+
+### Changed
+
+- **Step 1 now reads more like a real table instead of a row of cards**: the current loadout sits inside one shared board with one stat header row, one row rhythm, and cleaner row separation, so the four slots are easier to scan as one comparison surface.
+- **The active row remains attached to the anchored picker without breaking the table feel**: the selected row still opens into the attached chooser, but the resting state now looks like one table first and an editor second.
+- **Lint now ignores transient Playwright `test-results` output** so visual regression runs do not break the repo-standard verification flow when that folder is absent.
+
 ## [0.12.4] - 2026-03-10
 
 ### Changed
