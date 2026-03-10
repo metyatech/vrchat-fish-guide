@@ -216,11 +216,11 @@ body {
   animation: slot-glow-violet 2s ease-in-out infinite;
 }
 
-/* ── Inventory drawer: stronger slide for game panel ── */
+/* ── Inventory drawer: short anchored expansion ── */
 @keyframes inventory-slide-in {
   from {
     opacity: 0;
-    transform: translateX(36px) scale(0.98);
+    transform: translateX(10px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -229,5 +229,6 @@ body {
 }
 
 .animate-inventory-slide-in {
+  transform-origin: left center;
   animation: inventory-slide-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }

@@ -71,11 +71,12 @@ describe('UI quality – overflow and wrapping prevention', () => {
     renderDefault();
 
     const table = screen.getByTestId('current-loadout-table');
-    const rodRow = within(table).getByRole('button', { name: 'Rod を選び直す' });
+    const rodRow = table.querySelector('[data-slot="rod"]');
+    expect(rodRow).not.toBeNull();
 
     // Slot-specific active class uses ring-amber-400 (not the generic ring-ocean-500).
-    expect(rodRow.className).toContain('ring-amber-400');
-    expect(rodRow.className).not.toContain('ring-ocean-500');
+    expect((rodRow as HTMLElement).className).toContain('ring-amber-400');
+    expect((rodRow as HTMLElement).className).not.toContain('ring-ocean-500');
   });
 
   it('picker panel uses white background (bg-white), not slot-tinted bg', () => {
@@ -119,11 +120,12 @@ describe('UI quality – overflow and wrapping prevention', () => {
     renderDefault();
 
     const table = screen.getByTestId('current-loadout-table');
-    const rodRow = within(table).getByRole('button', { name: 'Rod を選び直す' });
-    expect(rodRow).toHaveTextContent('右で選ぶと、この行に入ります');
+    const rodRow = table.querySelector('[data-slot="rod"]');
+    expect(rodRow).not.toBeNull();
+    expect(rodRow).toHaveTextContent('選んだ候補はここに反映されます');
 
     const pickerPanel = screen.getByTestId('slot-picker-panel');
-    expect(pickerPanel).toHaveTextContent('左の Rod 行につながっています');
+    expect(pickerPanel).toHaveTextContent('この Rod 行を選び直しています');
     expect(screen.getByTestId('active-slot-indicator')).toHaveTextContent('Rod を編集中');
     expect(screen.getByTestId('slot-picker-anchor')).toBeInTheDocument();
   });

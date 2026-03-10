@@ -44,7 +44,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
   await expect(page.getByTestId('slot-picker-panel')).toContainText(
-    '左の Rod 行につながっています',
+    'この Rod 行を選び直しています',
   );
   await expect(page.getByTestId('slot-picker-anchor')).toBeVisible();
   await expect(page.getByRole('button', { name: /細かい調整と前提/ })).toBeVisible();
@@ -161,7 +161,7 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
     .locator('[data-state="active"]')
     .first();
   await expect(activeRow).toBeVisible();
-  await expect(activeRow).toContainText('右で選ぶと、この行に入ります');
+  await expect(activeRow).toContainText('選んだ候補はここに反映されます');
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
 
   // ── New: game loadout board region must not overflow horizontally ──
@@ -210,10 +210,11 @@ test('loadout board visual appearance matches snapshot', async ({ page }) => {
   await expect(loadoutCard).toBeVisible();
   // Ensure the active slot indicator shows Rod (default state).
   await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を編集中');
-  // Pin the board width to reduce tiny OS-specific layout drift while keeping
-  // the visual review meaningful.
+  // Pin the board width near its real desktop layout width so the visual
+  // snapshot reflects the anchored overlay design instead of an artificially
+  // squeezed card.
   await loadoutCard.evaluate((node) => {
-    (node as HTMLElement).style.width = '565px';
+    (node as HTMLElement).style.width = '1080px';
   });
   // Wait a tick for CSS animations to settle.
   await page.waitForTimeout(500);

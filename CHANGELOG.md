@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-03-10
+
+### Changed
+
+- **Step 1 now opens the picker from inside the active loadout row instead of positioning it as a detached board-level panel**: the selected row expands into a two-part editor, so the current item, the choice list, and the destination all read as one connected interaction.
+- **The active row is now the only focus surface while it is open**: nested interactive conflicts were removed, the active state stays visually anchored, and the picker no longer depends on manual offset math.
+- **Visual review and regression baselines were updated to the new anchored row layout**: the inventory expansion animation now grows from the left edge, and the screenshot baseline reflects the wider, row-attached picker presentation.
+
 ## [0.12.2] - 2026-03-10
 
 ### Changed

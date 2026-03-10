@@ -17,11 +17,12 @@ describe('Step 1 loadout UI quality', () => {
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    const rowButtons = within(currentLoadoutTable).getAllByRole('button');
+    const rowButtons = currentLoadoutTable.querySelectorAll('[data-slot]');
     expect(rowButtons).toHaveLength(4);
-    expect(
-      within(currentLoadoutTable).getByRole('button', { name: 'Rod を選び直す' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    expect(currentLoadoutTable.querySelector('[data-slot="rod"]')).toHaveAttribute(
+      'data-state',
+      'active',
+    );
   });
 
   it('picker panel badge labels have whitespace-nowrap to prevent wrapping', () => {
@@ -36,17 +37,15 @@ describe('Step 1 loadout UI quality', () => {
     expect(noWrapBadges.length).toBeGreaterThan(0);
   });
 
-  it('active slot row is visually marked as pressed on mount', () => {
+  it('active slot row is visually marked on mount while other rows stay selectable', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
-    // Rod row should be active (aria-pressed="true") by default.
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    const rodRow = within(currentLoadoutTable).getByRole('button', { name: 'Rod を選び直す' });
-    expect(rodRow).toHaveAttribute('aria-pressed', 'true');
+    const rodRow = currentLoadoutTable.querySelector('[data-slot="rod"]');
+    expect(rodRow).toHaveAttribute('data-state', 'active');
 
-    // Other rows must be inactive.
     const lineRow = within(currentLoadoutTable).getByRole('button', { name: 'Line を選び直す' });
     expect(lineRow).toHaveAttribute('aria-pressed', 'false');
   });
@@ -79,9 +78,10 @@ describe('ParameterForm', () => {
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    expect(
-      within(currentLoadoutTable).getByRole('button', { name: 'Rod を選び直す' }),
-    ).toHaveAttribute('aria-pressed', 'true');
+    expect(currentLoadoutTable.querySelector('[data-slot="rod"]')).toHaveAttribute(
+      'data-state',
+      'active',
+    );
     expect(screen.getAllByText('Luck')[0]).toHaveStyle({ color: STAT_THEME.luck.surfaceText });
 
     const totalStatsSection = screen.getByTestId('total-stats-section');
@@ -103,7 +103,6 @@ describe('ParameterForm', () => {
 
     render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     fireEvent.click(screen.getByText('Fortunate Rod'));
 
     expect(onChange).toHaveBeenCalledWith({
@@ -178,16 +177,16 @@ describe('ParameterForm', () => {
     const currentLoadoutCard = screen.getByTestId('current-loadout-card');
     expect(currentLoadoutCard).toHaveClass('overflow-visible');
 
-    const activeRow = within(currentLoadoutCard).getByRole('button', { name: 'Rod を選び直す' });
+    const activeRow = currentLoadoutCard.querySelector('[data-slot="rod"]');
     expect(activeRow).toHaveAttribute('data-state', 'active');
-    expect(activeRow).toHaveTextContent('右で選ぶと、この行に入ります');
+    expect(activeRow).toHaveTextContent('選んだ候補はここに反映されます');
 
     const activeIndicator = screen.getByTestId('active-slot-indicator');
     expect(activeIndicator).toHaveTextContent('Rod を編集中');
 
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     expect(pickerPanel).toHaveTextContent('Rod の候補');
-    expect(pickerPanel).toHaveTextContent('左の Rod 行につながっています');
+    expect(pickerPanel).toHaveTextContent('この Rod 行を選び直しています');
     expect(screen.getByTestId('slot-picker-anchor')).toBeInTheDocument();
     const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(nowrapBadges.length).toBeGreaterThan(0);
