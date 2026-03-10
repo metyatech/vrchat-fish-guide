@@ -516,12 +516,23 @@ function CurrentLoadoutTable({
               <div className="pointer-events-auto relative overflow-visible">
                 <div
                   data-testid="slot-picker-anchor"
-                  className="pointer-events-none absolute left-0 top-1/2 h-24 w-28 -translate-x-[82%] -translate-y-1/2"
+                  className="pointer-events-none absolute left-0 top-1/2 h-16 w-24 -translate-x-[76%] -translate-y-1/2"
                 />
-                <div className="pointer-events-none absolute left-0 top-1/2 h-24 w-28 -translate-x-[82%] -translate-y-1/2 overflow-visible">
-                  <div className="absolute left-0 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full border border-slate-200 bg-white shadow-[-10px_16px_28px_rgba(15,23,42,0.08)]" />
-                  <div className="absolute left-10 top-1/2 h-14 w-18 -translate-y-1/2 rounded-full border border-slate-200 bg-white shadow-[-10px_16px_28px_rgba(15,23,42,0.08)]" />
-                  <div className="absolute left-8 top-1/2 h-10 w-12 -translate-y-1/2 rounded-full bg-white/90 blur-[1px]" />
+                <div className="pointer-events-none absolute left-0 top-1/2 h-16 w-24 -translate-x-[76%] -translate-y-1/2 overflow-visible">
+                  <svg
+                    className="h-full w-full drop-shadow-[-8px_10px_18px_rgba(15,23,42,0.08)]"
+                    viewBox="0 0 96 64"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M94 7C72 7 56 10 41 18L16 29C11 31 11 33 16 35L41 46C56 54 72 57 94 57"
+                      fill="white"
+                      stroke="#e2e8f0"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
                 <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]">
                   {desktopPickerPanel}

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.8] - 2026-03-10
+
+### Changed
+
+- **The Step 1 speech-bubble tail now uses a softer single-tail shape instead of the previous blob-like center connector**: the chooser reads more like a speech bubble attached to the selected row, without the odd floating white mass between the table and the picker.
+
 ## [0.12.7] - 2026-03-10
 
 ### Changed
