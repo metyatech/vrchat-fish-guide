@@ -599,7 +599,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </div>
       </div>
 
-      <div className="bg-white px-4 pt-0">
+      <div className="relative z-20 overflow-hidden bg-white px-4 pt-0">
         <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
           <colgroup>
             <col style={{ width: '72px' }} />
@@ -660,7 +660,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </table>
       </div>
 
-      <div className="max-h-[68vh] overflow-auto bg-white px-4 pb-3 pt-0">
+      <div className="relative z-0 max-h-[68vh] overflow-auto bg-white px-4 pb-3 pt-0">
         <table
           id={`loadout-picker-${slot}`}
           className="w-full table-fixed border-separate border-spacing-0 text-sm"
