@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.7] - 2026-03-10
+
+### Changed
+
+- **Step 1 speech-bubble chooser is now aligned to the active row instead of hanging low on the board**: the overlay anchor is positioned from the selected row inside the board content layer, so the bubble reads as coming from the row you clicked instead of drifting between rows.
+- **The bubble connection was softened into a rounder row-to-overlay bridge**: the hard notch was replaced with a more organic connector so the chooser feels like it grows out of the active row instead of appearing as a detached panel edge.
+- **The right-side chooser now reads more like the left loadout table**: candidate rows use the same column structure and flatter table rhythm, making it easier to compare names and stat columns without the previous card-list feel.
+
 ## [0.12.6] - 2026-03-10
 
 ### Changed

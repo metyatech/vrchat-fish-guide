@@ -269,6 +269,7 @@ function CurrentLoadoutTable({
   };
 
   const loadoutBoardRef = React.useRef<HTMLDivElement | null>(null);
+  const overlayLayerRef = React.useRef<HTMLDivElement | null>(null);
   const rowRefs = React.useRef<Record<LoadoutSlot, HTMLDivElement | null>>({
     rod: null,
     line: null,
@@ -285,15 +286,16 @@ function CurrentLoadoutTable({
       }
 
       const board = loadoutBoardRef.current;
+      const layer = overlayLayerRef.current;
       const row = rowRefs.current[activeSlot];
-      if (!board || !row) {
+      if (!board || !layer || !row) {
         setOverlayTop(null);
         return;
       }
 
-      const boardRect = board.getBoundingClientRect();
+      const layerRect = layer.getBoundingClientRect();
       const rowRect = row.getBoundingClientRect();
-      setOverlayTop(rowRect.top - boardRect.top + rowRect.height / 2);
+      setOverlayTop(rowRect.top - layerRect.top + rowRect.height / 2);
     };
 
     updateOverlayTop();
@@ -320,7 +322,7 @@ function CurrentLoadoutTable({
           </p>
         </div>
 
-        <div className="relative overflow-visible px-3 py-4">
+        <div ref={overlayLayerRef} className="relative overflow-visible px-3 py-4">
           <div
             data-testid="current-loadout-table"
             className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
@@ -507,16 +509,21 @@ function CurrentLoadoutTable({
               className="pointer-events-none absolute right-4 z-30 hidden xl:block"
               style={{
                 top: `${overlayTop}px`,
-                width: 'min(32rem, calc(100% - 4.5rem))',
+                width: 'min(36rem, calc(100% - 4.5rem))',
                 transform: 'translateY(-50%)',
               }}
             >
               <div className="pointer-events-auto relative overflow-visible">
                 <div
                   data-testid="slot-picker-anchor"
-                  className="pointer-events-none absolute left-0 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[12px] border-l border-b border-slate-200 bg-white shadow-[-10px_10px_22px_rgba(15,23,42,0.08)]"
+                  className="pointer-events-none absolute left-0 top-1/2 h-24 w-28 -translate-x-[82%] -translate-y-1/2"
                 />
-                <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]">
+                <div className="pointer-events-none absolute left-0 top-1/2 h-24 w-28 -translate-x-[82%] -translate-y-1/2 overflow-visible">
+                  <div className="absolute left-0 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full border border-slate-200 bg-white shadow-[-10px_16px_28px_rgba(15,23,42,0.08)]" />
+                  <div className="absolute left-10 top-1/2 h-14 w-18 -translate-y-1/2 rounded-full border border-slate-200 bg-white shadow-[-10px_16px_28px_rgba(15,23,42,0.08)]" />
+                  <div className="absolute left-8 top-1/2 h-10 w-12 -translate-y-1/2 rounded-full bg-white/90 blur-[1px]" />
+                </div>
+                <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]">
                   {desktopPickerPanel}
                 </div>
               </div>
@@ -584,12 +591,52 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       <div className="max-h-[68vh] overflow-auto px-4 py-3">
         <table
           id={`loadout-picker-${slot}`}
-          className="w-full border-separate border-spacing-y-2 text-sm"
+          className="w-full table-fixed border-separate border-spacing-0 text-sm"
         >
-          <thead className="sr-only">
-            <tr>
-              <th>選択</th>
-              <th>候補</th>
+          <thead className="sticky top-0 z-10 bg-white/96 backdrop-blur">
+            <tr className="border-b border-slate-200/80">
+              <th className="w-[72px] border-b border-slate-200 px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                選択
+              </th>
+              <th className="border-b border-slate-200 px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                名前
+              </th>
+              <th
+                className="w-[60px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: STAT_THEME.luck.surfaceText }}
+              >
+                Lk
+              </th>
+              <th
+                className="w-[60px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: STAT_THEME.strength.surfaceText }}
+              >
+                Str
+              </th>
+              <th
+                className="w-[60px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: STAT_THEME.expertise.surfaceText }}
+              >
+                Exp
+              </th>
+              <th
+                className="w-[72px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: STAT_THEME.attractionRate.surfaceText }}
+              >
+                Atk
+              </th>
+              <th
+                className="w-[68px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
+              >
+                BigC
+              </th>
+              <th
+                className="w-[76px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                style={{ color: STAT_THEME.maxWeight.surfaceText }}
+              >
+                MaxWt
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -612,18 +659,16 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                   aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
                   onClick={selectItem}
                   onKeyDown={handleKeyDown}
-                  className={`cursor-pointer rounded-xl outline-none transition-all duration-150 ${
+                  className={`cursor-pointer outline-none transition-all duration-150 ${
                     selected
-                      ? 'bg-gradient-to-r from-emerald-50 to-white shadow-[0_0_0_2px_rgba(16,185,129,0.5),0_8px_24px_rgba(16,185,129,0.12)] ring-2 ring-emerald-400 ring-offset-1'
-                      : 'bg-white/80 hover:bg-slate-50 hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)] focus:bg-white focus:ring-2 focus:ring-ocean-400 focus:ring-offset-1'
+                      ? 'bg-emerald-50/70 shadow-[inset_4px_0_0_rgba(16,185,129,0.9),inset_0_0_0_1px_rgba(16,185,129,0.18)]'
+                      : 'bg-white hover:bg-slate-50 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-ocean-400'
                   }`}
                 >
-                  {/* Badge column */}
-                  <td className="rounded-l-xl px-3 py-2.5 align-top md:w-[100px]">
+                  <td className="border-b border-slate-200 px-2 py-3 align-middle">
                     <LoadoutSelectionBadge selected={selected} />
                   </td>
-                  {/* Item info column */}
-                  <td className="rounded-r-xl px-2 py-2.5 align-top">
+                  <td className="border-b border-slate-200 px-2 py-3 align-middle">
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-gray-900">
                         {item.nameEn}
@@ -631,28 +676,28 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                       <div className="mt-0.5 text-xs leading-relaxed text-gray-500">
                         {formatItemDetail(item)}
                       </div>
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        <StatBadge stat="luck" value={formatSignedDisplayNumber(item.luck)} />
-                        <StatBadge
-                          stat="strength"
-                          value={formatSignedDisplayNumber(item.strength)}
-                        />
-                        <StatBadge
-                          stat="expertise"
-                          value={formatSignedDisplayNumber(item.expertise)}
-                        />
-                        <StatBadge
-                          stat="attractionRate"
-                          value={formatSignedDisplayNumber(item.attractionPct, '%')}
-                        />
-                        <StatBadge
-                          stat="bigCatchRate"
-                          value={formatSignedDisplayNumber(item.bigCatch)}
-                        />
-                        <StatBadge stat="maxWeight" value={formatWeightKg(item.maxWeightKg)} />
-                      </div>
                     </div>
                   </td>
+                  {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
+                    const theme = STAT_THEME[stat];
+                    return (
+                      <td
+                        key={stat}
+                        className="border-b border-slate-200 px-1 py-3 text-center align-middle"
+                      >
+                        <span
+                          className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
+                          style={{
+                            borderColor: theme.cardBorder,
+                            backgroundColor: theme.cardBackground,
+                            color: theme.surfaceText,
+                          }}
+                        >
+                          {formatItemStatValue(item, stat)}
+                        </span>
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}
