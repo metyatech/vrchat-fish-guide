@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.12] - 2026-03-10
+
+### Changed
+
+- **The Step 1 picker header now stays fully sealed while scrolling**: each header cell is fixed and opaque, so the row content no longer leaks into the strip above the column labels even after you scroll the picker list.
+
 ## [0.12.11] - 2026-03-10
 
 ### Changed
