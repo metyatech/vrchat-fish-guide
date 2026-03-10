@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.4] - 2026-03-10
+
+### Changed
+
+- **Step 1 current loadout now reads as a single stat table instead of four separate cards**: the left side uses one shared header row for `Lk / Str / Exp / Atk / BigC / MaxWt`, making Rod, Line, Bobber, and Enchant easier to compare at a glance.
+- **The anchored picker flow stays intact while the left side is more table-like**: the active row still opens into the attached chooser, but the resting rows now align like one list instead of four disconnected blocks.
+- **Visual regression baselines were refreshed for the table-style loadout board** so the more comparable stat layout is treated as the new expected appearance.
+
 ## [0.12.3] - 2026-03-10
 
 ### Changed

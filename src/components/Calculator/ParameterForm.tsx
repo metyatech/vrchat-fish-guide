@@ -143,6 +143,15 @@ const NEXT_LOADOUT_SLOT: Record<LoadoutSlot, LoadoutSlot | null> = {
   enchant: null,
 };
 
+const LOADOUT_STAT_COLUMN_ORDER: StatThemeKey[] = [
+  'luck',
+  'strength',
+  'expertise',
+  'attractionRate',
+  'bigCatchRate',
+  'maxWeight',
+];
+
 /** Slot-specific active row class on the dark loadout board. ring-{color}-400 must be present for ui-quality tests. */
 const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
   rod: 'relative ring-2 ring-amber-400 shadow-[0_18px_36px_rgba(245,158,11,0.18)] before:absolute before:inset-y-4 before:left-0 before:w-1.5 before:rounded-r-full before:bg-amber-400',
@@ -275,6 +284,30 @@ function CurrentLoadoutTable({
       </div>
 
       <div className="relative overflow-visible px-3 py-4">
+        <div className="mb-3 hidden rounded-[20px] border border-slate-200/80 bg-white/70 px-4 py-3 xl:block">
+          <div className="grid grid-cols-[6.5rem_minmax(0,1.35fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] items-center gap-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+            <span>Slot</span>
+            <span>Name</span>
+            <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+              Lk
+            </span>
+            <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+              Str
+            </span>
+            <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+              Exp
+            </span>
+            <span className="text-center" style={{ color: STAT_THEME.attractionRate.surfaceText }}>
+              Atk
+            </span>
+            <span className="text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
+              BigC
+            </span>
+            <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+              MaxWt
+            </span>
+          </div>
+        </div>
         <div data-testid="current-loadout-table" className="space-y-3">
           {LOADOUT_SLOT_ORDER.map((slot) => {
             const item = selectedItems[slot];
@@ -320,14 +353,39 @@ function CurrentLoadoutTable({
                         {LOADOUT_SLOT_LABELS[slot]} を編集中
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <div className="mt-3 hidden xl:grid xl:grid-cols-[6.5rem_minmax(0,1.35fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-start xl:gap-3">
+                        <div className="flex flex-col gap-2">
+                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                            編集中
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-[1.05rem] font-bold text-slate-900">
+                            {item.nameEn}
+                          </div>
+                          <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                            {formatItemDetail(item)}
+                          </div>
+                          <div className="mt-3 text-xs font-semibold text-slate-600">
+                            右で選ぶとこの行が入れ替わります
+                          </div>
+                        </div>
+                        {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                          <div key={stat} className="flex justify-center">
+                            <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2 xl:hidden">
                         <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                           右で選ぶとこの行が入れ替わります
                         </span>
                       </div>
 
-                      <div className="mt-4 min-w-0">
+                      <div className="mt-4 min-w-0 xl:hidden">
                         <div className="truncate text-[1.05rem] font-bold text-slate-900">
                           {item.nameEn}
                         </div>
@@ -336,7 +394,7 @@ function CurrentLoadoutTable({
                         </div>
                       </div>
 
-                      <div className="mt-4 flex max-w-full flex-wrap gap-1.5">
+                      <div className="mt-4 flex max-w-full flex-wrap gap-1.5 xl:hidden">
                         {STAT_THEME_ORDER.map((stat) => (
                           <StatBadge
                             key={stat}
@@ -364,8 +422,35 @@ function CurrentLoadoutTable({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3 px-4 py-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
+                  <div className="px-4 py-4 xl:px-5 xl:py-4">
+                    <div className="hidden xl:grid xl:grid-cols-[6.5rem_minmax(0,1.35fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-start xl:gap-3">
+                      <div className="flex flex-col gap-2">
+                        <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                          押すと候補を開く
+                        </span>
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="truncate text-base font-bold text-slate-900">
+                          {item.nameEn}
+                        </div>
+                        <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                          {formatItemDetail(item)}
+                        </div>
+                        <div className="mt-3 text-xs font-semibold text-slate-500">
+                          この行を押して選び直す
+                        </div>
+                      </div>
+
+                      {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                        <div key={stat} className="flex justify-center">
+                          <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col gap-3 xl:hidden">
                       <div className="flex flex-wrap items-center gap-2">
                         <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
@@ -373,7 +458,7 @@ function CurrentLoadoutTable({
                         </span>
                       </div>
 
-                      <div className="mt-3 min-w-0">
+                      <div className="min-w-0">
                         <div className="truncate text-base font-bold text-slate-900">
                           {item.nameEn}
                         </div>
@@ -381,10 +466,8 @@ function CurrentLoadoutTable({
                           {formatItemDetail(item)}
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-col items-start gap-2 xl:items-end">
-                      <div className="flex max-w-full flex-wrap gap-1.5 xl:justify-end">
+                      <div className="flex max-w-full flex-wrap gap-1.5">
                         {getHighlightedStats(item).map((stat) => (
                           <StatBadge
                             key={stat}
@@ -393,6 +476,7 @@ function CurrentLoadoutTable({
                           />
                         ))}
                       </div>
+
                       <span className="text-xs font-semibold text-slate-500">
                         この行を押して選び直す
                       </span>
