@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.10] - 2026-03-10
+
+### Changed
+
+- **The Step 1 picker table header is now fully opaque while scrolling**: the fixed header no longer lets the underlying item rows show through, so the area above the column labels stays solid instead of revealing the content behind it.
+
 ## [0.12.9] - 2026-03-10
 
 ### Changed

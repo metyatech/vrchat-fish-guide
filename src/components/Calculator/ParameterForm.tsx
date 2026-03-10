@@ -599,51 +599,51 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </div>
       </div>
 
-      <div className="max-h-[68vh] overflow-auto px-4 py-3">
+      <div className="max-h-[68vh] overflow-auto bg-white px-4 py-3">
         <table
           id={`loadout-picker-${slot}`}
           className="w-full table-fixed border-separate border-spacing-0 text-sm"
         >
-          <thead className="sticky top-0 z-10 bg-white/96 backdrop-blur">
-            <tr className="border-b border-slate-200/80">
-              <th className="w-[72px] border-b border-slate-200 px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+          <thead className="sticky top-0 z-20 bg-white shadow-[0_1px_0_rgba(226,232,240,1)]">
+            <tr className="border-b border-slate-200/80 bg-white">
+              <th className="w-[72px] border-b border-slate-200 bg-white px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
                 選択
               </th>
-              <th className="border-b border-slate-200 px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+              <th className="border-b border-slate-200 bg-white px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
                 名前
               </th>
               <th
-                className="w-[60px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                className="w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{ color: STAT_THEME.luck.surfaceText }}
               >
                 Lk
               </th>
               <th
-                className="w-[60px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                className="w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{ color: STAT_THEME.strength.surfaceText }}
               >
                 Str
               </th>
               <th
-                className="w-[60px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                className="w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{ color: STAT_THEME.expertise.surfaceText }}
               >
                 Exp
               </th>
               <th
-                className="w-[72px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                className="w-[72px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{ color: STAT_THEME.attractionRate.surfaceText }}
               >
                 Atk
               </th>
               <th
-                className="w-[68px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                className="w-[68px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
               >
                 BigC
               </th>
               <th
-                className="w-[76px] border-b border-slate-200 px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
+                className="w-[76px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em]"
                 style={{ color: STAT_THEME.maxWeight.surfaceText }}
               >
                 MaxWt
