@@ -569,7 +569,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       data-testid={testId}
       className="animate-inventory-slide-in relative overflow-hidden bg-white"
     >
-      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,rgba(246,250,255,0.98),rgba(236,245,255,0.98))] px-5 py-4">
+      <div className="border-b border-slate-200 bg-[linear-gradient(180deg,rgba(246,250,255,0.98),rgba(236,245,255,0.98))] px-5 pb-3 pt-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -578,11 +578,11 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 この {LOADOUT_SLOT_LABELS[slot]} 行を選び直しています
               </span>
             </div>
-            <h3 className="mt-3 text-lg font-bold text-slate-900">
+            <h3 className="mt-2 text-lg font-bold text-slate-900">
               {LOADOUT_SLOT_LABELS[slot]} の候補
             </h3>
             {selectedItem ? (
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
                 いま入っているのは{' '}
                 <span className="font-semibold text-slate-900">{selectedItem.nameEn}</span>
                 です。下から別の候補を選ぶと、この行だけそのまま入れ替わります。

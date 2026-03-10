@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.9] - 2026-03-10
+
+### Changed
+
+- **The chooser header no longer leaves an awkward empty band above the title**: the top padding around the slot chip, title, and explanation was tightened so the overlay reads as one compact speech bubble instead of showing extra background space at the top.
+
 ## [0.12.8] - 2026-03-10
 
 ### Changed
