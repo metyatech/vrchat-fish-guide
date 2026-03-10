@@ -8,7 +8,7 @@ All notable changes to this project are documented here.
 
 ### Changed
 
-- **The Step 1 picker header now stays fully sealed while scrolling**: each header cell is fixed and opaque, so the row content no longer leaks into the strip above the column labels even after you scroll the picker list.
+- **The Step 1 picker header now sits outside the scroll body**: the column labels stay sealed under the description block while the item rows scroll underneath, so the strip above the picker header no longer shows the row content behind it.
 
 ## [0.12.11] - 2026-03-10
 

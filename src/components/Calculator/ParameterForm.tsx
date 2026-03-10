@@ -599,57 +599,82 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </div>
       </div>
 
-      <div className="max-h-[68vh] overflow-auto bg-white px-4 pb-3 pt-0">
-        <table
-          id={`loadout-picker-${slot}`}
-          className="w-full table-fixed border-separate border-spacing-0 text-sm"
-        >
+      <div className="bg-white px-4 pt-0">
+        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+          <colgroup>
+            <col style={{ width: '72px' }} />
+            <col />
+            <col style={{ width: '60px' }} />
+            <col style={{ width: '60px' }} />
+            <col style={{ width: '60px' }} />
+            <col style={{ width: '72px' }} />
+            <col style={{ width: '68px' }} />
+            <col style={{ width: '76px' }} />
+          </colgroup>
           <thead className="bg-white">
             <tr className="border-b border-slate-200/80 bg-white">
-              <th className="sticky top-0 z-20 w-[72px] border-b border-slate-200 bg-white px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 shadow-[0_1px_0_rgba(226,232,240,1)]">
+              <th className="w-[72px] border-b border-slate-200 bg-white px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 shadow-[0_1px_0_rgba(226,232,240,1)]">
                 選択
               </th>
-              <th className="sticky top-0 z-20 border-b border-slate-200 bg-white px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 shadow-[0_1px_0_rgba(226,232,240,1)]">
+              <th className="border-b border-slate-200 bg-white px-2 pb-2 pt-1 text-left text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 shadow-[0_1px_0_rgba(226,232,240,1)]">
                 名前
               </th>
               <th
-                className="sticky top-0 z-20 w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
+                className="w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
                 style={{ color: STAT_THEME.luck.surfaceText }}
               >
                 Lk
               </th>
               <th
-                className="sticky top-0 z-20 w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
+                className="w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
                 style={{ color: STAT_THEME.strength.surfaceText }}
               >
                 Str
               </th>
               <th
-                className="sticky top-0 z-20 w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
+                className="w-[60px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
                 style={{ color: STAT_THEME.expertise.surfaceText }}
               >
                 Exp
               </th>
               <th
-                className="sticky top-0 z-20 w-[72px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
+                className="w-[72px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
                 style={{ color: STAT_THEME.attractionRate.surfaceText }}
               >
                 Atk
               </th>
               <th
-                className="sticky top-0 z-20 w-[68px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
+                className="w-[68px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
                 style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
               >
                 BigC
               </th>
               <th
-                className="sticky top-0 z-20 w-[76px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
+                className="w-[76px] border-b border-slate-200 bg-white px-1 pb-2 pt-1 text-center text-[11px] font-bold uppercase tracking-[0.14em] shadow-[0_1px_0_rgba(226,232,240,1)]"
                 style={{ color: STAT_THEME.maxWeight.surfaceText }}
               >
                 MaxWt
               </th>
             </tr>
           </thead>
+        </table>
+      </div>
+
+      <div className="max-h-[68vh] overflow-auto bg-white px-4 pb-3 pt-0">
+        <table
+          id={`loadout-picker-${slot}`}
+          className="w-full table-fixed border-separate border-spacing-0 text-sm"
+        >
+          <colgroup>
+            <col style={{ width: '72px' }} />
+            <col />
+            <col style={{ width: '60px' }} />
+            <col style={{ width: '60px' }} />
+            <col style={{ width: '60px' }} />
+            <col style={{ width: '72px' }} />
+            <col style={{ width: '68px' }} />
+            <col style={{ width: '76px' }} />
+          </colgroup>
           <tbody>
             {items.map((item) => {
               const selected = item.id === selectedId;
