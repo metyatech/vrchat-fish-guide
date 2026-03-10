@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.6] - 2026-03-10
+
+### Changed
+
+- **Step 1 now keeps the loadout board as a fixed table while the chooser opens as a right-side speech-bubble overlay**: clicking a row no longer stretches the board itself, and the candidate list now feels attached to that specific row instead of becoming a detached second layout column.
+- **Desktop and mobile picker rendering were split cleanly**: desktop now uses one anchored overlay inside the board, while mobile still uses the stacked picker, which removed the duplicate-panel test ambiguity and the desktop overflow regression.
+- **Visual regression baselines and row-anchor tests were refreshed** so the new row-to-overlay relationship is treated as the expected Step 1 behavior.
+
 ## [0.12.5] - 2026-03-10
 
 ### Changed

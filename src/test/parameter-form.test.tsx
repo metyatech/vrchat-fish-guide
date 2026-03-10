@@ -187,7 +187,7 @@ describe('ParameterForm', () => {
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     expect(pickerPanel).toHaveTextContent('Rod の候補');
     expect(pickerPanel).toHaveTextContent('この Rod 行を選び直しています');
-    expect(screen.getByTestId('slot-picker-anchor')).toBeInTheDocument();
+    expect(screen.getByTestId('slot-picker-anchor-fallback')).toBeInTheDocument();
     const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(nowrapBadges.length).toBeGreaterThan(0);
   });

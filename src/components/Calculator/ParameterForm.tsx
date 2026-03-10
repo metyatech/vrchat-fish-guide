@@ -251,13 +251,15 @@ function CurrentLoadoutTable({
   selectedIds,
   recentlyUpdatedSlot,
   onActivate,
-  pickerPanel,
+  mobilePickerPanel,
+  desktopPickerPanel,
 }: {
   activeSlot: LoadoutSlot | null;
   selectedIds: Record<LoadoutSlot, string>;
   recentlyUpdatedSlot: LoadoutSlot | null;
   onActivate: (slot: LoadoutSlot) => void;
-  pickerPanel: React.ReactNode;
+  mobilePickerPanel: React.ReactNode;
+  desktopPickerPanel: React.ReactNode;
 }) {
   const selectedItems: Record<LoadoutSlot, EquipmentItem | EnchantItem> = {
     rod: RODS.find((item) => item.id === selectedIds.rod) ?? RODS[0],
@@ -266,87 +268,127 @@ function CurrentLoadoutTable({
     enchant: ENCHANTS.find((item) => item.id === selectedIds.enchant) ?? ENCHANTS[0],
   };
 
-  return (
-    <div
-      data-testid="current-loadout-card"
-      className="overflow-visible rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,246,255,0.96))] shadow-[0_28px_64px_rgba(30,70,136,0.14)]"
-    >
-      <div className="border-b border-ocean-100/80 px-5 py-4">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-ocean-500 shadow-[0_0_8px_rgba(59,150,243,0.45)]" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-ocean-700">
-            今の装備
-          </span>
-        </div>
-        <p className="mt-1 text-sm leading-relaxed text-slate-600">
-          左の 4 行がいま使っている装備です。変えたい行を押すと、その行の候補だけが右に開きます。
-        </p>
-      </div>
+  const loadoutBoardRef = React.useRef<HTMLDivElement | null>(null);
+  const rowRefs = React.useRef<Record<LoadoutSlot, HTMLDivElement | null>>({
+    rod: null,
+    line: null,
+    bobber: null,
+    enchant: null,
+  });
+  const [overlayTop, setOverlayTop] = React.useState<number | null>(null);
 
-      <div className="relative overflow-visible px-3 py-4">
-        <div
-          data-testid="current-loadout-table"
-          className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
-        >
-          <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500">
-            <span>Slot</span>
-            <span>Name</span>
-            <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
-              Lk
-            </span>
-            <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
-              Str
-            </span>
-            <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
-              Exp
-            </span>
-            <span className="text-center" style={{ color: STAT_THEME.attractionRate.surfaceText }}>
-              Atk
-            </span>
-            <span className="text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
-              BigC
-            </span>
-            <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
-              MaxWt
+  React.useLayoutEffect(() => {
+    const updateOverlayTop = () => {
+      if (!activeSlot || typeof window === 'undefined' || window.innerWidth < 1280) {
+        setOverlayTop(null);
+        return;
+      }
+
+      const board = loadoutBoardRef.current;
+      const row = rowRefs.current[activeSlot];
+      if (!board || !row) {
+        setOverlayTop(null);
+        return;
+      }
+
+      const boardRect = board.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      setOverlayTop(rowRect.top - boardRect.top + rowRect.height / 2);
+    };
+
+    updateOverlayTop();
+    window.addEventListener('resize', updateOverlayTop);
+    return () => window.removeEventListener('resize', updateOverlayTop);
+  }, [activeSlot, selectedIds.rod, selectedIds.line, selectedIds.bobber, selectedIds.enchant]);
+
+  return (
+    <div data-testid="current-loadout-card" className="overflow-visible">
+      <div
+        ref={loadoutBoardRef}
+        className="relative overflow-visible rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,246,255,0.96))] shadow-[0_28px_64px_rgba(30,70,136,0.14)]"
+      >
+        <div className="border-b border-ocean-100/80 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-ocean-500 shadow-[0_0_8px_rgba(59,150,243,0.45)]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-ocean-700">
+              今の装備
             </span>
           </div>
-          <div className="relative divide-y divide-slate-200/80">
-            {LOADOUT_SLOT_ORDER.map((slot) => {
-              const item = selectedItems[slot];
-              const isActive = activeSlot === slot;
-              const isUpdated = recentlyUpdatedSlot === slot;
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">
+            左の 4
+            行がいま使っている装備です。変えたい行を押すと、その行専用の吹き出しが右に開きます。
+          </p>
+        </div>
 
-              const activate = () => onActivate(slot);
-              const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  activate();
-                }
-              };
+        <div className="relative overflow-visible px-3 py-4">
+          <div
+            data-testid="current-loadout-table"
+            className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
+          >
+            <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500">
+              <span>Slot</span>
+              <span>Name</span>
+              <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+                Lk
+              </span>
+              <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+                Str
+              </span>
+              <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+                Exp
+              </span>
+              <span
+                className="text-center"
+                style={{ color: STAT_THEME.attractionRate.surfaceText }}
+              >
+                Atk
+              </span>
+              <span className="text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
+                BigC
+              </span>
+              <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+                MaxWt
+              </span>
+            </div>
+            <div className="relative divide-y divide-slate-200/80">
+              {LOADOUT_SLOT_ORDER.map((slot) => {
+                const item = selectedItems[slot];
+                const isActive = activeSlot === slot;
+                const isUpdated = recentlyUpdatedSlot === slot;
 
-              return (
-                <div
-                  key={slot}
-                  data-slot={slot}
-                  data-state={isActive ? 'active' : 'inactive'}
-                  tabIndex={isActive ? undefined : 0}
-                  role={isActive ? undefined : 'button'}
-                  aria-pressed={isActive ? undefined : false}
-                  aria-label={isActive ? undefined : `${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
-                  onClick={isActive ? undefined : activate}
-                  onKeyDown={isActive ? undefined : handleKeyDown}
-                  className={`relative cursor-pointer overflow-visible outline-none transition-all duration-200 ${
-                    isActive
-                      ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
-                      : 'bg-white/70 hover:bg-white/92 focus:bg-white/92 focus:ring-2 focus:ring-ocean-300'
-                  } ${isUpdated ? 'animate-loadout-settle' : ''}`}
-                >
-                  {isActive ? (
-                    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(24rem,36rem)] xl:items-stretch">
-                      <div className="relative px-4 py-4 xl:px-4 xl:py-4">
-                        <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
-                          <div className="flex flex-col gap-2">
-                            <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                const activate = () => onActivate(slot);
+                const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    activate();
+                  }
+                };
+
+                return (
+                  <div
+                    key={slot}
+                    ref={(node) => {
+                      rowRefs.current[slot] = node;
+                    }}
+                    data-slot={slot}
+                    data-state={isActive ? 'active' : 'inactive'}
+                    tabIndex={isActive ? undefined : 0}
+                    role={isActive ? undefined : 'button'}
+                    aria-pressed={isActive ? undefined : false}
+                    aria-label={isActive ? undefined : `${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
+                    onClick={isActive ? undefined : activate}
+                    onKeyDown={isActive ? undefined : handleKeyDown}
+                    className={`relative cursor-pointer overflow-visible outline-none transition-all duration-200 ${
+                      isActive
+                        ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
+                        : 'bg-white/70 hover:bg-white/92 focus:bg-white/92 focus:ring-2 focus:ring-ocean-300'
+                    } ${isUpdated ? 'animate-loadout-settle' : ''}`}
+                  >
+                    <div className="px-4 py-4 xl:px-4 xl:py-4">
+                      <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
+                        <div className="flex flex-col gap-2">
+                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                          {isActive ? (
                             <span
                               data-testid="active-slot-indicator"
                               className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white"
@@ -357,91 +399,34 @@ function CurrentLoadoutTable({
                               />
                               {LOADOUT_SLOT_LABELS[slot]} を編集中
                             </span>
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate text-[1.05rem] font-bold text-slate-900">
-                              {item.nameEn}
-                            </div>
-                            <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                              {formatItemDetail(item)}
-                            </div>
-                            <div className="mt-1 text-xs font-semibold text-slate-600">
-                              右の一覧から選ぶと、この行だけ入れ替わります
-                            </div>
-                          </div>
-                          {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                            <div
-                              key={stat}
-                              className="flex justify-center border-l border-slate-100/80 pl-1"
-                            >
-                              <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap items-center gap-2 xl:hidden">
-                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                            右で選ぶとこの行が入れ替わります
-                          </span>
-                        </div>
-
-                        <div className="mt-4 min-w-0 xl:hidden">
-                          <div className="truncate text-[1.05rem] font-bold text-slate-900">
-                            {item.nameEn}
-                          </div>
-                          <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                            {formatItemDetail(item)}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex max-w-full flex-wrap gap-1.5 xl:hidden">
-                          {STAT_THEME_ORDER.map((stat) => (
-                            <StatBadge
-                              key={stat}
-                              stat={stat}
-                              value={formatItemStatValue(item, stat)}
-                            />
-                          ))}
-                        </div>
-
-                        <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-slate-600">
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full ${SLOT_THEME[slot].dotClassName}`}
-                            aria-hidden="true"
-                          />
-                          選んだ候補はここに反映されます
-                        </div>
-                      </div>
-
-                      <div className="relative border-t border-slate-200/80 bg-[linear-gradient(180deg,rgba(246,250,255,0.96),rgba(255,255,255,0.98))] xl:border-l xl:border-t-0">
-                        <div
-                          data-testid="slot-picker-anchor"
-                          className="pointer-events-none absolute left-0 top-1/2 hidden h-10 w-10 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[12px] border-l border-b border-slate-200 bg-white shadow-[-10px_10px_22px_rgba(15,23,42,0.08)] xl:block"
-                        />
-                        {pickerPanel}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="px-4 py-4 xl:px-4 xl:py-4">
-                      <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
-                        <div className="flex flex-col gap-2">
-                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                          <span className="text-[11px] font-semibold text-slate-500">
-                            押して変更
-                          </span>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-500">
+                              押して変更
+                            </span>
+                          )}
                         </div>
 
                         <div className="min-w-0">
-                          <div className="truncate text-base font-bold text-slate-900">
+                          <div
+                            className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
+                          >
                             {item.nameEn}
                           </div>
                           <div className="mt-1 text-sm leading-relaxed text-slate-600">
                             {formatItemDetail(item)}
                           </div>
-                          <div className="mt-1 text-xs font-semibold text-slate-500">
-                            この行を押して選び直す
+                          <div
+                            className={`mt-1 text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
+                          >
+                            {isActive
+                              ? '右の吹き出しから選ぶと、この行だけ入れ替わります'
+                              : 'この行を押して選び直す'}
                           </div>
+                          {isActive ? (
+                            <div className="mt-1 text-xs font-semibold text-slate-600">
+                              選んだ候補はここに反映されます
+                            </div>
+                          ) : null}
                         </div>
 
                         {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
@@ -457,8 +442,12 @@ function CurrentLoadoutTable({
                       <div className="flex flex-col gap-3 xl:hidden">
                         <div className="flex flex-wrap items-center gap-2">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-                            押すと候補を開く
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                              isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            {isActive ? '編集中' : '押すと候補を開く'}
                           </span>
                         </div>
 
@@ -472,7 +461,7 @@ function CurrentLoadoutTable({
                         </div>
 
                         <div className="flex max-w-full flex-wrap gap-1.5">
-                          {getHighlightedStats(item).map((stat) => (
+                          {(isActive ? STAT_THEME_ORDER : getHighlightedStats(item)).map((stat) => (
                             <StatBadge
                               key={stat}
                               stat={stat}
@@ -481,16 +470,58 @@ function CurrentLoadoutTable({
                           ))}
                         </div>
 
-                        <span className="text-xs font-semibold text-slate-500">
-                          この行を押して選び直す
+                        <span
+                          className={`text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
+                        >
+                          {isActive
+                            ? '下の候補から選ぶと、この行だけ入れ替わります'
+                            : 'この行を押して選び直す'}
                         </span>
+                        {isActive ? (
+                          <span className="text-xs font-semibold text-slate-600">
+                            選んだ候補はここに反映されます
+                          </span>
+                        ) : null}
                       </div>
+
+                      {isActive ? (
+                        <div data-testid="slot-picker-anchor-fallback" className="hidden" />
+                      ) : null}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
+          <div className="mt-4 xl:hidden">
+            {activeSlot && overlayTop === null ? (
+              <div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_20px_40px_rgba(15,23,42,0.12)]">
+                {mobilePickerPanel}
+              </div>
+            ) : null}
+          </div>
+
+          {activeSlot && overlayTop !== null ? (
+            <div
+              className="pointer-events-none absolute right-4 z-30 hidden xl:block"
+              style={{
+                top: `${overlayTop}px`,
+                width: 'min(32rem, calc(100% - 4.5rem))',
+                transform: 'translateY(-50%)',
+              }}
+            >
+              <div className="pointer-events-auto relative overflow-visible">
+                <div
+                  data-testid="slot-picker-anchor"
+                  className="pointer-events-none absolute left-0 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[12px] border-l border-b border-slate-200 bg-white shadow-[-10px_10px_22px_rgba(15,23,42,0.08)]"
+                />
+                <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]">
+                  {desktopPickerPanel}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -503,19 +534,21 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   selectedId,
   onSelect,
   onClose,
+  testId = 'slot-picker-panel',
 }: {
   slot: LoadoutSlot;
   items: readonly T[];
   selectedId: string;
   onSelect: (id: string) => void;
   onClose: () => void;
+  testId?: string;
 }) {
   const selectedItem = items.find((item) => item.id === selectedId);
 
   return (
     <div
       key={slot}
-      data-testid="slot-picker-panel"
+      data-testid={testId}
       className="animate-inventory-slide-in relative overflow-hidden bg-white"
     >
       <div className="border-b border-slate-200 bg-[linear-gradient(180deg,rgba(246,250,255,0.98),rgba(236,245,255,0.98))] px-5 py-4">
@@ -754,7 +787,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             }}
             recentlyUpdatedSlot={recentlyUpdatedSlot}
             onActivate={activateSlot}
-            pickerPanel={
+            mobilePickerPanel={
               activeSlot ? (
                 <LoadoutPickerPanel
                   slot={activeSlot}
@@ -762,6 +795,25 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
+                />
+              ) : (
+                <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center">
+                  <div className="text-sm font-semibold text-slate-700">候補を開く</div>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                    左のボードで変えたい欄を押してください。
+                  </p>
+                </div>
+              )
+            }
+            desktopPickerPanel={
+              activeSlot ? (
+                <LoadoutPickerPanel
+                  slot={activeSlot}
+                  items={loadoutItems[activeSlot]}
+                  selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
+                  onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
+                  onClose={() => setActiveSlot(null)}
+                  testId="slot-picker-panel"
                 />
               ) : (
                 <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center">
