@@ -602,45 +602,42 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       </div>
 
       <div
-        data-testid="picker-scroll-body"
-        className="relative z-0 max-h-[68vh] overflow-auto bg-white"
+        data-testid="picker-column-header"
+        className="border-b border-slate-200 bg-white px-4 shadow-[0_1px_0_rgba(226,232,240,1)]"
       >
         <div
-          data-testid="picker-column-header"
-          className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 shadow-[0_1px_0_rgba(226,232,240,1)]"
+          className={`grid ${PICKER_GRID_COLUMNS} items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]`}
         >
+          <div className="px-2 text-left text-slate-500">選択</div>
+          <div className="px-2 text-left text-slate-500">名前</div>
+          <div className="px-1 text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+            Lk
+          </div>
+          <div className="px-1 text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+            Str
+          </div>
+          <div className="px-1 text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+            Exp
+          </div>
           <div
-            className={`grid ${PICKER_GRID_COLUMNS} items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]`}
+            className="px-1 text-center"
+            style={{ color: STAT_THEME.attractionRate.surfaceText }}
           >
-            <div className="px-2 text-left text-slate-500">選択</div>
-            <div className="px-2 text-left text-slate-500">名前</div>
-            <div className="px-1 text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
-              Lk
-            </div>
-            <div className="px-1 text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
-              Str
-            </div>
-            <div className="px-1 text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
-              Exp
-            </div>
-            <div
-              className="px-1 text-center"
-              style={{ color: STAT_THEME.attractionRate.surfaceText }}
-            >
-              Atk
-            </div>
-            <div
-              className="px-1 text-center"
-              style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
-            >
-              BigC
-            </div>
-            <div className="px-1 text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
-              MaxWt
-            </div>
+            Atk
+          </div>
+          <div className="px-1 text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
+            BigC
+          </div>
+          <div className="px-1 text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+            MaxWt
           </div>
         </div>
+      </div>
 
+      <div
+        data-testid="picker-scroll-body"
+        className="relative z-0 max-h-[calc(68vh-2.5rem)] overflow-auto bg-white"
+      >
         <div id={`loadout-picker-${slot}`} className="bg-white px-4 pb-3">
           {items.map((item) => {
             const selected = item.id === selectedId;

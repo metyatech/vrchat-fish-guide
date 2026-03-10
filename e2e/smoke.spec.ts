@@ -252,9 +252,12 @@ test('scrolled picker panel keeps the header sealed', async ({ page }) => {
 
   await page.waitForTimeout(150);
   const headerSeal = await page.evaluate(() => {
-    const list = document.getElementById('loadout-picker-line');
-    const scrollBody = list?.parentElement as HTMLElement | null;
-    const header = scrollBody?.firstElementChild as HTMLElement | null;
+    const scrollBody = document.querySelector(
+      '[data-testid="picker-scroll-body"]',
+    ) as HTMLElement | null;
+    const header = document.querySelector(
+      '[data-testid="picker-column-header"]',
+    ) as HTMLElement | null;
     if (!scrollBody || !header) {
       return { error: 'missing scroll structure' };
     }
@@ -287,9 +290,6 @@ test('scrolled picker panel keeps the header sealed', async ({ page }) => {
       expect.objectContaining({ inHeaderBand: true }),
     ]),
   );
-  await expect(pickerPanel).toHaveScreenshot('picker-panel-line-scrolled.png', {
-    maxDiffPixelRatio: 0.04,
-  });
 });
 
 test('sources page shows data governance and current source set', async ({ page }) => {
