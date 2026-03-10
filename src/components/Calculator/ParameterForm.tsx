@@ -268,11 +268,11 @@ function CurrentLoadoutTable({
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-ocean-500 shadow-[0_0_8px_rgba(59,150,243,0.45)]" />
           <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-ocean-700">
-            Current loadout
+            今の装備
           </span>
         </div>
         <p className="mt-1 text-sm leading-relaxed text-slate-600">
-          まず左の 4 行で今の装備を見ます。変えたい行を押すと、その行専用の候補が右に出ます。
+          左の 4 行がいま使っている装備です。変えたい行を押すと、その行の候補だけが右に開きます。
         </p>
       </div>
 
@@ -304,10 +304,23 @@ function CurrentLoadoutTable({
               onKeyDown={handleKeyDown}
               className={`relative cursor-pointer overflow-visible rounded-[24px] border px-4 py-4 outline-none transition-all duration-200 ${
                 isActive
-                  ? `${SLOT_ACTIVE_ROW_CLASS[slot]} border-transparent bg-white`
+                  ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 border-transparent bg-white xl:rounded-r-[30px] xl:pr-32`
                   : 'border-slate-200/80 bg-white/88 hover:border-ocean-200 hover:bg-white hover:shadow-[0_12px_28px_rgba(30,70,136,0.08)] focus:border-ocean-300 focus:bg-white focus:ring-2 focus:ring-ocean-300'
               } ${isUpdated ? 'animate-loadout-settle' : ''}`}
             >
+              {isActive ? (
+                <div
+                  data-testid="active-slot-indicator"
+                  className={`pointer-events-none absolute right-4 top-1/2 z-30 hidden -translate-y-1/2 items-center gap-2 rounded-full border bg-white px-3 py-2 text-xs font-semibold shadow-[0_14px_36px_rgba(15,23,42,0.18)] xl:flex ${SLOT_THEME[slot].chipClassName}`}
+                >
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+                    aria-hidden="true"
+                  />
+                  {LOADOUT_SLOT_LABELS[slot]} を編集中
+                </div>
+              ) : null}
+
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -317,7 +330,7 @@ function CurrentLoadoutTable({
                         isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
                       }`}
                     >
-                      {isActive ? 'いまここを変更中' : '押すと候補を開く'}
+                      {isActive ? 'この行を編集中' : '押すと右に候補が開く'}
                     </span>
                   </div>
 
@@ -340,24 +353,10 @@ function CurrentLoadoutTable({
                       isActive ? 'text-slate-900' : 'text-slate-500'
                     }`}
                   >
-                    {isActive
-                      ? '右の一覧から選ぶと、この行が更新されます'
-                      : 'この行を押して選び直す'}
+                    {isActive ? '右で選ぶと、この行に入ります' : 'この行を押して選び直す'}
                   </span>
                 </div>
               </div>
-
-              {isActive ? (
-                <div
-                  data-testid="active-slot-indicator"
-                  className={`pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 items-center gap-2 rounded-full border bg-white px-3 py-2 text-xs font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.16)] xl:flex ${
-                    SLOT_THEME[slot].chipClassName
-                  }`}
-                >
-                  <span className={`h-2.5 w-2.5 rounded-full ${SLOT_THEME[slot].dotClassName}`} />
-                  {LOADOUT_SLOT_LABELS[slot]} を右から選ぶ
-                </div>
-              ) : null}
             </div>
           );
         })}
@@ -372,12 +371,14 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   selectedId,
   onSelect,
   onClose,
+  anchorOffsetTop,
 }: {
   slot: LoadoutSlot;
   items: readonly T[];
   selectedId: string;
   onSelect: (id: string) => void;
   onClose: () => void;
+  anchorOffsetTop: number;
 }) {
   const theme = SLOT_THEME[slot];
   const selectedItem = items.find((item) => item.id === selectedId);
@@ -386,15 +387,20 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     <aside
       key={slot}
       data-testid="slot-picker-panel"
-      className={`animate-inventory-slide-in relative overflow-hidden rounded-[28px] border bg-white/95 shadow-[0_28px_64px_rgba(15,23,42,0.18)] ${theme.panelBorderClassName} xl:before:absolute xl:before:-left-3 xl:before:top-10 xl:before:h-6 xl:before:w-6 xl:before:rotate-45 xl:before:border-l xl:before:border-t xl:before:border-slate-200 xl:before:bg-white xl:before:content-['']`}
+      className={`animate-inventory-slide-in relative overflow-hidden rounded-[28px] border bg-white/95 shadow-[0_28px_64px_rgba(15,23,42,0.18)] ${theme.panelBorderClassName}`}
     >
+      <div
+        data-testid="slot-picker-anchor"
+        className="pointer-events-none absolute -left-4 hidden h-8 w-8 -translate-y-1/2 rotate-45 rounded-[10px] border-l border-b border-slate-200 bg-white shadow-[-8px_8px_20px_rgba(15,23,42,0.06)] xl:block"
+        style={{ top: `${anchorOffsetTop}px` }}
+      />
       <div className="rounded-t-[27px] border-b border-slate-200 bg-[linear-gradient(180deg,rgba(246,250,255,0.98),rgba(236,245,255,0.98))] px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
               <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">
-                左の {LOADOUT_SLOT_LABELS[slot]} 行を更新
+                左の {LOADOUT_SLOT_LABELS[slot]} 行につながっています
               </span>
             </div>
             <h3 className="mt-3 text-lg font-bold text-slate-900">
@@ -402,9 +408,9 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             </h3>
             {selectedItem ? (
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                いま使っているのは{' '}
+                左で選んでいるのは{' '}
                 <span className="font-semibold text-slate-900">{selectedItem.nameEn}</span>
-                。下から別の候補を選ぶと、左の行にそのまま入ります。
+                です。下から別の候補を選ぶと、左の行がそのまま入れ替わります。
               </p>
             ) : null}
           </div>
@@ -505,6 +511,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
   const [recentlyUpdatedSlot, setRecentlyUpdatedSlot] = React.useState<LoadoutSlot | null>(null);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
   const [pickerOffsetTop, setPickerOffsetTop] = React.useState(0);
+  const [pickerAnchorOffsetTop, setPickerAnchorOffsetTop] = React.useState(56);
   const advanceTimerRef = React.useRef<number | null>(null);
   const clearRecentUpdateTimerRef = React.useRef<number | null>(null);
   const loadoutBoardRef = React.useRef<HTMLDivElement | null>(null);
@@ -584,11 +591,13 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
   const syncPickerOffset = React.useCallback(() => {
     if (!activeSlot) {
       setPickerOffsetTop(0);
+      setPickerAnchorOffsetTop(56);
       return;
     }
 
     if (window.innerWidth < 1280) {
       setPickerOffsetTop(0);
+      setPickerAnchorOffsetTop(56);
       return;
     }
 
@@ -597,12 +606,14 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
     if (!board || !row) {
       setPickerOffsetTop(0);
+      setPickerAnchorOffsetTop(56);
       return;
     }
 
     const boardRect = board.getBoundingClientRect();
     const rowRect = row.getBoundingClientRect();
     setPickerOffsetTop(Math.max(0, rowRect.top - boardRect.top));
+    setPickerAnchorOffsetTop(Math.max(36, Math.round(rowRect.height / 2)));
   }, [activeSlot, rowRefs]);
 
   React.useLayoutEffect(() => {
@@ -674,7 +685,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           </span>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] xl:items-start">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)] xl:items-start xl:gap-2">
           <CurrentLoadoutTable
             activeSlot={activeSlot}
             selectedIds={{
@@ -689,7 +700,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             rowRefs={rowRefs}
           />
 
-          <div className="relative min-h-[22rem] xl:min-h-[32rem]">
+          <div className="relative min-h-[22rem] xl:-ml-4 xl:min-h-[32rem] xl:pl-4">
             {activeSlot ? (
               <div
                 className="transition-transform duration-300 ease-out xl:absolute xl:left-0 xl:right-0"
@@ -701,6 +712,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
+                  anchorOffsetTop={pickerAnchorOffsetTop}
                 />
               </div>
             ) : (

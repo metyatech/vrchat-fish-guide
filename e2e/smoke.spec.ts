@@ -43,7 +43,10 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByText('現在の装備の合計ステータス', { exact: true })).toBeVisible();
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
-  await expect(page.getByTestId('slot-picker-panel')).toContainText('左の Rod 行を更新');
+  await expect(page.getByTestId('slot-picker-panel')).toContainText(
+    '左の Rod 行につながっています',
+  );
+  await expect(page.getByTestId('slot-picker-anchor')).toBeVisible();
   await expect(page.getByRole('button', { name: /細かい調整と前提/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rod を変える' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'まずはこの候補を比較へ追加' })).toBeVisible();
@@ -114,7 +117,7 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
   await page.goto('/calculator/');
 
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
-  await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を右から選ぶ');
+  await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を編集中');
   await expect(page.getByTestId('current-loadout-card')).toHaveCSS('overflow', 'visible');
 
   // The compact-mode table (no location column, abbreviated stat headers) must fit
@@ -158,6 +161,7 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
     .locator('[data-state="active"]')
     .first();
   await expect(activeRow).toBeVisible();
+  await expect(activeRow).toContainText('右で選ぶと、この行に入ります');
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
 
   // ── New: game loadout board region must not overflow horizontally ──
@@ -205,7 +209,7 @@ test('loadout board visual appearance matches snapshot', async ({ page }) => {
   const loadoutCard = page.getByTestId('current-loadout-card');
   await expect(loadoutCard).toBeVisible();
   // Ensure the active slot indicator shows Rod (default state).
-  await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を右から選ぶ');
+  await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を編集中');
   // Pin the board width to reduce tiny OS-specific layout drift while keeping
   // the visual review meaningful.
   await loadoutCard.evaluate((node) => {

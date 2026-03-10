@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-03-10
+
+### Changed
+
+- **Step 1 now reads more like an anchored selection flow instead of two detached cards**: the active row keeps the focus inside the current-loadout board, the picker panel uses a notch aligned to that row, and the active-state callout stays inside the row instead of floating outside the board.
+- **Removed the overflow-causing external callout**: the Step 1 active indicator no longer sticks out of the loadout board, so the board keeps its width without reintroducing horizontal scrolling.
+- **Strengthened the wording around the source→destination relationship**: the active row now says that the choice will land in that row, while the picker panel says it is attached to the matching row on the left.
+
 ## [0.12.1] - 2026-03-10
 
 ### Changed

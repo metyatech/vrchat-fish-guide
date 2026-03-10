@@ -120,10 +120,11 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     const table = screen.getByTestId('current-loadout-table');
     const rodRow = within(table).getByRole('button', { name: 'Rod を選び直す' });
-    expect(rodRow).toHaveTextContent('右の一覧から選ぶと、この行が更新されます');
+    expect(rodRow).toHaveTextContent('右で選ぶと、この行に入ります');
 
     const pickerPanel = screen.getByTestId('slot-picker-panel');
-    expect(pickerPanel).toHaveTextContent('左の Rod 行を更新');
-    expect(screen.getByTestId('active-slot-indicator')).toHaveTextContent('Rod を右から選ぶ');
+    expect(pickerPanel).toHaveTextContent('左の Rod 行につながっています');
+    expect(screen.getByTestId('active-slot-indicator')).toHaveTextContent('Rod を編集中');
+    expect(screen.getByTestId('slot-picker-anchor')).toBeInTheDocument();
   });
 });

@@ -180,14 +180,15 @@ describe('ParameterForm', () => {
 
     const activeRow = within(currentLoadoutCard).getByRole('button', { name: 'Rod を選び直す' });
     expect(activeRow).toHaveAttribute('data-state', 'active');
-    expect(activeRow).toHaveTextContent('右の一覧から選ぶと、この行が更新されます');
+    expect(activeRow).toHaveTextContent('右で選ぶと、この行に入ります');
 
     const activeIndicator = screen.getByTestId('active-slot-indicator');
-    expect(activeIndicator).toHaveTextContent('Rod を右から選ぶ');
+    expect(activeIndicator).toHaveTextContent('Rod を編集中');
 
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     expect(pickerPanel).toHaveTextContent('Rod の候補');
-    expect(pickerPanel).toHaveTextContent('左の Rod 行を更新');
+    expect(pickerPanel).toHaveTextContent('左の Rod 行につながっています');
+    expect(screen.getByTestId('slot-picker-anchor')).toBeInTheDocument();
     const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(nowrapBadges.length).toBeGreaterThan(0);
   });
