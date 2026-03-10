@@ -8,7 +8,7 @@ All notable changes to this project are documented here.
 
 ### Changed
 
-- **The Step 1 picker header now sits outside the scroll body**: the column labels stay sealed under the description block while the item rows scroll underneath, so the strip above the picker header no longer shows the row content behind it.
+- **The Step 1 picker chooser no longer leaks row content above the header while scrolling**: the candidate list now renders as grid rows under a sticky opaque header, so the band above the column labels stays visually sealed instead of showing clipped row content.
 
 ## [0.12.11] - 2026-03-10
 

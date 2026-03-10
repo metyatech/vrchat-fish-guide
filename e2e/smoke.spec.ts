@@ -78,13 +78,25 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     .textContent();
   const initialRowCount = await page.locator('tbody tr').count();
 
-  await page.locator('#loadout-picker-rod tbody tr', { hasText: 'Fortunate Rod' }).click();
+  await page
+    .locator('#loadout-picker-rod [data-testid="picker-option-row"]', { hasText: 'Fortunate Rod' })
+    .click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Line の候補');
-  await page.locator('#loadout-picker-line tbody tr', { hasText: 'Lucky Line' }).click();
+  await page
+    .locator('#loadout-picker-line [data-testid="picker-option-row"]', { hasText: 'Lucky Line' })
+    .click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Bobber の候補');
-  await page.locator('#loadout-picker-bobber tbody tr', { hasText: 'Lucky Bobber' }).click();
+  await page
+    .locator('#loadout-picker-bobber [data-testid="picker-option-row"]', {
+      hasText: 'Lucky Bobber',
+    })
+    .click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Enchant の候補');
-  await page.locator('#loadout-picker-enchant tbody tr', { hasText: 'Money Maker' }).click();
+  await page
+    .locator('#loadout-picker-enchant [data-testid="picker-option-row"]', {
+      hasText: 'Money Maker',
+    })
+    .click();
   await page.getByLabel('Fishing Area').selectOption('open-sea');
   await page.getByLabel('Time of Day').selectOption('night');
   await page.getByLabel('Weather').selectOption('rainy');
@@ -222,6 +234,64 @@ test('loadout board visual appearance matches snapshot', async ({ page }) => {
   // Visual regression: the loadout board must match the established baseline.
   // Run with --update-snapshots to update the baseline after intentional redesigns.
   await expect(loadoutCard).toHaveScreenshot('loadout-board-rod-active.png', {
+    maxDiffPixelRatio: 0.04,
+  });
+});
+
+test('scrolled picker panel keeps the header sealed', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto('/calculator/');
+
+  await page.getByLabel('Line を選び直す').click();
+  const pickerPanel = page.getByTestId('slot-picker-panel');
+  await expect(pickerPanel).toContainText('Line の候補');
+
+  await page.evaluate(() => {
+    const list = document.getElementById('loadout-picker-line');
+    const wrap = list?.parentElement;
+    if (wrap) {
+      wrap.scrollTop = 220;
+    }
+  });
+
+  await page.waitForTimeout(150);
+  const headerSeal = await page.evaluate(() => {
+    const list = document.getElementById('loadout-picker-line');
+    const scrollBody = list?.parentElement as HTMLElement | null;
+    const header = scrollBody?.firstElementChild as HTMLElement | null;
+    if (!scrollBody || !header) {
+      return { error: 'missing scroll structure' };
+    }
+
+    const rect = header.getBoundingClientRect();
+    const samplePoints = [0.2, 0.5, 0.8].map((xRatio) => ({
+      x: rect.left + rect.width * xRatio,
+      y: rect.top + Math.min(rect.height - 4, Math.max(4, rect.height * 0.45)),
+    }));
+    return samplePoints.map((point) => {
+      const el = document.elementFromPoint(point.x, point.y) as HTMLElement | null;
+      const text = el?.textContent?.trim().slice(0, 30) ?? null;
+      return {
+        tag: el?.tagName ?? null,
+        text,
+        inHeaderBand:
+          !!el &&
+          !el.closest('[data-testid="picker-option-row"]') &&
+          ['選択', '名前', 'Lk', 'Str', 'Exp', 'Atk', 'BigC', 'MaxWt'].some((label) =>
+            text?.includes(label),
+          ),
+      };
+    });
+  });
+
+  expect(headerSeal).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ inHeaderBand: true }),
+      expect.objectContaining({ inHeaderBand: true }),
+      expect.objectContaining({ inHeaderBand: true }),
+    ]),
+  );
+  await expect(pickerPanel).toHaveScreenshot('picker-panel-line-scrolled.png', {
     maxDiffPixelRatio: 0.04,
   });
 });

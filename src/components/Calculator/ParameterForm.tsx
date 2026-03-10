@@ -152,6 +152,8 @@ const LOADOUT_STAT_COLUMN_ORDER: StatThemeKey[] = [
   'maxWeight',
 ];
 
+const PICKER_GRID_COLUMNS = 'grid-cols-[72px_minmax(0,1fr)_60px_60px_60px_72px_68px_76px]';
+
 /** Slot-specific active row class on the dark loadout board. ring-{color}-400 must be present for ui-quality tests. */
 const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
   rod: 'relative ring-2 ring-amber-400 shadow-[0_18px_36px_rgba(245,158,11,0.18)] before:absolute before:inset-y-4 before:left-0 before:w-1.5 before:rounded-r-full before:bg-amber-400',
@@ -599,113 +601,103 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </div>
       </div>
 
-      <div className="relative z-20 overflow-hidden border-b border-slate-200 bg-white px-4 pt-0 shadow-[0_1px_0_rgba(226,232,240,1)]">
-        <div className="grid grid-cols-[72px_minmax(0,1fr)_60px_60px_60px_72px_68px_76px] items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]">
-          <div className="px-2 text-left text-slate-500">選択</div>
-          <div className="px-2 text-left text-slate-500">名前</div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
-            Lk
-          </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
-            Str
-          </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
-            Exp
-          </div>
+      <div
+        data-testid="picker-scroll-body"
+        className="relative z-0 max-h-[68vh] overflow-auto bg-white"
+      >
+        <div
+          data-testid="picker-column-header"
+          className="sticky top-0 z-20 border-b border-slate-200 bg-white px-4 shadow-[0_1px_0_rgba(226,232,240,1)]"
+        >
           <div
-            className="px-1 text-center"
-            style={{ color: STAT_THEME.attractionRate.surfaceText }}
+            className={`grid ${PICKER_GRID_COLUMNS} items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]`}
           >
-            Atk
-          </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
-            BigC
-          </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
-            MaxWt
+            <div className="px-2 text-left text-slate-500">選択</div>
+            <div className="px-2 text-left text-slate-500">名前</div>
+            <div className="px-1 text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+              Lk
+            </div>
+            <div className="px-1 text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+              Str
+            </div>
+            <div className="px-1 text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+              Exp
+            </div>
+            <div
+              className="px-1 text-center"
+              style={{ color: STAT_THEME.attractionRate.surfaceText }}
+            >
+              Atk
+            </div>
+            <div
+              className="px-1 text-center"
+              style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
+            >
+              BigC
+            </div>
+            <div className="px-1 text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+              MaxWt
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="relative z-0 max-h-[68vh] overflow-auto bg-white px-4 pb-3 pt-0 before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:z-10 before:h-10 before:bg-white before:content-['']">
-        <table
-          id={`loadout-picker-${slot}`}
-          className="w-full table-fixed border-separate border-spacing-0 text-sm"
-        >
-          <colgroup>
-            <col style={{ width: '72px' }} />
-            <col />
-            <col style={{ width: '60px' }} />
-            <col style={{ width: '60px' }} />
-            <col style={{ width: '60px' }} />
-            <col style={{ width: '72px' }} />
-            <col style={{ width: '68px' }} />
-            <col style={{ width: '76px' }} />
-          </colgroup>
-          <tbody>
-            {items.map((item) => {
-              const selected = item.id === selectedId;
-              const selectItem = () => onSelect(item.id);
-              const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  selectItem();
-                }
-              };
+        <div id={`loadout-picker-${slot}`} className="bg-white px-4 pb-3">
+          {items.map((item) => {
+            const selected = item.id === selectedId;
+            const selectItem = () => onSelect(item.id);
+            const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectItem();
+              }
+            };
 
-              return (
-                <tr
-                  key={item.id}
-                  tabIndex={0}
-                  role="button"
-                  aria-pressed={selected}
-                  aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
-                  onClick={selectItem}
-                  onKeyDown={handleKeyDown}
-                  className={`cursor-pointer outline-none transition-all duration-150 ${
-                    selected
-                      ? 'bg-emerald-50/70 shadow-[inset_4px_0_0_rgba(16,185,129,0.9),inset_0_0_0_1px_rgba(16,185,129,0.18)]'
-                      : 'bg-white hover:bg-slate-50 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-ocean-400'
-                  }`}
-                >
-                  <td className="border-b border-slate-200 px-2 py-3 align-middle">
-                    <LoadoutSelectionBadge selected={selected} />
-                  </td>
-                  <td className="border-b border-slate-200 px-2 py-3 align-middle">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-gray-900">
-                        {item.nameEn}
-                      </div>
-                      <div className="mt-0.5 text-xs leading-relaxed text-gray-500">
-                        {formatItemDetail(item)}
-                      </div>
-                    </div>
-                  </td>
-                  {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
-                    const theme = STAT_THEME[stat];
-                    return (
-                      <td
-                        key={stat}
-                        className="border-b border-slate-200 px-1 py-3 text-center align-middle"
+            return (
+              <div
+                key={item.id}
+                data-testid="picker-option-row"
+                tabIndex={0}
+                role="button"
+                aria-pressed={selected}
+                aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
+                onClick={selectItem}
+                onKeyDown={handleKeyDown}
+                className={`grid ${PICKER_GRID_COLUMNS} cursor-pointer items-center border-b border-slate-200 outline-none transition-all duration-150 ${
+                  selected
+                    ? 'bg-emerald-50/70 shadow-[inset_4px_0_0_rgba(16,185,129,0.9),inset_0_0_0_1px_rgba(16,185,129,0.18)]'
+                    : 'bg-white hover:bg-slate-50 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-ocean-400'
+                }`}
+              >
+                <div className="px-2 py-3">
+                  <LoadoutSelectionBadge selected={selected} />
+                </div>
+                <div className="min-w-0 px-2 py-3">
+                  <div className="truncate text-sm font-semibold text-gray-900">{item.nameEn}</div>
+                  <div className="mt-0.5 text-xs leading-relaxed text-gray-500">
+                    {formatItemDetail(item)}
+                  </div>
+                </div>
+                {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
+                  const theme = STAT_THEME[stat];
+                  return (
+                    <div key={stat} className="px-1 py-3 text-center">
+                      <span
+                        className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
+                        style={{
+                          borderColor: theme.cardBorder,
+                          backgroundColor: theme.cardBackground,
+                          color: theme.surfaceText,
+                        }}
                       >
-                        <span
-                          className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
-                          style={{
-                            borderColor: theme.cardBorder,
-                            backgroundColor: theme.cardBackground,
-                            color: theme.surfaceText,
-                          }}
-                        >
-                          {formatItemStatValue(item, stat)}
-                        </span>
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        {formatItemStatValue(item, stat)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
