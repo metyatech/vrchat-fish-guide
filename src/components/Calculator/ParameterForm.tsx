@@ -599,7 +599,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </div>
       </div>
 
-      <div className="max-h-[68vh] overflow-auto bg-white px-4 py-3">
+      <div className="max-h-[68vh] overflow-auto bg-white px-4 pb-3 pt-0">
         <table
           id={`loadout-picker-${slot}`}
           className="w-full table-fixed border-separate border-spacing-0 text-sm"

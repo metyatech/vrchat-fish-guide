@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.11] - 2026-03-10
+
+### Changed
+
+- **The Step 1 picker table no longer leaves a scroll-padding gap above the fixed header**: the scroll area starts directly at the header, so the content behind it no longer peeks through in the band above the column labels.
+
 ## [0.12.10] - 2026-03-10
 
 ### Changed
