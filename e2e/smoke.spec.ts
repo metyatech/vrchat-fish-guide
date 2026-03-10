@@ -213,27 +213,23 @@ test('calculator avoids horizontal scrolling on a narrow viewport', async ({ pag
   expect((pageOverflow as { scrollX: number }).scrollX).toBe(0);
 });
 
-test('loadout board visual appearance matches snapshot', async ({ page }) => {
+test('current loadout table visual appearance matches snapshot', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  // Wait for the loadout board to be fully rendered and animated.
-  const loadoutCard = page.getByTestId('current-loadout-card');
-  await expect(loadoutCard).toBeVisible();
+  const loadoutTable = page.getByTestId('current-loadout-table');
+  await expect(loadoutTable).toBeVisible();
   // Ensure the active slot indicator shows Rod (default state).
   await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を編集中');
-  // Pin the board width near its real desktop layout width so the visual
-  // snapshot reflects the anchored overlay design instead of an artificially
-  // squeezed card.
-  await loadoutCard.evaluate((node) => {
+  // Pin the table width near its desktop layout width so the screenshot stays stable.
+  await loadoutTable.evaluate((node) => {
     (node as HTMLElement).style.width = '1080px';
   });
   // Wait a tick for CSS animations to settle.
   await page.waitForTimeout(500);
 
-  // Visual regression: the loadout board must match the established baseline.
-  // Run with --update-snapshots to update the baseline after intentional redesigns.
-  await expect(loadoutCard).toHaveScreenshot('loadout-board-rod-active.png', {
+  // Visual regression: the loadout table must match the established baseline.
+  await expect(loadoutTable).toHaveScreenshot('loadout-table-rod-active.png', {
     maxDiffPixelRatio: 0.04,
   });
 });
