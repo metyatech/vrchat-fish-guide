@@ -111,6 +111,30 @@ describe('Step 1 loadout UI quality', () => {
       Array.from(openedPanels).some((node) => node.getAttribute('aria-hidden') === 'false'),
     ).toBe(true);
   });
+
+  it('clicking the detail icon does not open the equipment picker for that row', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const lineRow = currentLoadoutTable.querySelector('[data-slot="line"]');
+    expect(lineRow).not.toBeNull();
+
+    fireEvent.click(
+      within(lineRow as HTMLElement).getAllByRole('button', { name: '詳細を見る' })[0],
+    );
+
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Rod の候補');
+    expect(currentLoadoutTable.querySelector('[data-slot="rod"]')).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(currentLoadoutTable.querySelector('[data-slot="line"]')).toHaveAttribute(
+      'data-state',
+      'inactive',
+    );
+  });
 });
 
 describe('ParameterForm', () => {

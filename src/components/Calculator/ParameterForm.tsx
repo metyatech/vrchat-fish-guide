@@ -410,6 +410,7 @@ function CurrentLoadoutTable({
 
                 const activate = () => onActivate(slot);
                 const handleDetailButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+                  event.preventDefault();
                   event.stopPropagation();
                   toggleDetail(slot);
                 };
@@ -438,7 +439,7 @@ function CurrentLoadoutTable({
                       />
                     ) : null}
 
-                    <div className="relative z-0 px-4 py-4 xl:px-4 xl:py-4">
+                    <div className="relative px-4 py-4 xl:px-4 xl:py-4">
                       <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
                         <div className="flex flex-col gap-2">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />

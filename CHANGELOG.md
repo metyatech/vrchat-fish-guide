@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.19] - 2026-03-11
+
+### Fixed
+
+- **The loadout info icon no longer opens the equipment picker**: clicking the small `i` now only opens row details. It no longer accidentally triggers the row-wide equipment chooser underneath.
+
 ## [0.12.18] - 2026-03-11
 
 ### Changed
