@@ -76,6 +76,23 @@ describe('Step 1 loadout UI quality', () => {
 
     expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
   });
+
+  it('keeps loadout detail text hidden by default and only shows it when expanded', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const rodRow = currentLoadoutTable.querySelector('[data-slot="rod"]');
+    expect(rodRow).not.toBeNull();
+    expect(within(rodRow as HTMLElement).queryByText('Default Rod')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(rodRow as HTMLElement).getAllByRole('button', { name: '詳細を見る' })[0],
+    );
+
+    expect(within(rodRow as HTMLElement).getAllByText('Default Rod').length).toBeGreaterThan(0);
+  });
 });
 
 describe('ParameterForm', () => {

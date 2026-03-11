@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.14] - 2026-03-11
+
+### Changed
+
+- **Current loadout rows now stay compact by default**: Rod, Line, Bobber, and Enchant no longer always show their location, price, or effect details. You can reveal those details only when you want them with the inline toggle.
+
 ## [0.12.13] - 2026-03-11
 
 ### Changed

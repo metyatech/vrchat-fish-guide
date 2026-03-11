@@ -265,6 +265,12 @@ function CurrentLoadoutTable({
   mobilePickerPanel: React.ReactNode;
   desktopPickerPanel: React.ReactNode;
 }) {
+  const [detailOpenSlots, setDetailOpenSlots] = React.useState<Record<LoadoutSlot, boolean>>({
+    rod: false,
+    line: false,
+    bobber: false,
+    enchant: false,
+  });
   const selectedItems: Record<LoadoutSlot, EquipmentItem | EnchantItem> = {
     rod: RODS.find((item) => item.id === selectedIds.rod) ?? RODS[0],
     line: LINES.find((item) => item.id === selectedIds.line) ?? LINES[0],
@@ -335,6 +341,13 @@ function CurrentLoadoutTable({
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [activeSlot, onCloseActivePicker]);
 
+  const toggleDetail = (slot: LoadoutSlot) => {
+    setDetailOpenSlots((current) => ({
+      ...current,
+      [slot]: !current[slot],
+    }));
+  };
+
   return (
     <div data-testid="current-loadout-card" className="overflow-visible">
       <div
@@ -389,13 +402,12 @@ function CurrentLoadoutTable({
                 const item = selectedItems[slot];
                 const isActive = activeSlot === slot;
                 const isUpdated = recentlyUpdatedSlot === slot;
+                const detailsOpen = detailOpenSlots[slot];
 
                 const activate = () => onActivate(slot);
-                const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    activate();
-                  }
+                const handleDetailButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+                  event.stopPropagation();
+                  toggleDetail(slot);
                 };
 
                 return (
@@ -406,19 +418,23 @@ function CurrentLoadoutTable({
                     }}
                     data-slot={slot}
                     data-state={isActive ? 'active' : 'inactive'}
-                    tabIndex={isActive ? undefined : 0}
-                    role={isActive ? undefined : 'button'}
-                    aria-pressed={isActive ? undefined : false}
-                    aria-label={isActive ? undefined : `${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
-                    onClick={isActive ? undefined : activate}
-                    onKeyDown={isActive ? undefined : handleKeyDown}
-                    className={`relative cursor-pointer overflow-visible outline-none transition-all duration-200 ${
+                    className={`relative overflow-visible transition-all duration-200 ${
                       isActive
                         ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
-                        : 'bg-white/70 hover:bg-white/92 focus:bg-white/92 focus:ring-2 focus:ring-ocean-300'
+                        : 'bg-white/70 hover:bg-white/92 focus-within:bg-white/92 focus-within:ring-2 focus-within:ring-ocean-300'
                     } ${isUpdated ? 'animate-loadout-settle' : ''}`}
                   >
-                    <div className="px-4 py-4 xl:px-4 xl:py-4">
+                    {!isActive ? (
+                      <button
+                        type="button"
+                        aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
+                        aria-pressed="false"
+                        className="absolute inset-0 z-10 rounded-[inherit]"
+                        onClick={activate}
+                      />
+                    ) : null}
+
+                    <div className="relative z-0 px-4 py-4 xl:px-4 xl:py-4">
                       <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
                         <div className="flex flex-col gap-2">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
@@ -441,14 +457,27 @@ function CurrentLoadoutTable({
                         </div>
 
                         <div className="min-w-0">
-                          <div
-                            className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
-                          >
-                            {item.nameEn}
+                          <div className="flex items-start justify-between gap-3">
+                            <div
+                              className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
+                            >
+                              {item.nameEn}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleDetailButtonClick}
+                              className="relative z-20 shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                            >
+                              <span className="whitespace-nowrap">
+                                {detailsOpen ? '詳細を隠す' : '詳細を見る'}
+                              </span>
+                            </button>
                           </div>
-                          <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                            {formatItemDetail(item)}
-                          </div>
+                          {detailsOpen ? (
+                            <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                              {formatItemDetail(item)}
+                            </div>
+                          ) : null}
                           <div
                             className={`mt-1 text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
                           >
@@ -486,12 +515,25 @@ function CurrentLoadoutTable({
                         </div>
 
                         <div className="min-w-0">
-                          <div className="truncate text-base font-bold text-slate-900">
-                            {item.nameEn}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="truncate text-base font-bold text-slate-900">
+                              {item.nameEn}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleDetailButtonClick}
+                              className="relative z-20 shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                            >
+                              <span className="whitespace-nowrap">
+                                {detailsOpen ? '詳細を隠す' : '詳細を見る'}
+                              </span>
+                            </button>
                           </div>
-                          <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                            {formatItemDetail(item)}
-                          </div>
+                          {detailsOpen ? (
+                            <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                              {formatItemDetail(item)}
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="flex max-w-full flex-wrap gap-1.5">

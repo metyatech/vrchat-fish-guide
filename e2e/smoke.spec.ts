@@ -246,7 +246,7 @@ test('clicking outside the picker panel closes it', async ({ page }) => {
 });
 
 test('scrolled picker panel keeps the header sealed', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
   await page.getByLabel('Line を選び直す').click();
