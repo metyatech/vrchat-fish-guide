@@ -16,7 +16,7 @@
  */
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
@@ -32,8 +32,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('LoadoutSelectionBadge spans carry whitespace-nowrap to prevent text wrapping', () => {
     renderDefault();
 
-    // The picker panel is open by default (activeSlot='rod'), so badges are visible.
-    // Use selector:'span' to avoid matching text elsewhere.
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     const badges = within(pickerPanel).getAllByText(/✓ 使用中|選択/, { selector: 'span' });
 
@@ -67,9 +66,10 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(screen.queryByTestId('loadout-connector')).not.toBeInTheDocument();
   });
 
-  it('active row (Rod by default) carries a slot-specific amber ring class', () => {
+  it('active row carries a slot-specific amber ring class after the row is opened', () => {
     renderDefault();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     const table = screen.getByTestId('current-loadout-table');
     const rodRow = table.querySelector('[data-slot="rod"]');
     expect(rodRow).not.toBeNull();
@@ -82,6 +82,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('picker panel uses white background (bg-white), not slot-tinted bg', () => {
     renderDefault();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     const panel = screen.getByTestId('slot-picker-panel');
     // Should have bg-white applied directly; slot-specific bg-*-50 should not appear.
     expect(panel.className).toMatch(/bg-white/);
@@ -109,7 +110,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('inventory drawer close button has whitespace-nowrap to prevent label wrapping', () => {
     renderDefault();
 
-    // The picker panel is open by default (activeSlot='rod').
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     // The 閉じる button label span must have whitespace-nowrap so it never wraps.
     const closeButtonNowrap = pickerPanel.querySelector('span.whitespace-nowrap');
@@ -119,6 +120,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('selection relationship is explicit in both source row and chooser panel', () => {
     renderDefault();
 
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     const table = screen.getByTestId('current-loadout-table');
     const rodRow = table.querySelector('[data-slot="rod"]');
     expect(rodRow).not.toBeNull();

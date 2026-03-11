@@ -11,7 +11,7 @@ import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
 // and the picker side panel.
 
 describe('Step 1 loadout UI quality', () => {
-  it('current loadout board presents four selectable rows and keeps Rod active on mount', () => {
+  it('current loadout board presents four selectable rows and starts with no picker open', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
@@ -19,10 +19,8 @@ describe('Step 1 loadout UI quality', () => {
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
     const rowButtons = currentLoadoutTable.querySelectorAll('[data-slot]');
     expect(rowButtons).toHaveLength(4);
-    expect(currentLoadoutTable.querySelector('[data-slot="rod"]')).toHaveAttribute(
-      'data-state',
-      'active',
-    );
+    expect(currentLoadoutTable.querySelectorAll('[data-state="active"]')).toHaveLength(0);
+    expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
   });
 
   it('picker panel badge labels have whitespace-nowrap to prevent wrapping', () => {
@@ -30,18 +28,18 @@ describe('Step 1 loadout UI quality', () => {
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
-    // The picker panel (rod open by default) must contain whitespace-nowrap badges
-    // so that compact action labels never wrap across lines.
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     const noWrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(noWrapBadges.length).toBeGreaterThan(0);
   });
 
-  it('active slot row is visually marked on mount while other rows stay selectable', () => {
+  it('active slot row is visually marked after selection while other rows stay selectable', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
     const rodRow = currentLoadoutTable.querySelector('[data-slot="rod"]');
     expect(rodRow).toHaveAttribute('data-state', 'active');
@@ -70,6 +68,7 @@ describe('Step 1 loadout UI quality', () => {
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Rod の候補');
 
     fireEvent.pointerDown(document.body);
@@ -125,11 +124,8 @@ describe('Step 1 loadout UI quality', () => {
       within(lineRow as HTMLElement).getAllByRole('button', { name: '詳細を見る' })[0],
     );
 
-    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Rod の候補');
-    expect(currentLoadoutTable.querySelector('[data-slot="rod"]')).toHaveAttribute(
-      'data-state',
-      'active',
-    );
+    expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
+    expect(currentLoadoutTable.querySelectorAll('[data-state="active"]')).toHaveLength(0);
     expect(currentLoadoutTable.querySelector('[data-slot="line"]')).toHaveAttribute(
       'data-state',
       'inactive',
@@ -149,10 +145,6 @@ describe('ParameterForm', () => {
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    expect(currentLoadoutTable.querySelector('[data-slot="rod"]')).toHaveAttribute(
-      'data-state',
-      'active',
-    );
     expect(screen.getAllByText('Luck')[0]).toHaveStyle({ color: STAT_THEME.luck.surfaceText });
 
     const totalStatsSection = screen.getByTestId('total-stats-section');
@@ -174,6 +166,7 @@ describe('ParameterForm', () => {
 
     render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
 
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     fireEvent.click(screen.getByText('Fortunate Rod'));
 
     expect(onChange).toHaveBeenCalledWith({
@@ -247,6 +240,8 @@ describe('ParameterForm', () => {
 
     const currentLoadoutCard = screen.getByTestId('current-loadout-card');
     expect(currentLoadoutCard).toHaveClass('overflow-visible');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
 
     const activeRow = currentLoadoutCard.querySelector('[data-slot="rod"]');
     expect(activeRow).toHaveAttribute('data-state', 'active');

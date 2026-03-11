@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.20] - 2026-03-11
+
+### Changed
+
+- **Step 1 now starts closed instead of forcing the Rod picker open on first view**: you first see the current loadout table, then open only the row you want to change.
+- **Step 1 wording now matches the actual flow more closely**: the setup text and total-stats helper now describe the left-table-first interaction instead of assuming an already-open picker.
+- **Playwright E2E startup is now repo-local and stable on Windows**: the test flow no longer depends on brittle ad-hoc static-server startup, so `test:e2e` and `verify` use the same local server path reliably.
+
 ## [0.12.19] - 2026-03-11
 
 ### Fixed

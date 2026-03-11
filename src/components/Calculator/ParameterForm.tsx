@@ -794,7 +794,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
 }
 
 export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
-  const [activeSlot, setActiveSlot] = React.useState<LoadoutSlot | null>('rod');
+  const [activeSlot, setActiveSlot] = React.useState<LoadoutSlot | null>(null);
   const [recentlyUpdatedSlot, setRecentlyUpdatedSlot] = React.useState<LoadoutSlot | null>(null);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
   const advanceTimerRef = React.useRef<number | null>(null);
@@ -875,9 +875,6 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     playerMistakeRate: 'calc-player-mistake-rate',
   } as const;
 
-  const activeSlotTheme = activeSlot ? SLOT_THEME[activeSlot] : null;
-  const activeSlotLabel = activeSlot ? LOADOUT_SLOT_LABELS[activeSlot] : '選択なし';
-
   return (
     <div className="space-y-5">
       <section className="animate-slide-in-up space-y-5 rounded-[28px] border border-ocean-100/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(232,243,255,0.96))] p-5 shadow-[0_24px_64px_rgba(30,70,136,0.12)]">
@@ -890,7 +887,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           </div>
           <h2 className="text-lg font-semibold text-slate-900">まずは今の装備をそろえる</h2>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            左の表で変えたい行を押すと、右にその行専用の候補が出ます。選ぶと左のその行だけが更新されます。
+            最初は何も開いていません。左の表で変えたい行を押すと、その行専用の候補だけが右に出ます。
           </p>
         </div>
 
@@ -931,7 +928,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center">
                   <div className="text-sm font-semibold text-slate-700">候補を開く</div>
                   <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                    左のボードで変えたい欄を押してください。
+                    左の表で変えたい行を押してください。
                   </p>
                 </div>
               )
@@ -950,7 +947,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center">
                   <div className="text-sm font-semibold text-slate-700">候補を開く</div>
                   <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                    左のボードで変えたい欄を押してください。
+                    左の表で変えたい行を押してください。
                   </p>
                 </div>
               )
@@ -983,23 +980,8 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             </span>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-            <span className="rounded-full border border-slate-600 bg-slate-700/60 px-3 py-1 font-semibold text-slate-300">
-              結果は
-            </span>
-            <span
-              className={`flex items-center gap-2 rounded-full border px-3 py-1 font-semibold ${
-                activeSlotTheme
-                  ? activeSlotTheme.boardChipClassName
-                  : 'border-slate-600 bg-slate-700/60 text-slate-400'
-              }`}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${activeSlotTheme?.dotClassName ?? 'bg-slate-400'}`}
-              />
-              {activeSlotLabel}
-            </span>
-            <span>の選択で更新されます</span>
+          <div className="mb-3 text-xs font-semibold text-slate-400">
+            左の表で装備を選び直すと、ここもすぐ更新されます。
           </div>
 
           {model.inactiveEnchantReason ? (

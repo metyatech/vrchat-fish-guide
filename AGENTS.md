@@ -92,7 +92,7 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/implementation-and-coding
 
 # Engineering and implementation standards
 
-- Prefer official framework approaches and well-maintained dependencies.
+- Prefer official frameworks and well-maintained dependencies.
 - Use latest stable versions of packages/tools; document blockers if not.
 - Prefer OSS/free-tier services; call out tradeoffs.
 - PowerShell: \ is literal; avoid shadowing auto-vars; prefer single quotes.
@@ -102,6 +102,7 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/implementation-and-coding
 - Prefer config/constants over hardcoding; consolidate change points.
 - GUI: prioritize ergonomics, in-app guidance, and a natural top-to-bottom/left-to-right flow from current context to next action to result to optional detail.
 - Optimize for first-use clarity: use ordinary task language, avoid internal jargon, and make current selection, source choices, and result targets visually obvious in the UI.
+- In GUI interactions, follow established expectations for common controls (for example info icons, disclosure toggles, close buttons, tabs, row selection); only deviate when the UX gain clearly outweighs the surprise cost.
 - Prefer modern, visually rich UI and purposeful motion when they improve comprehension; avoid horizontal scrolling in primary application UI unless explicitly justified by the task.
 - In interactive selection flows, make the current item, the choice list, and the destination of the chosen result visually and spatially explicit. Prefer anchored drawers, callouts, overlays, or similar patterns over detached panels when they improve comprehension.
 - Do not treat stylistic richness or "game-like" presentation as success if users cannot immediately tell what is selected now, what they are choosing from, and where the change will apply. Comprehension wins over style.
@@ -111,8 +112,7 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/implementation-and-coding
 - Do not block async APIs; avoid sync I/O where responsiveness is expected.
 - Avoid external command execution; prefer native SDKs.
 - Prefer stable public APIs; isolate/document unavoidable internal API usage.
-- Externalize large embedded strings/templates/rules.
-- Do not commit build artifacts; keep naming aligned and consistent.
+- Externalize large embedded strings/templates/rules; do not commit build artifacts and keep naming aligned.
 - No machine-specific environments; use relative paths and explicit config.
 - Agent temp files MUST stay under OS temp unless approved.
 - Design tools/services for agent-compatibility via standard interfaces (CLI).
@@ -179,7 +179,6 @@ Reviewer proxy approval procedures are in the `autonomous-orchestrator` skill.
 Source: github:metyatech/agent-rules@HEAD/rules/global/quality-and-delivery.md
 
 # Quality and delivery gates
-
 Non-negotiable gates for any state-changing work or any claim of "done", "fixed", "working", or "passing".
 
 1. **BEFORE** state-changing work: list AC as binary, testable statements.
@@ -190,7 +189,6 @@ Non-negotiable gates for any state-changing work or any claim of "done", "fixed"
 6. **IN** final response: AC -> evidence mapping with outcomes and verification commands.
 
 ## Quality principles
-
 - Quality (correctness, safety, robustness, verifiability) > speed/convenience.
 - CI must run full suite on PRs/pushes; require passing checks for merges; add CI if missing.
 - Commit-time hooks must run full verify and block commits; confirm hooks installed.
@@ -199,6 +197,7 @@ Non-negotiable gates for any state-changing work or any claim of "done", "fixed"
 - Validate config/external inputs at boundaries.
 - For user-facing apps, perform deterministic runtime verification before completion.
 - Before implementation is considered complete, define the claimed runtime environment matrix and verify every claimed environment directly; anything not directly verified must be reported as unverified or unsupported, never implied as covered.
+- Prefer the least costly faithful verification environment: use automated tests, local or production-like environments, emulators, and simulators whenever they provide equivalent coverage; require real devices or live environments only for behaviors that cannot be validated faithfully otherwise.
 - For authentication, billing, authorization, or data-persistence changes, completion requires end-to-end verification in a live or production-like deployed environment, including post-deploy smoke coverage of the critical user journey.
 - For critical systems, passing unit/integration tests, CI, build, and health checks is necessary but insufficient; do not conclude until runtime user flows succeed in each claimed environment.
 - When an intended environment cannot be exercised with available tools or access, stop short of a completion claim, state the exact gap, and treat that environment as out of scope until verified.
@@ -206,7 +205,6 @@ Non-negotiable gates for any state-changing work or any claim of "done", "fixed"
 - If the user still reports a GUI flow as confusing, treat that as a failed acceptance gate: refine labels/order/flow and add a regression check for that confusion class before concluding.
 - For GUI work, do not conclude from functional correctness alone: require screenshot-based review plus automated checks for horizontal overflow, clipping, unintended compact-control wrapping, and clearly visible primary/current state where feasible.
 - Never claim bug-free behavior. Report scope, evidence, and residual risk explicitly.
-
 - For AI review bots, follow the re-triggering procedures in the `pr-review-workflow` skill.
 
 Detailed evidence format and procedures are in the quality-workflow skill.
