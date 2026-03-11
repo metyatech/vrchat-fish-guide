@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.16] - 2026-03-11
+
+### Changed
+
+- **The site version is now shown directly in the UI**: the current deployed version appears in the header and footer, so you can tell immediately whether you are looking at the latest frontend or an older cached tab.
+
 ## [0.12.15] - 2026-03-11
 
 ### Changed

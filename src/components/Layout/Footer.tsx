@@ -1,5 +1,6 @@
 import React from 'react';
 import { AdSlot } from '@/components/AdSlot';
+import { SITE_VERSION } from '@/lib/site';
 
 export function Footer() {
   return (
@@ -32,7 +33,7 @@ export function Footer() {
           </div>
         </div>
         <div className="border-t border-gray-700 mt-6 pt-4 text-center text-xs text-gray-500">
-          © 2026 VRChat Fish! ガイド — コミュニティ非公式サイト
+          © 2026 VRChat Fish! ガイド — コミュニティ非公式サイト · {SITE_VERSION}
         </div>
       </div>
     </footer>
