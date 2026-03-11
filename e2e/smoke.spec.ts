@@ -1,4 +1,7 @@
+import packageJson from '../package.json';
 import { expect, test } from '@playwright/test';
+
+const SITE_VERSION = `v${packageJson.version}`;
 
 test('home page exposes primary navigation links', async ({ page }) => {
   await page.goto('/');
@@ -6,6 +9,7 @@ test('home page exposes primary navigation links', async ({ page }) => {
   await expect(
     page.getByRole('main').getByRole('heading', { name: 'VRChat Fish! ガイド' }),
   ).toBeVisible();
+  await expect(page.getByTestId('site-version-badge')).toHaveText(SITE_VERSION);
   await expect(page.getByText('6 エリア対応')).toBeVisible();
   await expect(page.getByText('はじめて使うときの 3 手順')).toBeVisible();
   await expect(page.getByText('このサイトで分かること')).toBeVisible();

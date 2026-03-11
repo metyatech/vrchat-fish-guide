@@ -15,25 +15,28 @@ export function Header() {
                 VRChat Fish! ガイド
               </Link>
             </h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <p className="text-ocean-300 text-xs">コミュニティ非公式攻略情報</p>
-              <span className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-ocean-50">
-                {SITE_VERSION}
-              </span>
-            </div>
+            <p className="mt-1 text-ocean-300 text-xs">コミュニティ非公式攻略情報</p>
           </div>
         </div>
-        <nav className="hidden md:flex items-center gap-6 text-sm">
-          <Link href="/" className="hover:text-ocean-200 transition-colors">
-            ホーム
-          </Link>
-          <Link href="/calculator/" className="hover:text-ocean-200 transition-colors">
-            確率計算機
-          </Link>
-          <Link href="/sources/" className="hover:text-ocean-200 transition-colors">
-            出典・免責
-          </Link>
-        </nav>
+        <div className="flex items-center gap-4">
+          <span
+            data-testid="site-version-badge"
+            className="rounded-full border border-white/25 bg-white/12 px-2.5 py-1 text-[11px] font-bold tracking-[0.08em] text-white shadow-[0_6px_18px_rgba(4,26,74,0.18)]"
+          >
+            {SITE_VERSION}
+          </span>
+          <nav className="hidden md:flex items-center gap-6 text-sm">
+            <Link href="/" className="hover:text-ocean-200 transition-colors">
+              ホーム
+            </Link>
+            <Link href="/calculator/" className="hover:text-ocean-200 transition-colors">
+              確率計算機
+            </Link>
+            <Link href="/sources/" className="hover:text-ocean-200 transition-colors">
+              出典・免責
+            </Link>
+          </nav>
+        </div>
       </div>
       {/* Header ad slot (leaderboard) — future monetization */}
       <div className="bg-ocean-800 flex justify-center py-1">
