@@ -83,15 +83,23 @@ describe('Step 1 loadout UI quality', () => {
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    const rodRow = currentLoadoutTable.querySelector('[data-slot="rod"]');
-    expect(rodRow).not.toBeNull();
-    expect(within(rodRow as HTMLElement).queryByText('Default Rod')).not.toBeInTheDocument();
+    const lineRow = currentLoadoutTable.querySelector('[data-slot="line"]');
+    expect(lineRow).not.toBeNull();
+    const detailPanels = (lineRow as HTMLElement).querySelectorAll('[data-loadout-detail="line"]');
+    expect(detailPanels.length).toBeGreaterThan(0);
+    detailPanels.forEach((node) => {
+      expect(node).toHaveAttribute('aria-hidden', 'true');
+    });
 
     fireEvent.click(
-      within(rodRow as HTMLElement).getAllByRole('button', { name: '詳細を見る' })[0],
+      within(lineRow as HTMLElement).getAllByRole('button', { name: '詳細を見る' })[0],
     );
 
-    expect(within(rodRow as HTMLElement).getAllByText('Default Rod').length).toBeGreaterThan(0);
+    const openedPanels = (lineRow as HTMLElement).querySelectorAll('[data-loadout-detail="line"]');
+    expect(openedPanels.length).toBeGreaterThan(0);
+    expect(
+      Array.from(openedPanels).some((node) => node.getAttribute('aria-hidden') === 'false'),
+    ).toBe(true);
   });
 });
 

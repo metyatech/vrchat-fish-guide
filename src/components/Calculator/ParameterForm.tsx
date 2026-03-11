@@ -403,6 +403,11 @@ function CurrentLoadoutTable({
                 const isActive = activeSlot === slot;
                 const isUpdated = recentlyUpdatedSlot === slot;
                 const detailsOpen = detailOpenSlots[slot];
+                const detailButtonLabel = detailsOpen ? '詳細を隠す' : '詳細を見る';
+                const desktopDetailVisibleClass =
+                  detailsOpen || isActive
+                    ? 'max-h-24 opacity-100'
+                    : 'max-h-0 opacity-0 xl:group-hover:max-h-24 xl:group-hover:opacity-100 xl:group-focus-within:max-h-24 xl:group-focus-within:opacity-100';
 
                 const activate = () => onActivate(slot);
                 const handleDetailButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -421,7 +426,7 @@ function CurrentLoadoutTable({
                     className={`relative overflow-visible transition-all duration-200 ${
                       isActive
                         ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
-                        : 'bg-white/70 hover:bg-white/92 focus-within:bg-white/92 focus-within:ring-2 focus-within:ring-ocean-300'
+                        : 'group bg-white/70 hover:bg-white/92 focus-within:bg-white/92 focus-within:ring-2 focus-within:ring-ocean-300'
                     } ${isUpdated ? 'animate-loadout-settle' : ''}`}
                   >
                     {!isActive ? (
@@ -466,18 +471,21 @@ function CurrentLoadoutTable({
                             <button
                               type="button"
                               onClick={handleDetailButtonClick}
-                              className="relative z-20 shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              aria-label={detailButtonLabel}
+                              aria-pressed={detailsOpen}
+                              className="relative z-20 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-500 opacity-65 transition hover:border-slate-300 hover:text-slate-700 hover:opacity-100 focus:opacity-100"
                             >
-                              <span className="whitespace-nowrap">
-                                {detailsOpen ? '詳細を隠す' : '詳細を見る'}
-                              </span>
+                              <span aria-hidden="true">i</span>
+                              <span className="sr-only whitespace-nowrap">{detailButtonLabel}</span>
                             </button>
                           </div>
-                          {detailsOpen ? (
-                            <div className="mt-1 text-sm leading-relaxed text-slate-600">
-                              {formatItemDetail(item)}
-                            </div>
-                          ) : null}
+                          <div
+                            data-loadout-detail={slot}
+                            aria-hidden={!detailsOpen && !isActive}
+                            className={`mt-1 overflow-hidden text-sm leading-relaxed text-slate-600 transition-all duration-200 ${desktopDetailVisibleClass}`}
+                          >
+                            {formatItemDetail(item)}
+                          </div>
                           <div
                             className={`mt-1 text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
                           >
@@ -522,15 +530,20 @@ function CurrentLoadoutTable({
                             <button
                               type="button"
                               onClick={handleDetailButtonClick}
-                              className="relative z-20 shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              aria-label={detailButtonLabel}
+                              aria-pressed={detailsOpen}
+                              className="relative z-20 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                             >
-                              <span className="whitespace-nowrap">
-                                {detailsOpen ? '詳細を隠す' : '詳細を見る'}
-                              </span>
+                              <span aria-hidden="true">i</span>
+                              <span className="sr-only whitespace-nowrap">{detailButtonLabel}</span>
                             </button>
                           </div>
                           {detailsOpen ? (
-                            <div className="mt-1 text-sm leading-relaxed text-slate-600">
+                            <div
+                              data-loadout-detail={slot}
+                              aria-hidden={false}
+                              className="mt-1 text-sm leading-relaxed text-slate-600"
+                            >
                               {formatItemDetail(item)}
                             </div>
                           ) : null}

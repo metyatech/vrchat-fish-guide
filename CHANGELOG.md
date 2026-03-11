@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.15] - 2026-03-11
+
+### Changed
+
+- **Loadout row details are now easier to peek without a big persistent button**: on desktop, detail text appears when you hover or focus a row, and you can still pin it open with a small info icon when needed. The large always-visible detail button is gone.
+
 ## [0.12.14] - 2026-03-11
 
 ### Changed
