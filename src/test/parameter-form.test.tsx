@@ -64,6 +64,18 @@ describe('Step 1 loadout UI quality', () => {
 
     expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Bobber の候補');
   });
+
+  it('closes the picker when clicking outside the picker panel', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Rod の候補');
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
+  });
 });
 
 describe('ParameterForm', () => {

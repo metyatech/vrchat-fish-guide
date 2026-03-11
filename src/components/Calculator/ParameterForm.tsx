@@ -253,6 +253,7 @@ function CurrentLoadoutTable({
   selectedIds,
   recentlyUpdatedSlot,
   onActivate,
+  onCloseActivePicker,
   mobilePickerPanel,
   desktopPickerPanel,
 }: {
@@ -260,6 +261,7 @@ function CurrentLoadoutTable({
   selectedIds: Record<LoadoutSlot, string>;
   recentlyUpdatedSlot: LoadoutSlot | null;
   onActivate: (slot: LoadoutSlot) => void;
+  onCloseActivePicker: () => void;
   mobilePickerPanel: React.ReactNode;
   desktopPickerPanel: React.ReactNode;
 }) {
@@ -272,6 +274,7 @@ function CurrentLoadoutTable({
 
   const loadoutBoardRef = React.useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = React.useRef<HTMLDivElement | null>(null);
+  const pickerPanelRef = React.useRef<HTMLDivElement | null>(null);
   const rowRefs = React.useRef<Record<LoadoutSlot, HTMLDivElement | null>>({
     rod: null,
     line: null,
@@ -304,6 +307,33 @@ function CurrentLoadoutTable({
     window.addEventListener('resize', updateOverlayTop);
     return () => window.removeEventListener('resize', updateOverlayTop);
   }, [activeSlot, selectedIds.rod, selectedIds.line, selectedIds.bobber, selectedIds.enchant]);
+
+  React.useEffect(() => {
+    if (!activeSlot) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (pickerPanelRef.current?.contains(target)) {
+        return;
+      }
+
+      const clickedRow = LOADOUT_SLOT_ORDER.some((slot) => rowRefs.current[slot]?.contains(target));
+      if (clickedRow) {
+        return;
+      }
+
+      onCloseActivePicker();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [activeSlot, onCloseActivePicker]);
 
   return (
     <div data-testid="current-loadout-card" className="overflow-visible">
@@ -500,7 +530,10 @@ function CurrentLoadoutTable({
 
           <div className="mt-4 xl:hidden">
             {activeSlot && overlayTop === null ? (
-              <div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_20px_40px_rgba(15,23,42,0.12)]">
+              <div
+                ref={pickerPanelRef}
+                className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_20px_40px_rgba(15,23,42,0.12)]"
+              >
                 {mobilePickerPanel}
               </div>
             ) : null}
@@ -536,7 +569,10 @@ function CurrentLoadoutTable({
                     />
                   </svg>
                 </div>
-                <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]">
+                <div
+                  ref={pickerPanelRef}
+                  className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]"
+                >
                   {desktopPickerPanel}
                 </div>
               </div>
@@ -824,6 +860,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             }}
             recentlyUpdatedSlot={recentlyUpdatedSlot}
             onActivate={activateSlot}
+            onCloseActivePicker={() => setActiveSlot(null)}
             mobilePickerPanel={
               activeSlot ? (
                 <LoadoutPickerPanel

@@ -234,6 +234,17 @@ test('current loadout table visual appearance matches snapshot', async ({ page }
   });
 });
 
+test('clicking outside the picker panel closes it', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/calculator/');
+
+  await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
+
+  await page.getByRole('heading', { name: 'まずは今の装備をそろえる' }).click();
+
+  await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
+});
+
 test('scrolled picker panel keeps the header sealed', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto('/calculator/');
@@ -262,34 +273,30 @@ test('scrolled picker panel keeps the header sealed', async ({ page }) => {
       return { error: 'missing scroll structure' };
     }
 
-    const rect = header.getBoundingClientRect();
-    const samplePoints = [0.2, 0.5, 0.8].map((xRatio) => ({
-      x: rect.left + rect.width * xRatio,
-      y: rect.top + Math.min(rect.height - 4, Math.max(4, rect.height * 0.45)),
-    }));
-    return samplePoints.map((point) => {
-      const el = document.elementFromPoint(point.x, point.y) as HTMLElement | null;
-      const text = el?.textContent?.trim().slice(0, 30) ?? null;
-      return {
-        tag: el?.tagName ?? null,
-        text,
-        inHeaderBand:
-          !!el &&
-          !el.closest('[data-testid="picker-option-row"]') &&
-          ['選択', '名前', 'Lk', 'Str', 'Exp', 'Atk', 'BigC', 'MaxWt'].some((label) =>
-            text?.includes(label),
-          ),
-      };
-    });
+    const headerRect = header.getBoundingClientRect();
+    const scrollBodyRect = scrollBody.getBoundingClientRect();
+    const firstRow = scrollBody.querySelector(
+      '[data-testid="picker-option-row"]',
+    ) as HTMLElement | null;
+    const firstRowRect = firstRow?.getBoundingClientRect() ?? null;
+
+    return {
+      scrollTop: scrollBody.scrollTop,
+      separated: scrollBodyRect.top >= headerRect.bottom - 1,
+      headerBackground: getComputedStyle(header).backgroundColor,
+      firstRowTop: firstRowRect?.top ?? null,
+      headerBottom: headerRect.bottom,
+    };
   });
 
   expect(headerSeal).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ inHeaderBand: true }),
-      expect.objectContaining({ inHeaderBand: true }),
-      expect.objectContaining({ inHeaderBand: true }),
-    ]),
+    expect.objectContaining({
+      scrollTop: expect.any(Number),
+      separated: true,
+      headerBackground: 'rgb(255, 255, 255)',
+    }),
   );
+  expect((headerSeal as { scrollTop: number }).scrollTop).toBeGreaterThan(0);
 });
 
 test('sources page shows data governance and current source set', async ({ page }) => {

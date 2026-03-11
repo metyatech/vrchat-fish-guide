@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.13] - 2026-03-11
+
+### Changed
+
+- **The Step 1 equipment picker now closes when you click outside it**: you can still use the close button, but a normal click on the page outside the picker also dismisses it, like a standard chooser panel.
+
 ## [0.12.12] - 2026-03-10
 
 ### Changed
