@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.18] - 2026-03-11
+
+### Changed
+
+- **Loadout row details now open only from the info icon**: hovering the row no longer opens detail text. You open and close row details explicitly with the small `i` button, and the button now sits next to the item name instead of floating farther away.
+
 ## [0.12.17] - 2026-03-11
 
 ### Changed

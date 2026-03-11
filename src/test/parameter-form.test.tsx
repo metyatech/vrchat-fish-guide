@@ -83,6 +83,16 @@ describe('Step 1 loadout UI quality', () => {
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const rodRow = currentLoadoutTable.querySelector('[data-slot="rod"]');
+    expect(rodRow).not.toBeNull();
+    const activeDetailPanels = (rodRow as HTMLElement).querySelectorAll(
+      '[data-loadout-detail="rod"]',
+    );
+    expect(activeDetailPanels.length).toBeGreaterThan(0);
+    activeDetailPanels.forEach((node) => {
+      expect(node).toHaveAttribute('aria-hidden', 'true');
+    });
+
     const lineRow = currentLoadoutTable.querySelector('[data-slot="line"]');
     expect(lineRow).not.toBeNull();
     const detailPanels = (lineRow as HTMLElement).querySelectorAll('[data-loadout-detail="line"]');

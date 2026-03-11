@@ -404,10 +404,9 @@ function CurrentLoadoutTable({
                 const isUpdated = recentlyUpdatedSlot === slot;
                 const detailsOpen = detailOpenSlots[slot];
                 const detailButtonLabel = detailsOpen ? '詳細を隠す' : '詳細を見る';
-                const desktopDetailVisibleClass =
-                  detailsOpen || isActive
-                    ? 'max-h-24 opacity-100'
-                    : 'max-h-0 opacity-0 xl:group-hover:max-h-24 xl:group-hover:opacity-100 xl:group-focus-within:max-h-24 xl:group-focus-within:opacity-100';
+                const desktopDetailVisibleClass = detailsOpen
+                  ? 'max-h-24 opacity-100'
+                  : 'max-h-0 opacity-0';
 
                 const activate = () => onActivate(slot);
                 const handleDetailButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -462,18 +461,20 @@ function CurrentLoadoutTable({
                         </div>
 
                         <div className="min-w-0">
-                          <div className="flex items-start justify-between gap-3">
-                            <div
-                              className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
-                            >
-                              {item.nameEn}
+                          <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div
+                                className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
+                              >
+                                {item.nameEn}
+                              </div>
                             </div>
                             <button
                               type="button"
                               onClick={handleDetailButtonClick}
                               aria-label={detailButtonLabel}
                               aria-pressed={detailsOpen}
-                              className="relative z-20 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-500 opacity-65 transition hover:border-slate-300 hover:text-slate-700 hover:opacity-100 focus:opacity-100"
+                              className="relative z-20 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-500 opacity-80 transition hover:border-slate-300 hover:text-slate-700 hover:opacity-100 focus:opacity-100"
                             >
                               <span aria-hidden="true">i</span>
                               <span className="sr-only whitespace-nowrap">{detailButtonLabel}</span>
@@ -481,7 +482,7 @@ function CurrentLoadoutTable({
                           </div>
                           <div
                             data-loadout-detail={slot}
-                            aria-hidden={!detailsOpen && !isActive}
+                            aria-hidden={!detailsOpen}
                             className={`mt-1 overflow-hidden text-sm leading-relaxed text-slate-600 transition-all duration-200 ${desktopDetailVisibleClass}`}
                           >
                             {formatItemDetail(item)}
@@ -523,8 +524,8 @@ function CurrentLoadoutTable({
                         </div>
 
                         <div className="min-w-0">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="truncate text-base font-bold text-slate-900">
+                          <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
                               {item.nameEn}
                             </div>
                             <button
@@ -532,7 +533,7 @@ function CurrentLoadoutTable({
                               onClick={handleDetailButtonClick}
                               aria-label={detailButtonLabel}
                               aria-pressed={detailsOpen}
-                              className="relative z-20 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              className="relative z-20 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                             >
                               <span aria-hidden="true">i</span>
                               <span className="sr-only whitespace-nowrap">{detailButtonLabel}</span>
