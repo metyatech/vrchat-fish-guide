@@ -420,9 +420,7 @@ function CurrentLoadoutTable({
   const desktopPickerOffset =
     overlayTop !== null ? Math.max(0, overlayTop - desktopPickerAnchorOffset) : 0;
   const showDesktopPicker = isDesktop && activeSlot !== null && overlayTop !== null;
-  const desktopLoadoutGridColumns = showDesktopPicker
-    ? LOADOUT_TABLE_GRID_COLUMNS_COMPACT
-    : LOADOUT_TABLE_GRID_COLUMNS;
+  const desktopLoadoutGridColumns = LOADOUT_TABLE_GRID_COLUMNS;
 
   return (
     <div data-testid="current-loadout-card" className="overflow-visible">
@@ -440,14 +438,8 @@ function CurrentLoadoutTable({
         </div>
 
         <div ref={overlayLayerRef} className="relative overflow-visible px-3 py-4">
-          <div
-            className={
-              showDesktopPicker
-                ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_35rem] xl:items-start xl:gap-5 2xl:grid-cols-[minmax(0,1fr)_40rem]'
-                : ''
-            }
-          >
-            <div className="min-w-0">
+          <div>
+            <div>
               <div
                 data-testid="current-loadout-table"
                 className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
@@ -685,39 +677,43 @@ function CurrentLoadoutTable({
                 ) : null}
               </div>
             </div>
-
-            <div hidden={!showDesktopPicker} className="hidden xl:block">
-              {showDesktopPicker ? (
-                <div className="relative" style={{ marginTop: `${desktopPickerOffset}px` }}>
-                  <div
-                    data-testid="slot-picker-anchor"
-                    className="pointer-events-none absolute left-0 top-20 h-16 w-24 -translate-x-[76%] -translate-y-1/2"
-                  />
-                  <div className="pointer-events-none absolute left-0 top-20 h-16 w-24 -translate-x-[76%] -translate-y-1/2 overflow-visible">
-                    <svg
-                      className="h-full w-full drop-shadow-[-8px_10px_18px_rgba(15,23,42,0.08)]"
-                      viewBox="0 0 96 64"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M94 7C72 7 56 10 41 18L16 29C11 31 11 33 16 35L41 46C56 54 72 57 94 57"
-                        fill="white"
-                        stroke="#e2e8f0"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </div>
-                  <div
-                    ref={pickerPanelRef}
-                    className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]"
+          </div>
+          {/* Desktop picker — absolutely positioned overlay so it never compresses the left table */}
+          <div
+            hidden={!showDesktopPicker}
+            className="hidden xl:block absolute right-0 z-30 w-[35rem] 2xl:w-[40rem]"
+            style={{ top: desktopPickerOffset }}
+          >
+            {showDesktopPicker ? (
+              <div className="relative">
+                <div
+                  data-testid="slot-picker-anchor"
+                  className="pointer-events-none absolute left-0 top-20 h-16 w-24 -translate-x-[76%] -translate-y-1/2"
+                />
+                <div className="pointer-events-none absolute left-0 top-20 h-16 w-24 -translate-x-[76%] -translate-y-1/2 overflow-visible">
+                  <svg
+                    className="h-full w-full drop-shadow-[-8px_10px_18px_rgba(15,23,42,0.08)]"
+                    viewBox="0 0 96 64"
+                    aria-hidden="true"
                   >
-                    {desktopPickerPanel}
-                  </div>
+                    <path
+                      d="M94 7C72 7 56 10 41 18L16 29C11 31 11 33 16 35L41 46C56 54 72 57 94 57"
+                      fill="white"
+                      stroke="#e2e8f0"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </div>
-              ) : null}
-            </div>
+                <div
+                  ref={pickerPanelRef}
+                  className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]"
+                >
+                  {desktopPickerPanel}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

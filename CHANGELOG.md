@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.38] - 2026-03-13
+
+### Fixed
+
+- **Step 1 no longer collapses the current-loadout table while the comparison picker is open**: the replacement picker now stays as a true overlay anchored to the selected row, so the original Rod / Line / Bobber / Enchant table remains visible at normal width while you compare options.
+- **The visual baseline now matches the anchored-overlay layout**: the desktop snapshot was refreshed so regression checks guard the readable current-loadout table instead of the previously crushed layout.
+
 ## [0.12.37] - 2026-03-13
 
 ### Fixed

@@ -172,6 +172,7 @@ Source: github:metyatech/agent-rules@HEAD/rules/global/multi-agent-delegation.md
 - Do not stop delegated agents merely because they are slow, retrying, or producing weak intermediate output while still making progress.
 - Stop a delegated agent only for a concrete reason: repo/file conflict risk, clear divergence from the approved direction, user-owned data risk, or a better-scoped replacement.
 - If a delegated agent creates clearly agent-owned temp, plan, or memory files outside the target repo, assess and clean them up automatically; escalate only when ownership or value is genuinely ambiguous.
+- When delegated agents are running and there is no other meaningful in-scope work to do locally, prefer waiting for their completion or next material state change rather than repeatedly returning early and polling without progress.
 
 Execution discipline, agents-mcp dispatch configuration, and cost optimization details are in the `manager` skill.
 
