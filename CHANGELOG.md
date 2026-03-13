@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.33] - 2026-03-13
+
+### Changed
+
+- **Step 1 now shows equipment price directly in the comparison tables**: the current-loadout table and the replacement picker both include a dedicated Price column, so you can compare cost and stats in one glance.
+- **Price is visually separated from stats**: cost now uses a neutral price badge instead of the colored stat-pill style, making it clear that price is a purchase/detail field rather than a gear stat.
+
 ## [0.12.32] - 2026-03-13
 
 ### Fixed

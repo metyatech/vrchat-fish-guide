@@ -79,6 +79,23 @@ describe('Step 1 loadout UI quality', () => {
     expect(candidateRows.some((row) => row.textContent?.includes('Stick and String'))).toBe(false);
   });
 
+  it('shows a separate price column in both the current loadout table and the picker table', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    expect(within(currentLoadoutTable).getByText('Price')).toBeInTheDocument();
+    expect(within(currentLoadoutTable).getAllByText('—').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    const pickerHeader = screen.getByTestId('picker-column-header');
+    expect(within(pickerHeader).getByText('Price')).toBeInTheDocument();
+    expect(screen.getByTestId('picker-current-item-row')).toHaveTextContent('—');
+    expect(screen.getByText('750G')).toBeInTheDocument();
+  });
+
   it('closes the picker when clicking outside the picker panel', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);

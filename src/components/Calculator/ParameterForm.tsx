@@ -72,11 +72,7 @@ function formatItemDetail(item: EquipmentItem | EnchantItem): string {
     return `${activation} / ${item.specialEffect}`;
   }
 
-  if (item.price <= 0) {
-    return item.location;
-  }
-
-  return `${item.location} / ${item.price.toLocaleString()}G`;
+  return item.location;
 }
 
 function getItemStatValue(item: EquipmentItem | EnchantItem, stat: StatThemeKey): number {
@@ -152,7 +148,31 @@ const LOADOUT_STAT_COLUMN_ORDER: StatThemeKey[] = [
   'maxWeight',
 ];
 
-const PICKER_GRID_COLUMNS = 'grid-cols-[68px_minmax(0,1.6fr)_56px_56px_56px_70px_70px_86px]';
+const LOADOUT_TABLE_GRID_COLUMNS =
+  'xl:grid-cols-[6.75rem_minmax(0,1.2fr)_5.75rem_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem]';
+const PICKER_GRID_COLUMNS = 'grid-cols-[68px_minmax(0,1.45fr)_92px_56px_56px_56px_70px_70px_86px]';
+
+const PRICE_COLUMN_LABEL = 'Price';
+
+function formatItemPrice(item: EquipmentItem | EnchantItem): string {
+  return item.price > 0 ? `${item.price.toLocaleString()}G` : '—';
+}
+
+function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
+  const hasPrice = item.price > 0;
+
+  return (
+    <span
+      className={`inline-flex min-w-[4.5rem] items-center justify-center rounded-xl border px-2.5 py-1 text-[11px] font-bold tabular-nums ${
+        hasPrice
+          ? 'border-slate-300 bg-slate-100 text-slate-700'
+          : 'border-slate-200 bg-slate-50 text-slate-400'
+      }`}
+    >
+      {formatItemPrice(item)}
+    </span>
+  );
+}
 
 /** Slot-specific active row class on the dark loadout board. ring-{color}-400 must be present for ui-quality tests. */
 const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
@@ -422,10 +442,11 @@ function CurrentLoadoutTable({
           >
             <div
               hidden={!isDesktop}
-              className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500"
+              className={`hidden xl:grid ${LOADOUT_TABLE_GRID_COLUMNS} xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500`}
             >
               <span>Slot</span>
               <span>Name</span>
+              <span className="text-center text-slate-500">{PRICE_COLUMN_LABEL}</span>
               <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
                 Lk
               </span>
@@ -491,7 +512,7 @@ function CurrentLoadoutTable({
                     <div className="relative px-4 py-4 xl:px-4 xl:py-4">
                       <div
                         hidden={!isDesktop}
-                        className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3"
+                        className={`hidden xl:grid ${LOADOUT_TABLE_GRID_COLUMNS} xl:items-center xl:gap-3`}
                       >
                         <div className="flex flex-col gap-2">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
@@ -549,6 +570,10 @@ function CurrentLoadoutTable({
                           ) : null}
                         </div>
 
+                        <div className="flex justify-center border-l border-slate-100/80 pl-1">
+                          <PriceCell item={item} />
+                        </div>
+
                         {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
                           <div
                             key={stat}
@@ -594,6 +619,7 @@ function CurrentLoadoutTable({
                         </div>
 
                         <div className="flex max-w-full flex-wrap gap-1.5">
+                          <PriceCell item={item} />
                           {(isActive ? STAT_THEME_ORDER : getHighlightedStats(item)).map((stat) => (
                             <StatBadge
                               key={stat}
@@ -763,6 +789,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         >
           <div className="px-2 text-left text-slate-500">選択</div>
           <div className="px-2 text-left text-slate-500">名前</div>
+          <div className="px-1 text-center text-slate-500">{PRICE_COLUMN_LABEL}</div>
           <div className="px-1 text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
             Lk
           </div>
@@ -812,6 +839,9 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 <div className="mt-0.5 break-words text-xs leading-5 text-gray-600">
                   {formatItemDetail(selectedItem)}
                 </div>
+              </div>
+              <div className="px-1 py-3 text-center">
+                <PriceCell item={selectedItem} />
               </div>
               {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
                 const theme = STAT_THEME[stat];
@@ -871,6 +901,9 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                     <div className="mt-0.5 break-words text-xs leading-5 text-gray-500">
                       {formatItemDetail(item)}
                     </div>
+                  </div>
+                  <div className="px-1 py-3 text-center">
+                    <PriceCell item={item} />
                   </div>
                   {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
                     const theme = STAT_THEME[stat];
