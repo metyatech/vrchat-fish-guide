@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.26] - 2026-03-13
+
+### Fixed
+
+- **Cross-platform visual baselines now match the quieter loadout detail toggle**: the Linux snapshot used in CI was aligned with the updated disclosure UI so automated visual verification stays green after the refinement.
+
 ## [0.12.25] - 2026-03-13
 
 ### Changed
