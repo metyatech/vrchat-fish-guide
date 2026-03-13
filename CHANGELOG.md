@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.39] - 2026-03-13
+
+### Fixed
+
+- **Step 1 now keeps your full current loadout and total stats visible while you compare replacements**: the desktop replacement picker renders as an anchored overlay outside the current-loadout column instead of squeezing or covering the left-side table, so you can keep the current Rod / Line / Bobber / Enchant and the total-stats section in view while choosing a new item.
+- **The anchored picker layout is now protected by the full verification suite**: the Step 1 regression coverage now guards the non-crushing overlay behavior across formatting, unit tests, build output, and end-to-end checks.
+
 ## [0.12.38] - 2026-03-13
 
 ### Fixed
