@@ -1,3 +1,3 @@
-:HL["/vrchat-fish-guide/_next/static/chunks/80923949a3c7c609.css","style"]
+:HL["/vrchat-fish-guide/_next/static/chunks/e77eaa2d83610b46.css","style"]
 :HL["/vrchat-fish-guide/_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-0:{"buildId":"RiTS0aivuacOqioyPNSn4","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"sources","paramType":null,"paramKey":"sources","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
+0:{"buildId":"fgX8cxAANg9E7k7B_y61S","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"sources","paramType":null,"paramKey":"sources","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
