@@ -239,12 +239,12 @@ function DetailDisclosureButton({
       aria-label={label}
       aria-expanded={expanded}
       title={label}
-      className="relative z-20 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 opacity-90 transition hover:border-slate-300 hover:text-slate-700 focus:opacity-100"
+      className="relative z-20 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 opacity-70 transition hover:bg-slate-100 hover:text-slate-600 hover:opacity-100 focus:bg-slate-100 focus:text-slate-700 focus:opacity-100"
     >
       <svg
         aria-hidden="true"
         viewBox="0 0 12 12"
-        className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+        className={`h-3 w-3 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
         fill="none"
         stroke="currentColor"
         strokeWidth="1.75"

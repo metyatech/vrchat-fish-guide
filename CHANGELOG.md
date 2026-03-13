@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.25] - 2026-03-13
+
+### Changed
+
+- **Loadout detail disclosure is visually quieter**: the row detail toggle is now a smaller, lighter helper control so it no longer competes with the main “change this equipment” action.
+
 ## [0.12.24] - 2026-03-13
 
 ### Changed
