@@ -32,11 +32,6 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
       - name: Install dependencies
         run: npm ci
 
@@ -51,10 +46,18 @@ jobs:
           DEPLOY_TARGET: github-pages
         run: npm run build
 
-      - name: Upload static artifact
-        uses: actions/upload-pages-artifact@v4
+      - name: Package Pages artifact
+        run: |
+          tar --dereference --hard-dereference -cvf github-pages.tar --directory ./out .
+          gzip -f github-pages.tar
+
+      - name: Upload Pages artifact
+        uses: actions/upload-artifact@v7
         with:
-          path: ./out
+          name: github-pages
+          path: ./github-pages.tar.gz
+          retention-days: 1
+          compression-level: 0
 
   deploy:
     name: Deploy to GitHub Pages
