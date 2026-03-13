@@ -63,6 +63,22 @@ describe('Step 1 loadout UI quality', () => {
     expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Bobber の候補');
   });
 
+  it('keeps the current selected equipment visible above the candidate list while comparing', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    const currentItemRow = screen.getByTestId('picker-current-item-row');
+    expect(currentItemRow).toHaveTextContent('いまの装備');
+    expect(currentItemRow).toHaveTextContent('Stick and String');
+
+    const candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.length).toBeGreaterThan(0);
+    expect(candidateRows.some((row) => row.textContent?.includes('Stick and String'))).toBe(false);
+  });
+
   it('closes the picker when clicking outside the picker panel', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
@@ -301,5 +317,19 @@ describe('ParameterForm', () => {
     expect(screen.getByTestId('slot-picker-anchor-fallback')).toBeInTheDocument();
     const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(nowrapBadges.length).toBeGreaterThan(0);
+  });
+
+  it('uses a wider desktop picker so stat comparison stays readable', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent(
+      '上の「いまの装備」を見たまま、下の候補と見比べられます。',
+    );
+    expect(screen.getByTestId('picker-current-item-row')).toHaveTextContent('Stick and String');
   });
 });

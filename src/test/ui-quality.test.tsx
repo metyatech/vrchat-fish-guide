@@ -157,13 +157,13 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(initialCount).toBeGreaterThan(1);
 
     // Type a search query
-    fireEvent.change(searchInput, { target: { value: 'stick' } });
+    fireEvent.change(searchInput, { target: { value: 'sunleaf' } });
 
     // Should show filtered results
     rows = screen.getAllByTestId('picker-option-row');
     expect(rows.length).toBeLessThan(initialCount);
     for (const row of rows) {
-      expect(row.textContent.toLowerCase()).toContain('stick');
+      expect(row.textContent?.toLowerCase()).toContain('sunleaf');
     }
   });
 
@@ -193,12 +193,12 @@ describe('UI quality – overflow and wrapping prevention', () => {
     }) as HTMLInputElement;
 
     // Search with uppercase
-    fireEvent.change(searchInput, { target: { value: 'STICK' } });
+    fireEvent.change(searchInput, { target: { value: 'SUnLEAF' } });
 
     // Should still find items
     const rows = screen.getAllByTestId('picker-option-row');
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows[0].textContent.toLowerCase()).toContain('stick');
+    expect(rows[0].textContent?.toLowerCase()).toContain('sunleaf');
   });
 
   it('time-of-day and weather selection labels use 平均で見る instead of 自動でまとめる', () => {

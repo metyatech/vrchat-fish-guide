@@ -244,7 +244,7 @@ test('clicking outside the picker panel closes it', async ({ page }) => {
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
 
-  await page.getByRole('heading', { name: 'いまの装備' }).click();
+  await page.mouse.click(40, 40);
 
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
 });
@@ -253,15 +253,15 @@ test('scrolled picker panel keeps the header sealed', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByLabel('Line を選び直す').click();
+  await page.getByLabel('Enchant を選び直す').click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
-  await expect(pickerPanel).toContainText('Line の候補');
+  await expect(pickerPanel).toContainText('Enchant の候補');
 
   await page.evaluate(() => {
-    const list = document.getElementById('loadout-picker-line');
+    const list = document.getElementById('loadout-picker-enchant');
     const wrap = list?.parentElement;
     if (wrap) {
-      wrap.scrollTop = 220;
+      wrap.scrollTop = 320;
     }
   });
 

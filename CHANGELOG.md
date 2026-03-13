@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.30] - 2026-03-13
+
+### Changed
+
+- **Equipment pickers now keep the current item visible while you compare replacements**: each picker shows the currently equipped Rod / Line / Bobber / Enchant in a fixed row above the candidate list, so you can compare stats without losing sight of what you are replacing.
+- **Picker text is easier to read while comparing**: the candidate panel is wider, item names no longer truncate, and detail text can wrap naturally instead of collapsing into a narrow hard-to-scan column.
+
 ## [0.12.29] - 2026-03-13
 
 ### Fixed
