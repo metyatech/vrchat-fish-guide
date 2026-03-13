@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.36] - 2026-03-13
+
+### Changed
+
+- **Equipment pickers now keep the rest of your current build visible while you compare**: the open candidate panel shows the current Rod / Line / Bobber / Enchant and the total stats together, so you can compare replacements without losing sight of the build around them.
+
 ## [0.12.35] - 2026-03-13
 
 ### Fixed

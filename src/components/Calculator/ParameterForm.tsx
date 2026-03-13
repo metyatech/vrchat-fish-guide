@@ -174,6 +174,59 @@ function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
   );
 }
 
+function CompactCurrentLoadoutSummary({
+  items,
+  activeSlot,
+}: {
+  items: Record<LoadoutSlot, EquipmentItem | EnchantItem>;
+  activeSlot: LoadoutSlot;
+}) {
+  return (
+    <div
+      data-testid="picker-current-loadout-summary"
+      className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
+    >
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+        現在の装備
+      </div>
+      <div className="space-y-2">
+        {LOADOUT_SLOT_ORDER.map((slot) => {
+          const item = items[slot];
+          const isActive = slot === activeSlot;
+          return (
+            <div
+              key={slot}
+              className={`rounded-xl border px-3 py-2 transition-colors ${
+                isActive
+                  ? 'border-ocean-300 bg-ocean-50/80 shadow-[0_8px_20px_rgba(59,130,246,0.10)]'
+                  : 'border-slate-200 bg-white/70'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                {isActive ? (
+                  <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    いま比較中
+                  </span>
+                ) : null}
+                <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
+                  {item.nameEn}
+                </div>
+                <PriceCell item={item} />
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                  <StatBadge key={stat} stat={stat} value={formatItemStatValue(item, stat)} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function formatTotalStatValue(
   totalStats: DerivedModelSummary['totalStats'],
   stat: StatThemeKey,
@@ -733,6 +786,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   items,
   selectedId,
   totalStats,
+  currentLoadoutItems,
   onSelect,
   onClose,
   testId = 'slot-picker-panel',
@@ -741,6 +795,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   items: readonly T[];
   selectedId: string;
   totalStats: DerivedModelSummary['totalStats'];
+  currentLoadoutItems: Record<LoadoutSlot, EquipmentItem | EnchantItem>;
   onSelect: (id: string) => void;
   onClose: () => void;
   testId?: string;
@@ -793,6 +848,9 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                   />
                 ))}
               </div>
+            </div>
+            <div className="mt-3">
+              <CompactCurrentLoadoutSummary items={currentLoadoutItems} activeSlot={slot} />
             </div>
           </div>
           <button
@@ -1046,6 +1104,12 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     bobber: BOBBERS,
     enchant: ENCHANTS,
   };
+  const currentLoadoutItems: Record<LoadoutSlot, EquipmentItem | EnchantItem> = {
+    rod: RODS.find((item) => item.id === params.loadout.rodId) ?? RODS[0],
+    line: LINES.find((item) => item.id === params.loadout.lineId) ?? LINES[0],
+    bobber: BOBBERS.find((item) => item.id === params.loadout.bobberId) ?? BOBBERS[0],
+    enchant: ENCHANTS.find((item) => item.id === params.loadout.enchantId) ?? ENCHANTS[0],
+  };
 
   const fieldId = {
     areaId: 'calc-area',
@@ -1085,6 +1149,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   items={loadoutItems[activeSlot]}
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
                   totalStats={model.totalStats}
+                  currentLoadoutItems={currentLoadoutItems}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
                 />
@@ -1104,6 +1169,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   items={loadoutItems[activeSlot]}
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
                   totalStats={model.totalStats}
+                  currentLoadoutItems={currentLoadoutItems}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
                   testId="slot-picker-panel"

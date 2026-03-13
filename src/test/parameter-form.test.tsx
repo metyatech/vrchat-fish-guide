@@ -348,6 +348,9 @@ describe('ParameterForm', () => {
       '上の「いまの装備」を見たまま、下の候補と見比べられます。',
     );
     expect(screen.getByTestId('picker-current-item-row')).toHaveTextContent('Stick and String');
+    expect(screen.getByTestId('picker-current-loadout-summary')).toHaveTextContent('Basic Line');
+    expect(screen.getByTestId('picker-current-loadout-summary')).toHaveTextContent('Basic Bobber');
+    expect(screen.getByTestId('picker-current-loadout-summary')).toHaveTextContent('No Enchant');
     expect(screen.getByText('合計ステータス')).toBeInTheDocument();
     expect(screen.getByTestId('picker-total-stats-summary')).toHaveTextContent('Lk');
   });

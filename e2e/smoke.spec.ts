@@ -75,6 +75,9 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod を編集中');
   await expect(page.getByTestId('slot-picker-anchor')).toBeVisible();
+  await expect(page.getByTestId('picker-current-loadout-summary')).toContainText('Basic Line');
+  await expect(page.getByTestId('picker-current-loadout-summary')).toContainText('Bobber');
+  await expect(page.getByTestId('picker-total-stats-summary')).toContainText('Lk');
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')
