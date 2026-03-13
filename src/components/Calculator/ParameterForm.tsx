@@ -480,15 +480,13 @@ function CurrentLoadoutTable({
                         : 'group bg-white/70 hover:bg-white/92 focus-within:bg-white/92 focus-within:ring-2 focus-within:ring-ocean-300'
                     } ${isUpdated ? 'animate-loadout-settle' : ''}`}
                   >
-                    {!isActive ? (
-                      <button
-                        type="button"
-                        aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
-                        aria-pressed="false"
-                        className="absolute inset-0 z-10 rounded-[inherit]"
-                        onClick={activate}
-                      />
-                    ) : null}
+                    <button
+                      type="button"
+                      aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
+                      aria-pressed={isActive ? 'true' : 'false'}
+                      className="absolute inset-0 z-10 rounded-[inherit]"
+                      onClick={activate}
+                    />
 
                     <div className="relative px-4 py-4 xl:px-4 xl:py-4">
                       <div
@@ -919,7 +917,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
       window.clearTimeout(advanceTimerRef.current);
       advanceTimerRef.current = null;
     }
-    setActiveSlot(slot);
+    setActiveSlot((current) => (current === slot ? null : slot));
   };
 
   React.useEffect(() => {

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.28] - 2026-03-13
+
+### Changed
+
+- **Clicking the same loadout row again now closes its picker**: the current row no longer acts like a dead click target once its equipment panel is open, so the interaction matches the usual open/close expectation more closely.
+
 ## [0.12.27] - 2026-03-13
 
 ### Fixed

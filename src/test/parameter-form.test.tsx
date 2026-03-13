@@ -76,6 +76,20 @@ describe('Step 1 loadout UI quality', () => {
     expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
   });
 
+  it('closes the picker when the already-active row is clicked again', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const rodRow = screen.getByRole('button', { name: 'Rod を選び直す' });
+    fireEvent.click(rodRow);
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Rod の候補');
+
+    fireEvent.click(rodRow);
+
+    expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
+  });
+
   it('keeps loadout detail text hidden by default and only shows it when expanded', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
