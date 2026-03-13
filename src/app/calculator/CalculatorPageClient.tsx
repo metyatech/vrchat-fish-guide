@@ -35,11 +35,11 @@ const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
 };
 
 function formatSelectedTimeLabel(value: CalculatorParams['timeOfDay']): string {
-  return value === 'any' ? '自動平均' : TIME_OF_DAY_LABELS[value];
+  return value === 'any' ? '自動でまとめる' : TIME_OF_DAY_LABELS[value];
 }
 
 function formatSelectedWeatherLabel(value: CalculatorParams['weatherType']): string {
-  return value === 'any' ? '自動平均' : WEATHER_TYPE_LABELS[value];
+  return value === 'any' ? '自動でまとめる' : WEATHER_TYPE_LABELS[value];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -329,21 +329,8 @@ export function CalculatorPageClient() {
         <div className="overflow-hidden rounded-[30px] bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.34),_rgba(37,120,232,0.98)_36%,_rgba(12,74,153,1)_100%)] px-6 py-6 text-white shadow-[0_28px_90px_rgba(37,120,232,0.28)] ring-1 ring-white/20">
           <h1 className="text-2xl font-bold tracking-tight">📊 装備込みの期待値比較</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ocean-100">
-            いまの装備から何を変えると一番伸びるかを、上から順に条件を入れながら比べます。
+            装備と条件を入れると、期待値/時間で装備差を並べて比べられます。
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1.5 text-white/90 backdrop-blur-sm">
-              1. いまの装備をそろえる
-            </span>
-            <span className="text-white/55">→</span>
-            <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1.5 text-white/90 backdrop-blur-sm">
-              2. 条件を必要なぶんだけ決める
-            </span>
-            <span className="text-white/55">→</span>
-            <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1.5 text-white/90 backdrop-blur-sm">
-              3. 1か所ずつ比べる
-            </span>
-          </div>
         </div>
       </div>
 
@@ -356,20 +343,8 @@ export function CalculatorPageClient() {
 
         <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="mb-4">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
-                4
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-                Step 4
-              </span>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              次に、どの欄を 1 つだけ変えて試すか選ぶ
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              まずは 1 か所だけ変えて比べるのがおすすめです。迷ったら Rod から試してください。
-            </p>
+            <h2 className="text-lg font-semibold text-gray-900">比べる部位を選ぶ</h2>
+            <p className="mt-1 text-sm text-gray-500">1 か所ずつ切り替えると差が見えやすいです。</p>
           </div>
 
           <div className="mb-4 flex flex-wrap gap-2">
@@ -394,33 +369,23 @@ export function CalculatorPageClient() {
             className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
           >
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
-              いま選んだ欄
+              選択中の部位
             </div>
             <p className="mt-2 text-sm text-gray-900">
-              <strong>{compareTargetActionLabel}</strong> を試します。次は、この欄の候補を 1
-              つ選んで比較へ追加します。
+              <strong>{compareTargetActionLabel}</strong>{' '}
+              を切り替えます。候補を選んで比較に追加します。
             </p>
           </div>
         </section>
 
         <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div>
-            <div className="mb-1 flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
-                5
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-                Step 5
-              </span>
-            </div>
             <h2 className="text-lg font-semibold text-gray-900">
               {compareTarget === 'full-build'
-                ? '全部入れ替えの候補を 1 つ追加する'
-                : `${COMPARE_TARGET_LABELS[compareTarget]} の候補を 1 つ追加する`}
+                ? '装備一式の候補を追加'
+                : `${COMPARE_TARGET_LABELS[compareTarget]} の候補を追加`}
             </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              まずは 1 件だけ追加して、そのまますぐ下で今の装備と比べるのがおすすめです。
-            </p>
+            <p className="mt-1 text-sm text-gray-500">1 件追加すると、下の比較に並びます。</p>
           </div>
 
           {compareTarget !== 'full-build' && bestNextTry ? (
@@ -428,7 +393,7 @@ export function CalculatorPageClient() {
               className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
             >
               <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
-                まずはこの候補
+                おすすめ候補
               </div>
               <div className="mt-2 rounded-xl border border-white/60 bg-white/80 p-3 text-sm text-gray-700">
                 現在: <strong>{bestNextTry.currentEntry.item.nameEn}</strong>
@@ -451,7 +416,7 @@ export function CalculatorPageClient() {
                   onClick={handleCreateRecommendationBuild}
                   className={`mt-3 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${compareTargetTheme.buttonActiveClassName}`}
                 >
-                  まずはこの候補を比較へ追加
+                  この候補を比較に追加
                 </button>
               ) : (
                 <p className="mt-3 text-xs text-gray-700">
@@ -484,20 +449,8 @@ export function CalculatorPageClient() {
         <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="mb-1 flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
-                  6
-                </span>
-                <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-                  Step 6
-                </span>
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                追加した候補を今の装備と比べる
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                候補を追加したら、ここで横並びに見ます。迷ったら、まずは期待値/時間だけ比べてください。
-              </p>
+              <h2 className="text-lg font-semibold text-gray-900">比較一覧</h2>
+              <p className="mt-1 text-sm text-gray-500">追加した候補がここに並びます。</p>
             </div>
             <button
               onClick={handleCopyLink}
@@ -520,8 +473,7 @@ export function CalculatorPageClient() {
 
           {!hasComparisons ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-              まだ比較する候補がありません。上の「この候補を追加」か「この組み合わせを追加」で 1
-              件追加すると、ここに比較結果が出ます。
+              まだ比較する候補がありません。上の候補から 1 件追加すると、ここに比較結果が出ます。
             </div>
           ) : (
             <ComparisonSummary
@@ -533,32 +485,19 @@ export function CalculatorPageClient() {
           )}
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-6" data-testid="result-summary-section">
           <div>
-            <div className="mb-1 flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ocean-600 text-xs font-bold text-white shadow-sm">
-                7
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-wide text-ocean-700">
-                Step 7
-              </span>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              最後に、選んだ組み合わせの数字を見る
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">結果サマリー</h2>
             <p className="mt-1 text-sm text-gray-500">
-              いちばん大事なのは <strong>期待値/時間</strong>{' '}
-              です。迷ったら、まずここを比べてください。
+              主要指標は <strong>期待値/時間</strong> です。
             </p>
           </div>
 
-          <WarningBanner warnings={activeResult.warnings} />
-
-          <div className="rounded-xl border border-ocean-100 bg-ocean-50 px-4 py-3 text-xs text-ocean-900">
-            <span className="font-semibold">見る順番:</span> まず
-            <strong>期待値/時間</strong> を見て、次に <strong>期待値/回</strong> と
-            <strong>魚が釣れる確率</strong> を確認してください。
-          </div>
+          <WarningBanner
+            warnings={activeResult.warnings.map((warning) =>
+              warning.replaceAll('Time of Day', '時間帯').replaceAll('Weather', '天気'),
+            )}
+          />
 
           <div
             key={resultAnimKey}
@@ -603,39 +542,19 @@ export function CalculatorPageClient() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">期待値/回</div>
-              1回投げたとき、平均するとどれくらい稼げるかです。
+              {'1回あたりの平均収益です。'}
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">期待値/時間</div>
-              周回効率を比べるときに一番見る数字です。いまは装備と入力条件から自動で見積もっています。
+              周回効率の比較に使う指標です。
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">試行回数/時間</div>
-              1回にかかる時間から逆算した、1 時間に何回投げられるかです。
+              {'1時間に投げられる回数です。'}
             </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">魚が釣れる確率</div>
-              逃がす割合を引いた値です。Double Up!! のような追加効果はこの数字には入りません。
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 text-xs">
-            <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              使っている場所:{' '}
-              {AREA_MAP[activeResult.model.autoSelectedAreaId ?? activeResult.params.areaId]
-                ?.nameEn ?? '—'}
-            </div>
-            <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              対象魚種: {activeResult.fishResults.length}
-            </div>
-            <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              価格レンジ未取得: {activeResult.missingPriceFish.length}
-            </div>
-            <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Time of Day: {formatSelectedTimeLabel(activeResult.params.timeOfDay)}
-            </div>
-            <div className="rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600">
-              Weather: {formatSelectedWeatherLabel(activeResult.params.weatherType)}
+              逃がしを差し引いた確率です。
             </div>
           </div>
 
@@ -680,8 +599,7 @@ export function CalculatorPageClient() {
             <h2 className="mb-4 text-base font-semibold text-gray-800">魚種別詳細</h2>
             <ResultTable result={activeResult} />
             <p className="mt-4 text-xs leading-relaxed text-gray-500">
-              表では、各魚の `条件`, `売値レンジ`, `重量レンジ`, `釣獲率`, `期待値/回`,
-              `期待値/時間` を確認できます。どの魚が全体期待値を押し上げているかを見るための欄です。
+              各魚の条件や売値レンジ、釣獲率、期待値を確認できます。
             </p>
           </div>
 
@@ -693,11 +611,12 @@ export function CalculatorPageClient() {
               aria-controls="calculation-notes-panel"
               className="flex w-full items-center justify-between gap-3 text-left font-semibold text-gray-700"
             >
-              <span>📝 この数字の出し方を見る</span>
+              <span>📝 計算メモ</span>
               <span className="text-xs text-gray-500">{notesOpen ? '閉じる' : '開く'}</span>
             </button>
             <div
               id="calculation-notes-panel"
+              data-testid="calculation-notes-panel"
               aria-hidden={!notesOpen}
               className="mt-3 grid transition-[grid-template-rows,opacity] duration-300 ease-out"
               style={{
@@ -707,6 +626,17 @@ export function CalculatorPageClient() {
             >
               <div className="overflow-hidden">
                 <ul className="space-y-1.5">
+                  <li>
+                    • <strong>表示中の条件</strong>: 釣り場{' '}
+                    {AREA_MAP[activeResult.model.autoSelectedAreaId ?? activeResult.params.areaId]
+                      ?.nameEn ?? '—'}
+                    、時間帯 {formatSelectedTimeLabel(activeResult.params.timeOfDay)}、天気{' '}
+                    {formatSelectedWeatherLabel(activeResult.params.weatherType)}
+                  </li>
+                  <li>
+                    • <strong>対象魚種</strong>: {activeResult.fishResults.length} 種 /{' '}
+                    <strong>価格レンジ未取得</strong>: {activeResult.missingPriceFish.length} 種
+                  </li>
                   <li>
                     • <strong>対象魚の絞り込み</strong>:
                     場所ごとの魚一覧と、時間帯・天気の条件タグを使います。

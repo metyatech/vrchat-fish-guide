@@ -245,14 +245,14 @@ describe('ParameterForm', () => {
 
     const activeRow = currentLoadoutCard.querySelector('[data-slot="rod"]');
     expect(activeRow).toHaveAttribute('data-state', 'active');
-    expect(activeRow).toHaveTextContent('選んだ候補はここに反映されます');
+    expect(activeRow).toHaveTextContent('選んだ装備がここに反映されます');
 
     const activeIndicator = screen.getByTestId('active-slot-indicator');
     expect(activeIndicator).toHaveTextContent('Rod を編集中');
 
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     expect(pickerPanel).toHaveTextContent('Rod の候補');
-    expect(pickerPanel).toHaveTextContent('この Rod 行を選び直しています');
+    expect(pickerPanel).toHaveTextContent('Rod を編集中');
     expect(screen.getByTestId('slot-picker-anchor-fallback')).toBeInTheDocument();
     const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(nowrapBadges.length).toBeGreaterThan(0);

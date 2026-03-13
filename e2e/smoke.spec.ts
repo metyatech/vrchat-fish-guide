@@ -38,18 +38,16 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.goto('/calculator/');
 
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'まずは今の装備をそろえる' })).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: '次に、どの欄を 1 つだけ変えて試すか選ぶ' }),
-  ).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Rod の候補を 1 つ追加する' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '追加した候補を今の装備と比べる' })).toBeVisible();
-  await expect(page.getByText('現在の装備の合計ステータス', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'いまの装備' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '比べる部位を選ぶ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rod の候補を追加' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '比較一覧' })).toBeVisible();
+  await expect(page.getByText('装備の合計ステータス', { exact: true })).toBeVisible();
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /細かい調整と前提/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /詳細設定/ })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rod を変える' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'まずはこの候補を比較へ追加' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
   const totalStatsSection = page.getByTestId('total-stats-section');
   await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Luck' })).toHaveCSS(
@@ -75,9 +73,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
 
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
-  await expect(page.getByTestId('slot-picker-panel')).toContainText(
-    'この Rod 行を選び直しています',
-  );
+  await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod を編集中');
   await expect(page.getByTestId('slot-picker-anchor')).toBeVisible();
 
   const initialExpectedValuePerHour = await page
@@ -104,21 +100,20 @@ test('calculator updates summary cards and fish list when loadout and filters ch
       hasText: 'Money Maker',
     })
     .click();
-  await page.getByLabel('Fishing Area').selectOption('open-sea');
-  await page.getByLabel('Time of Day').selectOption('night');
-  await page.getByLabel('Weather').selectOption('rainy');
+  await page.getByLabel('釣り場').selectOption('open-sea');
+  await page.getByLabel('時間帯').selectOption('night');
+  await page.getByLabel('天気').selectOption('rainy');
   await page.getByLabel('投げてから着水まで (sec)').fill('1.4');
   await page.getByLabel('`!` が出てから反応するまで (sec)').fill('0.25');
-  await page.getByLabel('プレイミスの多さ').fill('0.12');
+  await page.getByLabel('ミス率').fill('0.12');
 
   await page.getByRole('button', { name: 'Enchant を変える' }).click();
-  await expect(page.getByRole('heading', { name: 'Enchant の候補を 1 つ追加する' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'まずはこの候補を比較へ追加' })).toBeVisible();
-  await page.getByRole('button', { name: 'まずはこの候補を比較へ追加' }).click();
+  await expect(page.getByRole('heading', { name: 'Enchant の候補を追加' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
+  await page.getByRole('button', { name: 'この候補を比較に追加' }).click();
   await expect(page.getByText('いま比べている候補 2 件')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '追加した候補を今の装備と比べる' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '比較一覧' })).toBeVisible();
 
-  await expect(page.getByText('対象魚種:')).toBeVisible();
   await expect(page.getByRole('table').getByText('Abyssal Serpentfish').first()).toBeVisible();
   await expect(page.getByRole('table').getByText('Albacore Tuna').first()).toBeVisible();
 
@@ -181,7 +176,7 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
     .locator('[data-state="active"]')
     .first();
   await expect(activeRow).toBeVisible();
-  await expect(activeRow).toContainText('選んだ候補はここに反映されます');
+  await expect(activeRow).toContainText('選んだ装備がここに反映されます');
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
 
   // ── New: game loadout board region must not overflow horizontally ──
@@ -204,7 +199,7 @@ test('calculator avoids horizontal scrolling on a narrow viewport', async ({ pag
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/calculator/');
 
-  await expect(page.getByRole('heading', { name: 'まずは今の装備をそろえる' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'いまの装備' })).toBeVisible();
 
   const pageOverflow = await page.evaluate(() => {
     const target = document.documentElement;
@@ -249,7 +244,7 @@ test('clicking outside the picker panel closes it', async ({ page }) => {
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
 
-  await page.getByRole('heading', { name: 'まずは今の装備をそろえる' }).click();
+  await page.getByRole('heading', { name: 'いまの装備' }).click();
 
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
 });

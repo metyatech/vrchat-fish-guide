@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.21] - 2026-03-13
+
+### Changed
+
+- **Calculator wording now follows the newer GUI rules more closely**: the remaining step-heavy tutorial framing and calculator-internal wording have been replaced with shorter, player-facing labels across the setup and comparison flow.
+- **Primary results are less cluttered**: nonessential diagnostics were moved out of the main result area and into the optional calculation notes, so the page focuses on the actual comparison decision first.
+- **Setup fields are easier to understand on first use**: labels such as `釣り場`, `時間帯`, `天気`, `ミス率`, and `詳細設定` now describe the player decision instead of the internal model.
+
 ## [0.12.20] - 2026-03-11
 
 ### Changed

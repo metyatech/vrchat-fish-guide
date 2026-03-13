@@ -18,6 +18,7 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { CalculatorPageClient } from '@/app/calculator/CalculatorPageClient';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
 
@@ -124,11 +125,21 @@ describe('UI quality – overflow and wrapping prevention', () => {
     const table = screen.getByTestId('current-loadout-table');
     const rodRow = table.querySelector('[data-slot="rod"]');
     expect(rodRow).not.toBeNull();
-    expect(rodRow).toHaveTextContent('選んだ候補はここに反映されます');
+    expect(rodRow).toHaveTextContent('選んだ装備がここに反映されます');
 
     const pickerPanel = screen.getByTestId('slot-picker-panel');
-    expect(pickerPanel).toHaveTextContent('この Rod 行を選び直しています');
+    expect(pickerPanel).toHaveTextContent('Rod を編集中');
     expect(screen.getByTestId('active-slot-indicator')).toHaveTextContent('Rod を編集中');
     expect(screen.getByTestId('slot-picker-anchor-fallback')).toBeInTheDocument();
+  });
+
+  it('demotes calculation diagnostics into the notes panel', () => {
+    render(<CalculatorPageClient />);
+
+    const notesPanel = screen.getByTestId('calculation-notes-panel');
+    const diagnosticNodes = screen.getAllByText('対象魚種');
+    for (const node of diagnosticNodes) {
+      expect(notesPanel.contains(node)).toBe(true);
+    }
   });
 });

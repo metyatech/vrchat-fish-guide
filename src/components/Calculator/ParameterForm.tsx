@@ -30,20 +30,20 @@ interface ParameterFormProps {
 }
 
 const TIME_OF_DAY_HELPER: Record<TimeOfDay, string> = {
-  any: '自動で平均する',
-  morning: 'Morning',
-  day: 'Day',
-  evening: 'Evening',
-  night: 'Night',
+  any: '自動でまとめる',
+  morning: '朝',
+  day: '昼',
+  evening: '夕方',
+  night: '夜',
 };
 
 const WEATHER_TYPE_HELPER: Record<WeatherType, string> = {
-  any: '自動で平均する',
-  clear: 'Clear',
-  rainy: 'Rainy',
-  moonrain: 'Moonrain',
-  stormy: 'Stormy',
-  foggy: 'Foggy',
+  any: '自動でまとめる',
+  clear: '晴れ',
+  rainy: '雨',
+  moonrain: '月雨',
+  stormy: '嵐',
+  foggy: '霧',
 };
 
 function parseNumberInput(value: string, fallback: number, min: number, max: number): number {
@@ -277,6 +277,11 @@ function CurrentLoadoutTable({
     bobber: BOBBERS.find((item) => item.id === selectedIds.bobber) ?? BOBBERS[0],
     enchant: ENCHANTS.find((item) => item.id === selectedIds.enchant) ?? ENCHANTS[0],
   };
+  const [isDesktop, setIsDesktop] = React.useState(() => {
+    if (typeof window === 'undefined') return true;
+    if (typeof window.matchMedia !== 'function') return true;
+    return window.matchMedia('(min-width: 1280px)').matches;
+  });
 
   const loadoutBoardRef = React.useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = React.useRef<HTMLDivElement | null>(null);
@@ -313,6 +318,15 @@ function CurrentLoadoutTable({
     window.addEventListener('resize', updateOverlayTop);
     return () => window.removeEventListener('resize', updateOverlayTop);
   }, [activeSlot, selectedIds.rod, selectedIds.line, selectedIds.bobber, selectedIds.enchant]);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(min-width: 1280px)');
+    const update = () => setIsDesktop(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   React.useEffect(() => {
     if (!activeSlot) {
@@ -362,8 +376,7 @@ function CurrentLoadoutTable({
             </span>
           </div>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            左の 4
-            行がいま使っている装備です。変えたい行を押すと、その行専用の吹き出しが右に開きます。
+            変更したい行をクリックすると、その部位の候補が右に開きます。
           </p>
         </div>
 
@@ -372,7 +385,10 @@ function CurrentLoadoutTable({
             data-testid="current-loadout-table"
             className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
           >
-            <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500">
+            <div
+              hidden={!isDesktop}
+              className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500"
+            >
               <span>Slot</span>
               <span>Name</span>
               <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
@@ -440,7 +456,10 @@ function CurrentLoadoutTable({
                     ) : null}
 
                     <div className="relative px-4 py-4 xl:px-4 xl:py-4">
-                      <div className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3">
+                      <div
+                        hidden={!isDesktop}
+                        className="hidden xl:grid xl:grid-cols-[6.75rem_minmax(0,1.3fr)_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem] xl:items-center xl:gap-3"
+                      >
                         <div className="flex flex-col gap-2">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                           {isActive ? (
@@ -456,7 +475,7 @@ function CurrentLoadoutTable({
                             </span>
                           ) : (
                             <span className="text-[11px] font-semibold text-slate-500">
-                              押して変更
+                              クリックで変更
                             </span>
                           )}
                         </div>
@@ -492,12 +511,12 @@ function CurrentLoadoutTable({
                             className={`mt-1 text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
                           >
                             {isActive
-                              ? '右の吹き出しから選ぶと、この行だけ入れ替わります'
-                              : 'この行を押して選び直す'}
+                              ? '右の候補から選ぶとこの行が更新されます'
+                              : 'この行をクリックして変更'}
                           </div>
                           {isActive ? (
                             <div className="mt-1 text-xs font-semibold text-slate-600">
-                              選んだ候補はここに反映されます
+                              選んだ装備がここに反映されます
                             </div>
                           ) : null}
                         </div>
@@ -512,7 +531,7 @@ function CurrentLoadoutTable({
                         ))}
                       </div>
 
-                      <div className="flex flex-col gap-3 xl:hidden">
+                      <div hidden={isDesktop} className="flex flex-col gap-3 xl:hidden">
                         <div className="flex flex-wrap items-center gap-2">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                           <span
@@ -520,7 +539,7 @@ function CurrentLoadoutTable({
                               isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
                             }`}
                           >
-                            {isActive ? '編集中' : '押すと候補を開く'}
+                            {isActive ? '編集中' : 'クリックで候補を開く'}
                           </span>
                         </div>
 
@@ -565,12 +584,12 @@ function CurrentLoadoutTable({
                           className={`text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
                         >
                           {isActive
-                            ? '下の候補から選ぶと、この行だけ入れ替わります'
-                            : 'この行を押して選び直す'}
+                            ? '下の候補から選ぶとこの行が更新されます'
+                            : 'この行をクリックして変更'}
                         </span>
                         {isActive ? (
                           <span className="text-xs font-semibold text-slate-600">
-                            選んだ候補はここに反映されます
+                            選んだ装備がここに反映されます
                           </span>
                         ) : null}
                       </div>
@@ -670,7 +689,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             <div className="flex items-center gap-2">
               <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
               <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">
-                この {LOADOUT_SLOT_LABELS[slot]} 行を選び直しています
+                {LOADOUT_SLOT_LABELS[slot]} を編集中
               </span>
             </div>
             <h3 className="mt-2 text-lg font-bold text-slate-900">
@@ -678,9 +697,8 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             </h3>
             {selectedItem ? (
               <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
-                いま入っているのは{' '}
-                <span className="font-semibold text-slate-900">{selectedItem.nameEn}</span>
-                です。下から別の候補を選ぶと、この行だけそのまま入れ替わります。
+                現在: <span className="font-semibold text-slate-900">{selectedItem.nameEn}</span>
+                。下の候補から選ぶとこの行が更新されます。
               </p>
             ) : null}
           </div>
@@ -879,28 +897,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     <div className="space-y-5">
       <section className="animate-slide-in-up space-y-5 rounded-[28px] border border-ocean-100/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(232,243,255,0.96))] p-5 shadow-[0_24px_64px_rgba(30,70,136,0.12)]">
         <div>
-          <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ocean-500 text-[10px] font-bold text-white shadow-[0_0_10px_rgba(59,150,243,0.28)]">
-              1
-            </span>
-            <span className="text-xs font-bold uppercase tracking-wide text-ocean-600">Step 1</span>
-          </div>
-          <h2 className="text-lg font-semibold text-slate-900">まずは今の装備をそろえる</h2>
+          <h2 className="text-lg font-semibold text-slate-900">いまの装備</h2>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            最初は何も開いていません。左の表で変えたい行を押すと、その行専用の候補だけが右に出ます。
+            左の行をクリックすると、その部位の候補が右に開きます。
           </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
-          <span className="rounded-full border border-ocean-200 bg-ocean-50 px-3 py-1 text-ocean-700">
-            1. 左で変えたい行を押す
-          </span>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1">
-            2. 右の候補から選ぶ
-          </span>
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
-            3. 左の行と合計ステータスが更新される
-          </span>
         </div>
 
         <div className="relative">
@@ -928,7 +928,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center">
                   <div className="text-sm font-semibold text-slate-700">候補を開く</div>
                   <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                    左の表で変えたい行を押してください。
+                    左の行をクリックしてください。
                   </p>
                 </div>
               )
@@ -947,7 +947,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                 <div className="animate-fade-in rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center">
                   <div className="text-sm font-semibold text-slate-700">候補を開く</div>
                   <p className="mt-2 text-sm leading-relaxed text-slate-500">
-                    左の表で変えたい行を押してください。
+                    左の行をクリックしてください。
                   </p>
                 </div>
               )
@@ -962,9 +962,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold text-slate-100">現在の装備の合計ステータス</div>
+              <div className="text-sm font-semibold text-slate-100">装備の合計ステータス</div>
               <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                いま選んでいる装備を全部足した値です。
+                選択中の装備を合計した値です。
               </p>
             </div>
             <span
@@ -981,7 +981,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           </div>
 
           <div className="mb-3 text-xs font-semibold text-slate-400">
-            左の表で装備を選び直すと、ここもすぐ更新されます。
+            装備を変えるとここも更新されます。
           </div>
 
           {model.inactiveEnchantReason ? (
@@ -1013,24 +1013,18 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      {/* ─── Step 2: Conditions ─── */}
+      {/* ─── Conditions ─── */}
       <section className="animate-slide-in-up space-y-4 rounded-[20px] border border-slate-700/30 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(241,245,255,0.99))] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
         <div>
-          <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-[10px] font-bold text-white">
-              2
-            </span>
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Step 2</span>
-          </div>
-          <h2 className="text-sm font-semibold text-gray-800">必要なら、場所と条件を絞る</h2>
+          <h2 className="text-sm font-semibold text-gray-800">釣り場と条件</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            何も変えなければ、Fishing Area は自動選択、Time of Day と Weather は自動平均です。
+            未指定なら釣り場は自動選択、時間帯と天気はまとめて計算します。
           </p>
         </div>
 
         <div>
           <label htmlFor={fieldId.areaId} className="mb-1 block text-sm font-medium text-gray-700">
-            Fishing Area
+            釣り場
           </label>
           <select
             id={fieldId.areaId}
@@ -1038,7 +1032,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             value={params.areaId}
             onChange={(event) => handleChange('areaId', event.target.value)}
           >
-            <option value={BEST_AREA_ID}>自動で一番よい場所を選ぶ</option>
+            <option value={BEST_AREA_ID}>おすすめの釣り場を自動で選ぶ</option>
             {FISHING_AREAS.map((area) => (
               <option key={area.id} value={area.id}>
                 {area.nameEn}
@@ -1046,7 +1040,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             ))}
           </select>
           <p className="mt-1 text-xs text-gray-500">
-            初期状態では、今の装備ごとに期待値/時間が最も高い Fishing Area を自動で選びます。
+            期待値/時間が最も高い釣り場を装備ごとに自動で選びます。
           </p>
         </div>
 
@@ -1056,7 +1050,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               htmlFor={fieldId.timeOfDay}
               className="mb-1 block text-sm font-medium text-gray-700"
             >
-              Time of Day
+              時間帯
             </label>
             <select
               id={fieldId.timeOfDay}
@@ -1071,7 +1065,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">
-              自動で平均する を選ぶと、Morning / Day / Evening / Night を平均して計算します。
+              自動でまとめる を選ぶと、全時間帯を同じ割合で扱います。
             </p>
           </div>
 
@@ -1080,7 +1074,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               htmlFor={fieldId.weatherType}
               className="mb-1 block text-sm font-medium text-gray-700"
             >
-              Weather
+              天気
             </label>
             <select
               id={fieldId.weatherType}
@@ -1095,25 +1089,18 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">
-              自動で平均する を選ぶと、Clear / Rainy / Moonrain / Stormy / Foggy
-              を平均して計算します。
+              自動でまとめる を選ぶと、全天気を同じ割合で扱います。
             </p>
           </div>
         </div>
       </section>
 
-      {/* ─── Step 3: Play speed ─── */}
+      {/* ─── Play speed ─── */}
       <section className="animate-slide-in-up space-y-4 rounded-[20px] border border-slate-700/30 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(241,245,255,0.99))] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
         <div>
-          <div className="mb-1 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-[10px] font-bold text-white">
-              3
-            </span>
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Step 3</span>
-          </div>
-          <h2 className="text-sm font-semibold text-gray-800">あなたのプレイ速度</h2>
+          <h2 className="text-sm font-semibold text-gray-800">プレイ速度</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            基本は装備ステータスから自動で見積もります。ここでは、自分の癖だけ少し足し引きします。
+            装備の影響に、あなたの反応速度とミス率を足し引きします。
           </p>
         </div>
 
@@ -1171,7 +1158,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               htmlFor={fieldId.playerMistakeRate}
               className="mb-1 block text-sm font-medium text-gray-700"
             >
-              プレイミスの多さ
+              ミス率
             </label>
             <input
               id={fieldId.playerMistakeRate}
@@ -1210,7 +1197,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
       </section>
 
-      {/* ─── Advanced / Step 4 ─── */}
+      {/* ─── Advanced settings ─── */}
       <div className="animate-slide-in-up rounded-[20px] border border-slate-700/30 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(241,245,255,0.99))] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
         <button
           type="button"
@@ -1220,10 +1207,8 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
           aria-controls="advanced-settings-panel"
         >
           <span className="text-sm font-semibold text-gray-800">
-            細かい調整と前提
-            <span className="ml-2 text-xs font-normal text-gray-500">
-              より細かく詰めたいときだけ開く
-            </span>
+            詳細設定
+            <span className="ml-2 text-xs font-normal text-gray-500">必要なときだけ開く</span>
           </span>
           <span
             className={`text-gray-400 transition-transform duration-300 ${advancedOpen ? 'rotate-180' : ''}`}
@@ -1249,7 +1234,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   このページが計算に使っている値
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                  上の入力から、このページが実際に計算へ入れている値です。公開情報で確認できている部分と、まだ推定の部分を分けて表示しています。
+                  上の入力から、このページが実際に計算へ入れている値です。確認できた値と、まだ推定中の値を分けて表示しています。
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
                   <StatCard
