@@ -150,7 +150,9 @@ const LOADOUT_STAT_COLUMN_ORDER: StatThemeKey[] = [
 
 const LOADOUT_TABLE_GRID_COLUMNS =
   'xl:grid-cols-[6.75rem_minmax(0,1.2fr)_5.75rem_4.25rem_4.25rem_4.25rem_5rem_5rem_5.25rem]';
-const PICKER_GRID_COLUMNS = 'grid-cols-[68px_minmax(0,1.45fr)_92px_56px_56px_56px_70px_70px_86px]';
+const LOADOUT_TABLE_GRID_COLUMNS_COMPACT =
+  'xl:grid-cols-[5.5rem_minmax(0,1fr)_4.75rem_3.5rem_3.5rem_3.5rem_4.25rem_4.25rem_4.75rem]';
+const PICKER_GRID_COLUMNS = 'grid-cols-[56px_minmax(0,1.15fr)_72px_48px_48px_48px_56px_56px_72px]';
 
 const PRICE_COLUMN_LABEL = 'Price';
 
@@ -172,79 +174,6 @@ function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
       {formatItemPrice(item)}
     </span>
   );
-}
-
-function CompactCurrentLoadoutSummary({
-  items,
-  activeSlot,
-}: {
-  items: Record<LoadoutSlot, EquipmentItem | EnchantItem>;
-  activeSlot: LoadoutSlot;
-}) {
-  return (
-    <div
-      data-testid="picker-current-loadout-summary"
-      className="rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
-    >
-      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
-        現在の装備
-      </div>
-      <div className="space-y-2">
-        {LOADOUT_SLOT_ORDER.map((slot) => {
-          const item = items[slot];
-          const isActive = slot === activeSlot;
-          return (
-            <div
-              key={slot}
-              className={`rounded-xl border px-3 py-2 transition-colors ${
-                isActive
-                  ? 'border-ocean-300 bg-ocean-50/80 shadow-[0_8px_20px_rgba(59,130,246,0.10)]'
-                  : 'border-slate-200 bg-white/70'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                {isActive ? (
-                  <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    いま比較中
-                  </span>
-                ) : null}
-                <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
-                  {item.nameEn}
-                </div>
-                <PriceCell item={item} />
-              </div>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                  <StatBadge key={stat} stat={stat} value={formatItemStatValue(item, stat)} />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function formatTotalStatValue(
-  totalStats: DerivedModelSummary['totalStats'],
-  stat: StatThemeKey,
-): string {
-  switch (stat) {
-    case 'luck':
-      return formatSignedDisplayNumber(totalStats.luck);
-    case 'strength':
-      return formatSignedDisplayNumber(totalStats.strength);
-    case 'expertise':
-      return formatSignedDisplayNumber(totalStats.expertise);
-    case 'attractionRate':
-      return formatSignedDisplayNumber(totalStats.attractionPct, '%');
-    case 'bigCatchRate':
-      return formatSignedDisplayNumber(totalStats.bigCatch);
-    case 'maxWeight':
-      return formatWeightKg(totalStats.maxWeightKg);
-  }
 }
 
 /** Slot-specific active row class on the dark loadout board. ring-{color}-400 must be present for ui-quality tests. */
@@ -411,7 +340,6 @@ function CurrentLoadoutTable({
     return window.matchMedia('(min-width: 1280px)').matches;
   });
 
-  const loadoutBoardRef = React.useRef<HTMLDivElement | null>(null);
   const overlayLayerRef = React.useRef<HTMLDivElement | null>(null);
   const pickerPanelRef = React.useRef<HTMLDivElement | null>(null);
   const rowRefs = React.useRef<Record<LoadoutSlot, HTMLDivElement | null>>({
@@ -429,10 +357,9 @@ function CurrentLoadoutTable({
         return;
       }
 
-      const board = loadoutBoardRef.current;
       const rail = overlayLayerRef.current;
       const row = rowRefs.current[activeSlot];
-      if (!board || !rail || !row) {
+      if (!rail || !row) {
         setOverlayTop(null);
         return;
       }
@@ -489,13 +416,17 @@ function CurrentLoadoutTable({
       [slot]: !current[slot],
     }));
   };
+  const desktopPickerAnchorOffset = 80;
+  const desktopPickerOffset =
+    overlayTop !== null ? Math.max(0, overlayTop - desktopPickerAnchorOffset) : 0;
+  const showDesktopPicker = isDesktop && activeSlot !== null && overlayTop !== null;
+  const desktopLoadoutGridColumns = showDesktopPicker
+    ? LOADOUT_TABLE_GRID_COLUMNS_COMPACT
+    : LOADOUT_TABLE_GRID_COLUMNS;
 
   return (
     <div data-testid="current-loadout-card" className="overflow-visible">
-      <div
-        ref={loadoutBoardRef}
-        className="relative overflow-visible rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,246,255,0.96))] shadow-[0_28px_64px_rgba(30,70,136,0.14)]"
-      >
+      <div className="relative overflow-visible rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,246,255,0.96))] shadow-[0_28px_64px_rgba(30,70,136,0.14)]">
         <div className="border-b border-ocean-100/80 px-5 py-4">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-ocean-500 shadow-[0_0_8px_rgba(59,150,243,0.45)]" />
@@ -510,271 +441,284 @@ function CurrentLoadoutTable({
 
         <div ref={overlayLayerRef} className="relative overflow-visible px-3 py-4">
           <div
-            data-testid="current-loadout-table"
-            className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
+            className={
+              showDesktopPicker
+                ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_35rem] xl:items-start xl:gap-5 2xl:grid-cols-[minmax(0,1fr)_40rem]'
+                : ''
+            }
           >
-            <div
-              hidden={!isDesktop}
-              className={`hidden xl:grid ${LOADOUT_TABLE_GRID_COLUMNS} xl:items-center xl:gap-3 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500`}
-            >
-              <span>Slot</span>
-              <span>Name</span>
-              <span className="text-center text-slate-500">{PRICE_COLUMN_LABEL}</span>
-              <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
-                Lk
-              </span>
-              <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
-                Str
-              </span>
-              <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
-                Exp
-              </span>
-              <span
-                className="text-center"
-                style={{ color: STAT_THEME.attractionRate.surfaceText }}
-              >
-                Atk
-              </span>
-              <span className="text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
-                BigC
-              </span>
-              <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
-                MaxWt
-              </span>
-            </div>
-            <div className="relative divide-y divide-slate-200/80">
-              {LOADOUT_SLOT_ORDER.map((slot) => {
-                const item = selectedItems[slot];
-                const isActive = activeSlot === slot;
-                const isUpdated = recentlyUpdatedSlot === slot;
-                const detailsOpen = detailOpenSlots[slot];
-                const detailButtonLabel = detailsOpen ? '詳細を閉じる' : '詳細を開く';
-                const desktopDetailVisibleClass = detailsOpen
-                  ? 'max-h-24 opacity-100'
-                  : 'max-h-0 opacity-0';
-
-                const activate = () => onActivate(slot);
-                const handleDetailButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  toggleDetail(slot);
-                };
-
-                return (
-                  <div
-                    key={slot}
-                    ref={(node) => {
-                      rowRefs.current[slot] = node;
-                    }}
-                    data-slot={slot}
-                    data-state={isActive ? 'active' : 'inactive'}
-                    className={`relative overflow-visible transition-all duration-200 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ocean-300 ${
-                      isActive
-                        ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
-                        : 'group bg-white/70 hover:bg-white/92 focus-within:bg-white/92'
-                    } ${isUpdated ? 'animate-loadout-settle' : ''}`}
-                  >
-                    <button
-                      type="button"
-                      aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
-                      aria-pressed={isActive ? 'true' : 'false'}
-                      className="absolute inset-0 z-10 rounded-[inherit] focus:outline-none"
-                      onClick={activate}
-                    />
-
-                    <div className="relative px-4 py-4 xl:px-4 xl:py-4">
-                      <div
-                        hidden={!isDesktop}
-                        className={`hidden xl:grid ${LOADOUT_TABLE_GRID_COLUMNS} xl:items-center xl:gap-3`}
-                      >
-                        <div className="flex flex-col gap-2">
-                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                          {isActive ? (
-                            <span
-                              data-testid="active-slot-indicator"
-                              className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white"
-                            >
-                              <span
-                                className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
-                                aria-hidden="true"
-                              />
-                              {LOADOUT_SLOT_LABELS[slot]} を編集中
-                            </span>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-slate-500">
-                              クリックで変更
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div
-                                className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
-                              >
-                                {item.nameEn}
-                              </div>
-                            </div>
-                            <DetailDisclosureButton
-                              expanded={detailsOpen}
-                              label={detailButtonLabel}
-                              onClick={handleDetailButtonClick}
-                            />
-                          </div>
-                          <div
-                            data-loadout-detail={slot}
-                            aria-hidden={!detailsOpen}
-                            className={`mt-1 overflow-hidden text-sm leading-relaxed text-slate-600 transition-all duration-200 ${desktopDetailVisibleClass}`}
-                          >
-                            {formatItemDetail(item)}
-                          </div>
-                          <div
-                            className={`mt-1 text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
-                          >
-                            {isActive
-                              ? '右の候補から選ぶとこの行が更新されます'
-                              : 'この行をクリックして変更'}
-                          </div>
-                          {isActive ? (
-                            <div className="mt-1 text-xs font-semibold text-slate-600">
-                              選んだ装備がここに反映されます
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="flex justify-center border-l border-slate-100/80 pl-1">
-                          <PriceCell item={item} />
-                        </div>
-
-                        {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                          <div
-                            key={stat}
-                            className="flex justify-center border-l border-slate-100/80 pl-1"
-                          >
-                            <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
-                          </div>
-                        ))}
-                      </div>
-
-                      <div hidden={isDesktop} className="flex flex-col gap-3 xl:hidden">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                              isActive ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
-                            }`}
-                          >
-                            {isActive ? '編集中' : 'クリックで候補を開く'}
-                          </span>
-                        </div>
-
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <div className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
-                              {item.nameEn}
-                            </div>
-                            <DetailDisclosureButton
-                              expanded={detailsOpen}
-                              label={detailButtonLabel}
-                              onClick={handleDetailButtonClick}
-                            />
-                          </div>
-                          {detailsOpen ? (
-                            <div
-                              data-loadout-detail={slot}
-                              aria-hidden={false}
-                              className="mt-1 text-sm leading-relaxed text-slate-600"
-                            >
-                              {formatItemDetail(item)}
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="flex max-w-full flex-wrap gap-1.5">
-                          <PriceCell item={item} />
-                          {(isActive ? STAT_THEME_ORDER : getHighlightedStats(item)).map((stat) => (
-                            <StatBadge
-                              key={stat}
-                              stat={stat}
-                              value={formatItemStatValue(item, stat)}
-                            />
-                          ))}
-                        </div>
-
-                        <span
-                          className={`text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
-                        >
-                          {isActive
-                            ? '下の候補から選ぶとこの行が更新されます'
-                            : 'この行をクリックして変更'}
-                        </span>
-                        {isActive ? (
-                          <span className="text-xs font-semibold text-slate-600">
-                            選んだ装備がここに反映されます
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {isActive ? (
-                        <div data-testid="slot-picker-anchor-fallback" className="hidden" />
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-4 xl:hidden">
-            {activeSlot && overlayTop === null ? (
+            <div className="min-w-0">
               <div
-                ref={pickerPanelRef}
-                className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_20px_40px_rgba(15,23,42,0.12)]"
+                data-testid="current-loadout-table"
+                className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
               >
-                {mobilePickerPanel}
-              </div>
-            ) : null}
-          </div>
-          {activeSlot && overlayTop !== null ? (
-            <div
-              className="pointer-events-none absolute right-4 z-30 hidden xl:block"
-              style={{
-                top: `${overlayTop}px`,
-                width: 'min(48rem, calc(100% - 3rem))',
-                transform: 'translateY(-50%)',
-              }}
-            >
-              <div className="pointer-events-auto relative overflow-visible">
                 <div
-                  data-testid="slot-picker-anchor"
-                  className="pointer-events-none absolute left-0 top-1/2 h-16 w-24 -translate-x-[76%] -translate-y-1/2"
-                />
-                <div className="pointer-events-none absolute left-0 top-1/2 h-16 w-24 -translate-x-[76%] -translate-y-1/2 overflow-visible">
-                  <svg
-                    className="h-full w-full drop-shadow-[-8px_10px_18px_rgba(15,23,42,0.08)]"
-                    viewBox="0 0 96 64"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M94 7C72 7 56 10 41 18L16 29C11 31 11 33 16 35L41 46C56 54 72 57 94 57"
-                      fill="white"
-                      stroke="#e2e8f0"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <div
-                  ref={pickerPanelRef}
-                  className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]"
+                  hidden={!isDesktop}
+                  className={`hidden xl:grid ${desktopLoadoutGridColumns} xl:items-center xl:gap-2 xl:border-b xl:border-slate-200/80 xl:bg-white/65 xl:px-4 xl:py-3 xl:text-[11px] xl:font-bold xl:uppercase xl:tracking-[0.14em] xl:text-slate-500`}
                 >
-                  {desktopPickerPanel}
+                  <span>Slot</span>
+                  <span>Name</span>
+                  <span className="text-center text-slate-500">{PRICE_COLUMN_LABEL}</span>
+                  <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+                    Lk
+                  </span>
+                  <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+                    Str
+                  </span>
+                  <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+                    Exp
+                  </span>
+                  <span
+                    className="text-center"
+                    style={{ color: STAT_THEME.attractionRate.surfaceText }}
+                  >
+                    Atk
+                  </span>
+                  <span
+                    className="text-center"
+                    style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
+                  >
+                    BigC
+                  </span>
+                  <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+                    MaxWt
+                  </span>
                 </div>
+                <div className="relative divide-y divide-slate-200/80">
+                  {LOADOUT_SLOT_ORDER.map((slot) => {
+                    const item = selectedItems[slot];
+                    const isActive = activeSlot === slot;
+                    const isUpdated = recentlyUpdatedSlot === slot;
+                    const detailsOpen = detailOpenSlots[slot];
+                    const detailButtonLabel = detailsOpen ? '詳細を閉じる' : '詳細を開く';
+                    const desktopDetailVisibleClass = detailsOpen
+                      ? 'max-h-24 opacity-100'
+                      : 'max-h-0 opacity-0';
+
+                    const activate = () => onActivate(slot);
+                    const handleDetailButtonClick = (
+                      event: React.MouseEvent<HTMLButtonElement>,
+                    ) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      toggleDetail(slot);
+                    };
+
+                    return (
+                      <div
+                        key={slot}
+                        ref={(node) => {
+                          rowRefs.current[slot] = node;
+                        }}
+                        data-slot={slot}
+                        data-state={isActive ? 'active' : 'inactive'}
+                        className={`relative overflow-visible transition-all duration-200 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ocean-300 ${
+                          isActive
+                            ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
+                            : 'group bg-white/70 hover:bg-white/92 focus-within:bg-white/92'
+                        } ${isUpdated ? 'animate-loadout-settle' : ''}`}
+                      >
+                        <button
+                          type="button"
+                          aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
+                          aria-pressed={isActive ? 'true' : 'false'}
+                          className="absolute inset-0 z-10 rounded-[inherit] focus:outline-none"
+                          onClick={activate}
+                        />
+
+                        <div className="relative px-4 py-4 xl:px-4 xl:py-4">
+                          <div
+                            hidden={!isDesktop}
+                            className={`hidden xl:grid ${desktopLoadoutGridColumns} xl:items-center xl:gap-2`}
+                          >
+                            <div className="flex flex-col gap-2">
+                              <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                              {isActive ? (
+                                <span
+                                  data-testid="active-slot-indicator"
+                                  className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white"
+                                >
+                                  <span
+                                    className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+                                    aria-hidden="true"
+                                  />
+                                  {LOADOUT_SLOT_LABELS[slot]} を編集中
+                                </span>
+                              ) : (
+                                <span className="text-[11px] font-semibold text-slate-500">
+                                  クリックで変更
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div
+                                    className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
+                                  >
+                                    {item.nameEn}
+                                  </div>
+                                </div>
+                                <DetailDisclosureButton
+                                  expanded={detailsOpen}
+                                  label={detailButtonLabel}
+                                  onClick={handleDetailButtonClick}
+                                />
+                              </div>
+                              <div
+                                data-loadout-detail={slot}
+                                aria-hidden={!detailsOpen}
+                                className={`mt-1 overflow-hidden text-sm leading-relaxed text-slate-600 transition-all duration-200 ${desktopDetailVisibleClass}`}
+                              >
+                                {formatItemDetail(item)}
+                              </div>
+                              <div
+                                className={`mt-1 text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
+                              >
+                                {isActive
+                                  ? '右の候補から選ぶとこの行が更新されます'
+                                  : 'この行をクリックして変更'}
+                              </div>
+                              {isActive ? (
+                                <div className="mt-1 text-xs font-semibold text-slate-600">
+                                  選んだ装備がここに反映されます
+                                </div>
+                              ) : null}
+                            </div>
+
+                            <div className="flex justify-center border-l border-slate-100/80 pl-1">
+                              <PriceCell item={item} />
+                            </div>
+
+                            {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                              <div
+                                key={stat}
+                                className="flex justify-center border-l border-slate-100/80 pl-1"
+                              >
+                                <StatBadge stat={stat} value={formatItemStatValue(item, stat)} />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div hidden={isDesktop} className="flex flex-col gap-3 xl:hidden">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                  isActive
+                                    ? 'bg-slate-900 text-white'
+                                    : 'bg-slate-100 text-slate-500'
+                                }`}
+                              >
+                                {isActive ? '編集中' : 'クリックで候補を開く'}
+                              </span>
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
+                                  {item.nameEn}
+                                </div>
+                                <DetailDisclosureButton
+                                  expanded={detailsOpen}
+                                  label={detailButtonLabel}
+                                  onClick={handleDetailButtonClick}
+                                />
+                              </div>
+                              {detailsOpen ? (
+                                <div
+                                  data-loadout-detail={slot}
+                                  aria-hidden={false}
+                                  className="mt-1 text-sm leading-relaxed text-slate-600"
+                                >
+                                  {formatItemDetail(item)}
+                                </div>
+                              ) : null}
+                            </div>
+
+                            <div className="flex max-w-full flex-wrap gap-1.5">
+                              <PriceCell item={item} />
+                              {(isActive ? STAT_THEME_ORDER : getHighlightedStats(item)).map(
+                                (stat) => (
+                                  <StatBadge
+                                    key={stat}
+                                    stat={stat}
+                                    value={formatItemStatValue(item, stat)}
+                                  />
+                                ),
+                              )}
+                            </div>
+
+                            <span
+                              className={`text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
+                            >
+                              {isActive
+                                ? '下の候補から選ぶとこの行が更新されます'
+                                : 'この行をクリックして変更'}
+                            </span>
+                            {isActive ? (
+                              <span className="text-xs font-semibold text-slate-600">
+                                選んだ装備がここに反映されます
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {isActive ? (
+                            <div data-testid="slot-picker-anchor-fallback" className="hidden" />
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4 xl:hidden">
+                {activeSlot && overlayTop === null ? (
+                  <div
+                    ref={pickerPanelRef}
+                    className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_20px_40px_rgba(15,23,42,0.12)]"
+                  >
+                    {mobilePickerPanel}
+                  </div>
+                ) : null}
               </div>
             </div>
-          ) : null}
+
+            <div hidden={!showDesktopPicker} className="hidden xl:block">
+              {showDesktopPicker ? (
+                <div className="relative" style={{ marginTop: `${desktopPickerOffset}px` }}>
+                  <div
+                    data-testid="slot-picker-anchor"
+                    className="pointer-events-none absolute left-0 top-20 h-16 w-24 -translate-x-[76%] -translate-y-1/2"
+                  />
+                  <div className="pointer-events-none absolute left-0 top-20 h-16 w-24 -translate-x-[76%] -translate-y-1/2 overflow-visible">
+                    <svg
+                      className="h-full w-full drop-shadow-[-8px_10px_18px_rgba(15,23,42,0.08)]"
+                      viewBox="0 0 96 64"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M94 7C72 7 56 10 41 18L16 29C11 31 11 33 16 35L41 46C56 54 72 57 94 57"
+                        fill="white"
+                        stroke="#e2e8f0"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div
+                    ref={pickerPanelRef}
+                    className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_56px_rgba(15,23,42,0.14)]"
+                  >
+                    {desktopPickerPanel}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -785,8 +729,6 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   slot,
   items,
   selectedId,
-  totalStats,
-  currentLoadoutItems,
   onSelect,
   onClose,
   testId = 'slot-picker-panel',
@@ -794,8 +736,6 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   slot: LoadoutSlot;
   items: readonly T[];
   selectedId: string;
-  totalStats: DerivedModelSummary['totalStats'];
-  currentLoadoutItems: Record<LoadoutSlot, EquipmentItem | EnchantItem>;
   onSelect: (id: string) => void;
   onClose: () => void;
   testId?: string;
@@ -833,25 +773,8 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
               {LOADOUT_SLOT_LABELS[slot]} の候補
             </h3>
             <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
-              上の「いまの装備」を見たまま、下の候補と見比べられます。
+              左の「いまの装備」を見たまま、右の候補と比べて選べます。
             </p>
-            <div className="mt-2 rounded-2xl border border-slate-200 bg-white/80 p-3">
-              <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                合計ステータス
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5" data-testid="picker-total-stats-summary">
-                {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                  <StatBadge
-                    key={stat}
-                    stat={stat}
-                    value={formatTotalStatValue(totalStats, stat)}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="mt-3">
-              <CompactCurrentLoadoutSummary items={currentLoadoutItems} activeSlot={slot} />
-            </div>
           </div>
           <button
             type="button"
@@ -1148,8 +1071,6 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   slot={activeSlot}
                   items={loadoutItems[activeSlot]}
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
-                  totalStats={model.totalStats}
-                  currentLoadoutItems={currentLoadoutItems}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
                 />
@@ -1168,8 +1089,6 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   slot={activeSlot}
                   items={loadoutItems[activeSlot]}
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
-                  totalStats={model.totalStats}
-                  currentLoadoutItems={currentLoadoutItems}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
                   testId="slot-picker-panel"

@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.37] - 2026-03-13
+
+### Fixed
+
+- **Step 1 keeps the original current-loadout table visible while you choose replacements**: the desktop picker now opens in a separate right-side comparison panel instead of covering the base loadout table, so you can keep the current Rod / Line / Bobber / Enchant visible while comparing candidates.
+- **Current-loadout and picker tests now guard the non-overlapping comparison flow**: regression coverage was updated so the left table stays readable, the right picker remains anchored, and the active desktop visual baseline matches the new side-by-side selection layout.
+
 ## [0.12.36] - 2026-03-13
 
 ### Changed
