@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.24] - 2026-03-13
+
+### Changed
+
+- **Loadout row details now use a standard disclosure control instead of an info icon**: the small chevron button opens and closes inline detail text in the same row, so the interaction matches the usual “expand this row” expectation more closely.
+
 ## [0.12.23] - 2026-03-13
 
 ### Changed

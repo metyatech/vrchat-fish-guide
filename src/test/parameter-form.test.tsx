@@ -101,7 +101,7 @@ describe('Step 1 loadout UI quality', () => {
     });
 
     fireEvent.click(
-      within(lineRow as HTMLElement).getAllByRole('button', { name: '詳細を見る' })[0],
+      within(lineRow as HTMLElement).getAllByRole('button', { name: '詳細を開く' })[0],
     );
 
     const openedPanels = (lineRow as HTMLElement).querySelectorAll('[data-loadout-detail="line"]');
@@ -121,7 +121,7 @@ describe('Step 1 loadout UI quality', () => {
     expect(lineRow).not.toBeNull();
 
     fireEvent.click(
-      within(lineRow as HTMLElement).getAllByRole('button', { name: '詳細を見る' })[0],
+      within(lineRow as HTMLElement).getAllByRole('button', { name: '詳細を開く' })[0],
     );
 
     expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();

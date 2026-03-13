@@ -223,6 +223,41 @@ function StatCard({ stat, label, value }: { stat: StatThemeKey; label?: string; 
   );
 }
 
+function DetailDisclosureButton({
+  expanded,
+  label,
+  onClick,
+}: {
+  expanded: boolean;
+  label: string;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-expanded={expanded}
+      title={label}
+      className="relative z-20 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 opacity-90 transition hover:border-slate-300 hover:text-slate-700 focus:opacity-100"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 12 12"
+        className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2.25 4.5 6 8.25 9.75 4.5" />
+      </svg>
+      <span className="sr-only whitespace-nowrap">{label}</span>
+    </button>
+  );
+}
+
 /** Slot label chip. Pass dark=true for use on slate-900 dark loadout board. */
 function SlotLabelChip({
   slot,
@@ -419,7 +454,7 @@ function CurrentLoadoutTable({
                 const isActive = activeSlot === slot;
                 const isUpdated = recentlyUpdatedSlot === slot;
                 const detailsOpen = detailOpenSlots[slot];
-                const detailButtonLabel = detailsOpen ? '詳細を隠す' : '詳細を見る';
+                const detailButtonLabel = detailsOpen ? '詳細を閉じる' : '詳細を開く';
                 const desktopDetailVisibleClass = detailsOpen
                   ? 'max-h-24 opacity-100'
                   : 'max-h-0 opacity-0';
@@ -489,16 +524,11 @@ function CurrentLoadoutTable({
                                 {item.nameEn}
                               </div>
                             </div>
-                            <button
-                              type="button"
+                            <DetailDisclosureButton
+                              expanded={detailsOpen}
+                              label={detailButtonLabel}
                               onClick={handleDetailButtonClick}
-                              aria-label={detailButtonLabel}
-                              aria-pressed={detailsOpen}
-                              className="relative z-20 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-500 opacity-80 transition hover:border-slate-300 hover:text-slate-700 hover:opacity-100 focus:opacity-100"
-                            >
-                              <span aria-hidden="true">i</span>
-                              <span className="sr-only whitespace-nowrap">{detailButtonLabel}</span>
-                            </button>
+                            />
                           </div>
                           <div
                             data-loadout-detail={slot}
@@ -548,16 +578,11 @@ function CurrentLoadoutTable({
                             <div className="min-w-0 flex-1 truncate text-base font-bold text-slate-900">
                               {item.nameEn}
                             </div>
-                            <button
-                              type="button"
+                            <DetailDisclosureButton
+                              expanded={detailsOpen}
+                              label={detailButtonLabel}
                               onClick={handleDetailButtonClick}
-                              aria-label={detailButtonLabel}
-                              aria-pressed={detailsOpen}
-                              className="relative z-20 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-bold text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-                            >
-                              <span aria-hidden="true">i</span>
-                              <span className="sr-only whitespace-nowrap">{detailButtonLabel}</span>
-                            </button>
+                            />
                           </div>
                           {detailsOpen ? (
                             <div
