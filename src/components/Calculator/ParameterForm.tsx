@@ -442,7 +442,6 @@ function CurrentLoadoutTable({
             >
               <div className="relative">
                 <div
-                  data-testid="slot-picker-anchor"
                   className="pointer-events-none absolute left-0 h-16 w-24 -translate-x-[76%] -translate-y-1/2 overflow-visible"
                   style={{ top: desktopPickerPosition.arrowTop }}
                 >
@@ -568,16 +567,18 @@ function CurrentLoadoutTable({
                         <div className="flex flex-col gap-2">
                           <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                           {isActive ? (
-                            <span
-                              data-testid="active-slot-indicator"
-                              className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white"
-                            >
+                            <div data-testid="slot-picker-anchor">
                               <span
-                                className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
-                                aria-hidden="true"
-                              />
-                              {LOADOUT_SLOT_LABELS[slot]} を編集中
-                            </span>
+                                data-testid="active-slot-indicator"
+                                className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white"
+                              >
+                                <span
+                                  className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+                                  aria-hidden="true"
+                                />
+                                {LOADOUT_SLOT_LABELS[slot]} を編集中
+                              </span>
+                            </div>
                           ) : (
                             <span className="text-[11px] font-semibold text-slate-500">
                               クリックで変更
