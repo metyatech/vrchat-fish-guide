@@ -35,11 +35,11 @@ const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
 };
 
 function formatSelectedTimeLabel(value: CalculatorParams['timeOfDay']): string {
-  return value === 'any' ? '自動でまとめる' : TIME_OF_DAY_LABELS[value];
+  return value === 'any' ? '平均で見る' : TIME_OF_DAY_LABELS[value];
 }
 
 function formatSelectedWeatherLabel(value: CalculatorParams['weatherType']): string {
-  return value === 'any' ? '自動でまとめる' : WEATHER_TYPE_LABELS[value];
+  return value === 'any' ? '平均で見る' : WEATHER_TYPE_LABELS[value];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -611,7 +611,7 @@ export function CalculatorPageClient() {
               aria-controls="calculation-notes-panel"
               className="flex w-full items-center justify-between gap-3 text-left font-semibold text-gray-700"
             >
-              <span>📝 計算メモ</span>
+              <span>📝 この計算について</span>
               <span className="text-xs text-gray-500">{notesOpen ? '閉じる' : '開く'}</span>
             </button>
             <div
@@ -627,56 +627,59 @@ export function CalculatorPageClient() {
               <div className="overflow-hidden">
                 <ul className="space-y-1.5">
                   <li>
-                    • <strong>表示中の条件</strong>: 釣り場{' '}
+                    • <strong>いま見ている条件</strong>: 釣り場{' '}
                     {AREA_MAP[activeResult.model.autoSelectedAreaId ?? activeResult.params.areaId]
                       ?.nameEn ?? '—'}
                     、時間帯 {formatSelectedTimeLabel(activeResult.params.timeOfDay)}、天気{' '}
                     {formatSelectedWeatherLabel(activeResult.params.weatherType)}
                   </li>
                   <li>
-                    • <strong>対象魚種</strong>: {activeResult.fishResults.length} 種 /{' '}
-                    <strong>価格レンジ未取得</strong>: {activeResult.missingPriceFish.length} 種
-                  </li>
-                  <li>
-                    • <strong>対象魚の絞り込み</strong>:
-                    場所ごとの魚一覧と、時間帯・天気の条件タグを使います。
-                  </li>
-                  <li>
-                    • <strong>装備のステータス</strong>: 公開されている Rod / Line / Bobber /
-                    Enchant の値を合計します。
-                  </li>
-                  <li>
-                    • <strong>レア度の出やすさ</strong>: 公開 rarity table
-                    を基準に、同じレア度の中では等分配します。
-                  </li>
-                  <li>
-                    • <strong>Luck の扱い</strong>:{' '}
-                    {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x
-                    の補正として入れています。ここはまだ正確式が分かっていないため推定です。
-                  </li>
-                  <li>
-                    • <strong>Big Catch / Max Weight の扱い</strong>:{' '}
-                    {(activeResult.model.weightPercentile * 100).toFixed(0)}%
-                    ぶん重さを上に寄せる推定で入れています。
-                  </li>
-                  <li>
-                    • <strong>見た目・サイズ補正</strong>:{' '}
-                    {activeResult.params.modifierAssumptions.includeModifiers
-                      ? `${activeResult.model.modifierEvFactor.toFixed(3)}x の補正を入れています。ここも推定です。`
-                      : '現在は入れていません。左の「詳細調整」でオンにできます。'}
-                  </li>
-                  <li>
-                    • <strong>期待値/回</strong>: 各魚の確率 × 推定売値 × 直接効果
-                    {activeResult.params.modifierAssumptions.includeModifiers
-                      ? ' × 見た目・サイズ補正'
+                    • <strong>計算に入っている魚</strong>: {activeResult.fishResults.length} 種{' '}
+                    {activeResult.missingPriceFish.length > 0
+                      ? `(価格情報が未取得の魚 ${activeResult.missingPriceFish.length} 種を除く)`
                       : ''}
-                    です。
                   </li>
                   <li>
-                    • <strong>期待値/時間</strong>: 期待値/回 × (3600 ÷ 1回にかかる時間) です。
+                    • <strong>どの魚が釣れるか</strong>:
+                    各釣り場の魚リストから、時間帯と天気の条件に合う魚を選んでいます。
                   </li>
                   <li>
-                    • <strong>いま使っているレア度の重み</strong>:{' '}
+                    • <strong>装備の効果</strong>: 選んだ Rod / Line / Bobber / Enchant
+                    のステータスを合算しています。
+                  </li>
+                  <li>
+                    • <strong>レア度の影響</strong>:
+                    公開されているレア度テーブルを基準に、同じレア度の魚は同じ確率で出るように計算しています。
+                  </li>
+                  <li>
+                    • <strong>Luck の効果</strong>:{' '}
+                    {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x
+                    の補正として反映しています。(※内部計算式は未公開のため推定値)
+                  </li>
+                  <li>
+                    • <strong>Big Catch / Max Weight の効果</strong>: 魚の重さを上位{' '}
+                    {(activeResult.model.weightPercentile * 100).toFixed(0)}%
+                    の範囲に寄せる形で反映しています。(※推定式)
+                  </li>
+                  <li>
+                    • <strong>見た目・サイズボーナス</strong>:{' '}
+                    {activeResult.params.modifierAssumptions.includeModifiers
+                      ? `約 ${activeResult.model.modifierEvFactor.toFixed(3)}x のボーナスとして計算に入れています。(※コミュニティ観測値に基づく推定)`
+                      : '現在はオフです。左の「詳細設定」からオンにできます。'}
+                  </li>
+                  <li>
+                    • <strong>期待値/回</strong>: 各魚の釣れる確率 × 推定売値
+                    {activeResult.params.modifierAssumptions.includeModifiers
+                      ? ' × 見た目・サイズボーナス'
+                      : ''}
+                    を全魚種で合計した値です。
+                  </li>
+                  <li>
+                    • <strong>期待値/時間</strong>: 期待値/回 × (1時間 ÷ 1回の所要時間)
+                    で計算しています。
+                  </li>
+                  <li>
+                    • <strong>使用中のレア度重み</strong>:{' '}
                     {Object.entries(activeResult.effectiveRarityWeights)
                       .map(
                         ([rarity, weight]) =>

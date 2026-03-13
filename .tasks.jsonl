@@ -1,2 +1,4 @@
 {"id":"Va1A5Tlp","description":"Step 1のゲームUI化と回帰テスト追加（visual bugs対応）","stage":"done","createdAt":"2026-03-09T15:51:30.907Z","updatedAt":"2026-03-09T15:51:36.513Z"}
 {"id":"GJ8JSs-Y","description":"Eliminate remaining Fish calculator GUI-rule violations","stage":"done","createdAt":"2026-03-13T02:33:08.054Z","updatedAt":"2026-03-13T02:51:45.409Z"}
+{"id":"OgBjn0HL","description":"Remove Node 20 deprecation warnings from vrchat-fish-guide GitHub Actions workflows","stage":"done","createdAt":"2026-03-13T03:57:00.974Z","updatedAt":"2026-03-13T04:17:56.087Z"}
+{"id":"i0fh_afk","description":"Finish remaining Fish follow-ups: workflow warnings, notes wording, model accuracy, and equipment search/filter","stage":"done","createdAt":"2026-03-13T03:58:30.475Z","updatedAt":"2026-03-13T04:17:56.200Z"}

@@ -78,6 +78,21 @@ const ALL_WEATHER_TYPES: Exclude<WeatherType, 'any'>[] = [
   'foggy',
 ];
 
+const TIME_OF_DAY_LABELS: Record<Exclude<TimeOfDay, 'any'>, string> = {
+  morning: '朝',
+  day: '昼',
+  evening: '夕方',
+  night: '夜',
+};
+
+const WEATHER_LABELS: Record<Exclude<WeatherType, 'any'>, string> = {
+  clear: '晴れ',
+  rainy: '雨',
+  moonrain: 'Moonrain',
+  stormy: '嵐',
+  foggy: '霧',
+};
+
 const RARITY_MINIGAME_FACTOR: Partial<Record<Rarity, number>> = {
   abundant: 0.85,
   common: 1,
@@ -97,6 +112,28 @@ const RARITY_ESCAPE_FACTOR: Partial<Record<Rarity, number>> = {
   mythic: 1.9,
   exotic: 2.25,
 };
+
+/**
+ * Base weight percentile when Big Catch stat is zero.
+ *
+ * This is an INDEPENDENT APPROXIMATION. The actual in-game weight distribution
+ * without Big Catch is unknown. A value below 0.5 (median) reflects the common
+ * game design pattern where baseline stats tend toward below-average results,
+ * making positive stats more valuable.
+ *
+ * Experimental: may be adjusted based on community observation.
+ */
+const BASE_WEIGHT_PERCENTILE = 0.4;
+
+/**
+ * Sensitivity coefficient for Big Catch stat to weight percentile conversion.
+ *
+ * This is an INDEPENDENT APPROXIMATION. The scale is chosen so that typical
+ * Big Catch values (~0-200) map to reasonable percentile shifts.
+ *
+ * Experimental: scaling factor is not derived from published formulas.
+ */
+const BIG_CATCH_SENSITIVITY = 200;
 
 export const BEST_AREA_ID = 'best-area';
 
@@ -148,6 +185,14 @@ function isDaylightTime(timeOfDay: TimeOfDay): boolean {
   return timeOfDay === 'morning' || timeOfDay === 'day' || timeOfDay === 'evening';
 }
 
+function formatTimeOfDayLabel(timeOfDay: Exclude<TimeOfDay, 'any'>): string {
+  return TIME_OF_DAY_LABELS[timeOfDay];
+}
+
+function formatWeatherLabel(weatherType: Exclude<WeatherType, 'any'>): string {
+  return WEATHER_LABELS[weatherType];
+}
+
 function scaleFromScore(score: number, baseline: number, min: number, max: number): number {
   return clamp(baseline / Math.max(1, baseline + score), min, max);
 }
@@ -186,8 +231,7 @@ export function resolveEnchantActivity(
     if (timeOfDay === 'any') {
       return {
         active: false,
-        reason:
-          'Time of Day を自動平均にしている間は、Day のみ有効な Enchant は常時有効にはできません。',
+        reason: '時間帯を自動にしている間は、昼だけ有効な Enchant を常時有効として扱えません。',
       };
     }
     if (!isDaylightTime(timeOfDay)) {
@@ -200,8 +244,8 @@ export function resolveEnchantActivity(
       active: false,
       reason:
         timeOfDay === 'any'
-          ? 'Time of Day を自動平均にしている間は、Night のみ有効な Enchant は常時有効にはできません。'
-          : 'この Enchant は Night のときだけ有効です。',
+          ? '時間帯を自動にしている間は、夜だけ有効な Enchant を常時有効として扱えません。'
+          : 'この Enchant は夜だけ有効です。',
     };
   }
 
@@ -210,8 +254,8 @@ export function resolveEnchantActivity(
       active: false,
       reason:
         weatherType === 'any'
-          ? `Weather を自動平均にしている間は、${enchant.activationWeather} でのみ有効な Enchant は常時有効にはできません。`
-          : `この Enchant は ${enchant.activationWeather} のときだけ有効です。`,
+          ? `天気を自動にしている間は、${formatWeatherLabel(enchant.activationWeather)}でだけ有効な Enchant を常時有効として扱えません。`
+          : `この Enchant は${formatWeatherLabel(enchant.activationWeather)}のときだけ有効です。`,
     };
   }
 
@@ -437,7 +481,11 @@ function deriveScenarioModel(
 
   const direct = getDirectMultipliers(enchantActivity.active ? enchant : undefined);
   const effectiveLuckMultiplier = clamp(1 + totalStats.luck / 100, 0.1, 5);
-  const weightPercentile = clamp(0.5 + totalStats.bigCatch / 200, 0.05, 0.99);
+  const weightPercentile = clamp(
+    BASE_WEIGHT_PERCENTILE + totalStats.bigCatch / BIG_CATCH_SENSITIVITY,
+    0.05,
+    0.99,
+  );
 
   const { modifierAssumptions } = normalizedParams;
   const modifierEvFactor = modifierAssumptions.includeModifiers
@@ -453,7 +501,7 @@ function deriveScenarioModel(
   const effectiveBiteTimeSec = normalizedParams.baseBiteTimeSec * biteScale;
   const effectiveMinigameTimeSec = normalizedParams.baseMinigameTimeSec * minigameScale;
   const effectiveMissRate = clamp(
-    (normalizedParams.baseMissRate + normalizedParams.playerMistakeRate) * missScale,
+    normalizedParams.baseMissRate * missScale + normalizedParams.playerMistakeRate,
     0,
     0.95,
   );
@@ -463,15 +511,15 @@ function deriveScenarioModel(
     ...direct.supportedNotes,
   ];
   const experimentalNotes = [
-    `Luck ${formatSignedDisplayNumber(totalStats.luck)} は、レアな魚が出やすくなる補正 ${effectiveLuckMultiplier.toFixed(2)}x として入れています。`,
-    `Attraction Rate ${formatSignedDisplayNumber(totalStats.attractionPct, '%')} は、魚が掛かるまでの時間へ反映しています。`,
-    `Strength + Expertise (${formatSignedDisplayNumber(controlScore)}) は、ミニゲーム時間と逃がしにくさへ反映しています。`,
-    `Big Catch Rate ${formatSignedDisplayNumber(totalStats.bigCatch)} は、重い魚が出やすくなる方向へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
-    `Max Weight ${formatWeightKg(totalStats.maxWeightKg)} は、魚ごとの重さ上限に使っています。`,
+    `Luck ${formatSignedDisplayNumber(totalStats.luck)} は、レアな魚が出やすくなる推定補正 ${effectiveLuckMultiplier.toFixed(2)}x として入れています。`,
+    `Attraction Rate ${formatSignedDisplayNumber(totalStats.attractionPct, '%')} は、魚が掛かるまでの待ち時間に反映しています。`,
+    `Strength + Expertise (${formatSignedDisplayNumber(controlScore)}) は、ミニゲーム時間と基本の逃がしやすさに反映しています。プレイヤーが操作で出すミス率は別に加算しています。`,
+    `Big Catch Rate ${formatSignedDisplayNumber(totalStats.bigCatch)} は、重い個体が出やすい側へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
+    `Max Weight ${formatWeightKg(totalStats.maxWeightKg)} は、魚ごとの重さ上限をどこまで使うかの目安にしています。`,
   ];
   if (modifierAssumptions.includeModifiers) {
     experimentalNotes.push(
-      `見た目・サイズ補正 ${modifierEvFactor.toFixed(3)}x を推定売値に掛けています（見た目 ${APPEARANCE_MODIFIER_COUNT} 種、見た目平均 ${
+      `見た目・サイズ補正は、推定売値に ${modifierEvFactor.toFixed(3)}x を掛けています（見た目 ${APPEARANCE_MODIFIER_COUNT} 種、見た目平均 ${
         modifierAssumptions.assumeCursedToBlessed ? '2.487' : '2.404'
       }x${modifierAssumptions.assumeCursedToBlessed ? '、Cursed→Blessed を含む' : ''}、サイズ平均 ${MEAN_SIZE_MULTIPLIER.toFixed(2)}x、何らかの追加効果 ${(P_ANY_MODIFIER * 100).toFixed(1)}%、見た目だけ ${(P_APPEARANCE_ONLY * 100).toFixed(1)}%、サイズだけ ${(P_SIZE_ONLY * 100).toFixed(1)}%、両方 ${(P_BOTH_MODIFIERS * 100).toFixed(1)}%）。`,
     );
@@ -546,8 +594,8 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
         .flatMap(({ model }) => model.supportedNotes)
         .concat([
           normalizedParams.areaId === BEST_AREA_ID
-            ? 'Fishing Area を自動にすると、今の候補ごとに期待値/時間が最も高い場所を選びます。'
-            : 'Fishing Area を固定すると、その場所だけで計算します。',
+            ? '釣り場を自動にすると、その条件で期待値/時間が最も高い場所を選びます。'
+            : '釣り場を固定すると、その場所だけで計算します。',
         ]),
     ),
   );
@@ -557,8 +605,8 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
         .flatMap(({ model }) => model.experimentalNotes)
         .concat([
           normalizedParams.timeOfDay === 'any' || normalizedParams.weatherType === 'any'
-            ? 'Time of Day / Weather を自動平均にすると、公開されている各状態を同じ比率で平均して計算します。'
-            : 'Time of Day / Weather は選んだ条件に固定して計算します。',
+            ? '時間帯 / 天気を自動にすると、公開されている各状態を同じ比率で平均して計算します。'
+            : '時間帯 / 天気は選んだ条件に固定して計算します。',
         ]),
     ),
   );
@@ -568,12 +616,12 @@ export function deriveModelSummary(params: CalculatorParams): DerivedModelSummar
 
   if (normalizedParams.timeOfDay === 'any') {
     experimentalNotes.push(
-      'Time of Day を自動平均にすると、Morning / Day / Evening / Night を固定せず平均して扱います。',
+      '時間帯を自動にすると、朝 / 昼 / 夕方 / 夜を固定せず同じ比率で平均します。',
     );
   }
   if (normalizedParams.weatherType === 'any') {
     experimentalNotes.push(
-      'Weather を自動平均にすると、Clear / Rainy / Moonrain / Stormy / Foggy を固定せず平均して扱います。',
+      '天気を自動にすると、晴れ / 雨 / Moonrain / 嵐 / 霧を固定せず同じ比率で平均します。',
     );
   }
 
@@ -952,33 +1000,29 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
   );
 
   if (normalizedParams.areaId === BEST_AREA_ID) {
-    warnings.push(
-      'Fishing Area は自動選択です。各候補ごとに期待値/時間が最も高いエリアを採用しています。',
-    );
+    warnings.push('釣り場は自動選択です。候補ごとに期待値/時間が最も高い場所を採用しています。');
   } else {
-    warnings.push('Fishing Area は固定です。選んだエリアの中だけで比較しています。');
+    warnings.push('釣り場は固定です。選んだ場所の中だけで比較しています。');
   }
 
   if (normalizedParams.timeOfDay === 'any') {
-    warnings.push('Time of Day は固定せず、Morning / Day / Evening / Night を自動平均しています。');
+    warnings.push('時間帯は固定せず、朝 / 昼 / 夕方 / 夜を同じ比率で平均しています。');
   } else {
-    warnings.push(`Time of Day は ${normalizedParams.timeOfDay} に固定しています。`);
+    warnings.push(`時間帯は${formatTimeOfDayLabel(normalizedParams.timeOfDay)}に固定しています。`);
   }
   if (normalizedParams.weatherType === 'any') {
-    warnings.push(
-      'Weather は固定せず、Clear / Rainy / Moonrain / Stormy / Foggy を自動平均しています。',
-    );
+    warnings.push('天気は固定せず、晴れ / 雨 / Moonrain / 嵐 / 霧を同じ比率で平均しています。');
   } else {
-    warnings.push(`Weather は ${normalizedParams.weatherType} に固定しています。`);
+    warnings.push(`天気は${formatWeatherLabel(normalizedParams.weatherType)}に固定しています。`);
   }
 
   warnings.push(
-    '各 rarity 内では、公開索引に載っている魚を等確率で割り当てる近似モデルを使用しています。',
+    '同じレア度の魚は、公開されている索引に載っている魚をいったん同じ出やすさとして配分しています。',
   );
-  warnings.push('Luck / Big Catch Rate / Max Weight の期待値反映には、まだ推定の部分があります。');
   warnings.push(
-    '逃がしやすさは rarity ごとに変わる推定モデルです。魚ごとの正確な内部式は公開されていません。',
+    'Luck / Big Catch Rate / Max Weight の効き方は公開情報だけでは足りないため、期待値にはまだ推定が入っています。',
   );
+  warnings.push('逃がしやすさはレア度ごとの近似です。魚ごとの正確な内部式は公開されていません。');
   if (displayModel.inactiveEnchantReason) {
     warnings.push(displayModel.inactiveEnchantReason);
   }
@@ -1051,8 +1095,8 @@ export function getDefaultParams(areaId = BEST_AREA_ID): CalculatorParams {
     observedAvgCatchTimeSec: 60,
     observedMissRate: 0.1,
     baseBiteTimeSec: 20,
-    baseMinigameTimeSec: 12,
-    baseMissRate: 0.04,
+    baseMinigameTimeSec: 40,
+    baseMissRate: 0.1,
     castTimeSec: 1.2,
     hookReactionTimeSec: 0.2,
     playerMistakeRate: 0.04,

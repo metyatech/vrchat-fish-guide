@@ -303,6 +303,48 @@ test('scrolled picker panel keeps the header sealed', async ({ page }) => {
   expect((headerSeal as { scrollTop: number }).scrollTop).toBeGreaterThan(0);
 });
 
+test('equipment picker search filters items by name, location, and special effects', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+  const pickerPanel = page.getByTestId('slot-picker-panel');
+  await expect(pickerPanel).toContainText('Rod の候補');
+
+  const searchInput = pickerPanel.getByPlaceholder('名前・入手場所・効果で検索...');
+  await expect(searchInput).toBeVisible();
+
+  const initialRowCount = await pickerPanel.locator('[data-testid="picker-option-row"]').count();
+  expect(initialRowCount).toBeGreaterThan(5);
+
+  await searchInput.fill('Fortunate');
+  await page.waitForTimeout(100);
+  const fortunateRowCount = await pickerPanel.locator('[data-testid="picker-option-row"]').count();
+  expect(fortunateRowCount).toBeGreaterThan(0);
+  expect(fortunateRowCount).toBeLessThan(initialRowCount);
+  await expect(pickerPanel.locator('[data-testid="picker-option-row"]').first()).toContainText(
+    'Fortunate',
+  );
+
+  await searchInput.fill('Coconut Bay');
+  await page.waitForTimeout(100);
+  const coconutBayRowCount = await pickerPanel.locator('[data-testid="picker-option-row"]').count();
+  expect(coconutBayRowCount).toBeGreaterThan(0);
+
+  await searchInput.fill('xyznonexistent');
+  await page.waitForTimeout(100);
+  await expect(pickerPanel.locator('[data-testid="picker-option-row"]')).toHaveCount(0);
+  await expect(pickerPanel).toContainText('見つかりません');
+  await expect(pickerPanel).toContainText('xyznonexistent');
+
+  await searchInput.fill('');
+  await page.waitForTimeout(100);
+  const clearedRowCount = await pickerPanel.locator('[data-testid="picker-option-row"]').count();
+  expect(clearedRowCount).toBe(initialRowCount);
+});
+
 test('sources page shows data governance and current source set', async ({ page }) => {
   await page.goto('/sources/');
 

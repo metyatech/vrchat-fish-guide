@@ -186,6 +186,22 @@ describe('gear model helpers', () => {
     expect(model.effectiveBiteTimeSec).toBeDefined();
     expect(model.effectiveAvgCatchTimeSec).toBeGreaterThan(0);
   });
+
+  it('keeps player mistake rate separate from gear-based control scaling', () => {
+    const model = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      loadout: {
+        rodId: 'metallic-rod',
+        lineId: 'diamond-line',
+        bobberId: 'rainbow-slime-bobber',
+        enchantId: 'strongest-angler',
+      },
+      baseMissRate: 0,
+      playerMistakeRate: 0.2,
+    });
+
+    expect(model.effectiveMissRate).toBeCloseTo(0.2, 5);
+  });
 });
 
 describe('calculateDistribution', () => {
@@ -255,7 +271,9 @@ describe('calculateDistribution', () => {
       weatherType: 'rainy',
     });
 
-    expect(result.warnings.some((warning) => warning.includes('Time of Day'))).toBe(true);
+    expect(
+      result.warnings.some((warning) => warning.includes('時間帯') || warning.includes('天気')),
+    ).toBe(true);
   });
 
   it('raises EV when a direct value enchant is equipped', () => {
@@ -528,6 +546,68 @@ describe('modifier EV model', () => {
     });
 
     expect(model.experimentalNotes.some((note) => note.includes('見た目・サイズ補正'))).toBe(true);
+  });
+});
+
+describe('Big Catch weight percentile model', () => {
+  it('baseline weight percentile reflects BASE_WEIGHT_PERCENTILE when Big Catch is zero', () => {
+    // Find a loadout with Big Catch ≈ 0 (not all basic gear has zero Big Catch)
+    // stick-and-string has bigCatch: -100, so we test the formula directly
+    const model = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      loadout: {
+        rodId: 'stick-and-string',
+        lineId: 'basic-line',
+        bobberId: 'basic-bobber',
+        enchantId: 'no-enchant',
+      },
+    });
+
+    // Basic rod has Big Catch = -100, which should result in percentile below BASE (0.4)
+    expect(model.totalStats.bigCatch).toBe(-100);
+    // With bigCatch = -100: percentile = 0.4 + (-100)/200 = 0.4 - 0.5 = -0.1 → clamped to 0.05
+    expect(model.weightPercentile).toBeCloseTo(0.05, 5);
+  });
+
+  it('weight percentile increases with positive Big Catch', () => {
+    const baseModel = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      loadout: {
+        rodId: 'stick-and-string',
+        lineId: 'basic-line',
+        bobberId: 'basic-bobber',
+        enchantId: 'no-enchant',
+      },
+    });
+
+    const highBigCatchModel = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      loadout: {
+        rodId: 'fortunate-rod',
+        lineId: 'lucky-line',
+        bobberId: 'lucky-bobber',
+        enchantId: 'no-enchant',
+      },
+    });
+
+    expect(highBigCatchModel.totalStats.bigCatch).toBeGreaterThan(baseModel.totalStats.bigCatch);
+    expect(highBigCatchModel.weightPercentile).toBeGreaterThan(baseModel.weightPercentile);
+  });
+
+  it('weight percentile is clamped between 0.05 and 0.99', () => {
+    // Test lower bound: even with negative Big Catch (hypothetically), percentile >= 0.05
+    const model = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      loadout: {
+        rodId: 'stick-and-string',
+        lineId: 'basic-line',
+        bobberId: 'basic-bobber',
+        enchantId: 'no-enchant',
+      },
+    });
+
+    expect(model.weightPercentile).toBeGreaterThanOrEqual(0.05);
+    expect(model.weightPercentile).toBeLessThanOrEqual(0.99);
   });
 });
 

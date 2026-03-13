@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.22] - 2026-03-13
+
+### Changed
+
+- **GitHub Actions now avoid the Node 20 deprecation path**: workflow actions were moved to newer majors where available, and remaining first-party actions now run under the Node 24 compatibility override.
+- **Equipment pickers are easier to scan**: each picker now supports search by item name, location, and special effect so large Rod / Line / Bobber / Enchant lists are faster to narrow down.
+- **Calculation wording is more player-facing**: `自動判定` and related copy now read more naturally, and the notes panel explains assumptions in plain language.
+- **The miss-rate model is more faithful to player skill input**: gear control now scales the baseline miss component, while the player's own mistake rate remains a separate additive factor instead of being artificially improved away by strong gear.
+
 ## [0.12.21] - 2026-03-13
 
 ### Changed

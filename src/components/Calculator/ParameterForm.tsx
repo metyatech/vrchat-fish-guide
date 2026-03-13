@@ -30,7 +30,7 @@ interface ParameterFormProps {
 }
 
 const TIME_OF_DAY_HELPER: Record<TimeOfDay, string> = {
-  any: '自動でまとめる',
+  any: '平均で見る',
   morning: '朝',
   day: '昼',
   evening: '夕方',
@@ -38,7 +38,7 @@ const TIME_OF_DAY_HELPER: Record<TimeOfDay, string> = {
 };
 
 const WEATHER_TYPE_HELPER: Record<WeatherType, string> = {
-  any: '自動でまとめる',
+  any: '平均で見る',
   clear: '晴れ',
   rainy: '雨',
   moonrain: '月雨',
@@ -675,7 +675,18 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   onClose: () => void;
   testId?: string;
 }) {
+  const [searchQuery, setSearchQuery] = React.useState('');
   const selectedItem = items.find((item) => item.id === selectedId);
+  const filteredItems = searchQuery.trim()
+    ? items.filter((item) => {
+        const term = searchQuery.toLowerCase();
+        return (
+          item.nameEn.toLowerCase().includes(term) ||
+          item.location.toLowerCase().includes(term) ||
+          ('specialEffect' in item && item.specialEffect?.toLowerCase().includes(term))
+        );
+      })
+    : items;
 
   return (
     <div
@@ -685,7 +696,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     >
       <div className="border-b border-slate-200 bg-[linear-gradient(180deg,rgba(246,250,255,0.98),rgba(236,245,255,0.98))] px-5 pb-3 pt-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
               <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">
@@ -698,7 +709,6 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             {selectedItem ? (
               <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
                 現在: <span className="font-semibold text-slate-900">{selectedItem.nameEn}</span>
-                。下の候補から選ぶとこの行が更新されます。
               </p>
             ) : null}
           </div>
@@ -709,6 +719,16 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           >
             <span className="whitespace-nowrap">閉じる</span>
           </button>
+        </div>
+        <div className="mt-3">
+          <input
+            type="text"
+            placeholder="名前・入手場所・効果で検索..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-500 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500 focus:ring-opacity-30"
+            aria-label={`${LOADOUT_SLOT_LABELS[slot]} を検索`}
+          />
         </div>
       </div>
 
@@ -749,63 +769,74 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         data-testid="picker-scroll-body"
         className="relative z-0 max-h-[calc(68vh-2.5rem)] overflow-auto bg-white"
       >
-        <div id={`loadout-picker-${slot}`} className="bg-white px-4 pb-3">
-          {items.map((item) => {
-            const selected = item.id === selectedId;
-            const selectItem = () => onSelect(item.id);
-            const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                selectItem();
-              }
-            };
+        {filteredItems.length > 0 ? (
+          <div id={`loadout-picker-${slot}`} className="bg-white px-4 pb-3">
+            {filteredItems.map((item) => {
+              const selected = item.id === selectedId;
+              const selectItem = () => onSelect(item.id);
+              const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  selectItem();
+                }
+              };
 
-            return (
-              <div
-                key={item.id}
-                data-testid="picker-option-row"
-                tabIndex={0}
-                role="button"
-                aria-pressed={selected}
-                aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
-                onClick={selectItem}
-                onKeyDown={handleKeyDown}
-                className={`grid ${PICKER_GRID_COLUMNS} cursor-pointer items-center border-b border-slate-200 outline-none transition-all duration-150 ${
-                  selected
-                    ? 'bg-emerald-50/70 shadow-[inset_4px_0_0_rgba(16,185,129,0.9),inset_0_0_0_1px_rgba(16,185,129,0.18)]'
-                    : 'bg-white hover:bg-slate-50 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-ocean-400'
-                }`}
-              >
-                <div className="px-2 py-3">
-                  <LoadoutSelectionBadge selected={selected} />
-                </div>
-                <div className="min-w-0 px-2 py-3">
-                  <div className="truncate text-sm font-semibold text-gray-900">{item.nameEn}</div>
-                  <div className="mt-0.5 text-xs leading-relaxed text-gray-500">
-                    {formatItemDetail(item)}
+              return (
+                <div
+                  key={item.id}
+                  data-testid="picker-option-row"
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={selected}
+                  aria-label={selected ? `${item.nameEn} は使用中` : `${item.nameEn} を選ぶ`}
+                  onClick={selectItem}
+                  onKeyDown={handleKeyDown}
+                  className={`grid ${PICKER_GRID_COLUMNS} cursor-pointer items-center border-b border-slate-200 outline-none transition-all duration-150 ${
+                    selected
+                      ? 'bg-emerald-50/70 shadow-[inset_4px_0_0_rgba(16,185,129,0.9),inset_0_0_0_1px_rgba(16,185,129,0.18)]'
+                      : 'bg-white hover:bg-slate-50 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-ocean-400'
+                  }`}
+                >
+                  <div className="px-2 py-3">
+                    <LoadoutSelectionBadge selected={selected} />
                   </div>
-                </div>
-                {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
-                  const theme = STAT_THEME[stat];
-                  return (
-                    <div key={stat} className="px-1 py-3 text-center">
-                      <span
-                        className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
-                        style={{
-                          borderColor: theme.cardBorder,
-                          backgroundColor: theme.cardBackground,
-                          color: theme.surfaceText,
-                        }}
-                      >
-                        {formatItemStatValue(item, stat)}
-                      </span>
+                  <div className="min-w-0 px-2 py-3">
+                    <div className="truncate text-sm font-semibold text-gray-900">
+                      {item.nameEn}
                     </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
+                    <div className="mt-0.5 text-xs leading-relaxed text-gray-500">
+                      {formatItemDetail(item)}
+                    </div>
+                  </div>
+                  {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
+                    const theme = STAT_THEME[stat];
+                    return (
+                      <div key={stat} className="px-1 py-3 text-center">
+                        <span
+                          className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
+                          style={{
+                            borderColor: theme.cardBorder,
+                            backgroundColor: theme.cardBackground,
+                            color: theme.surfaceText,
+                          }}
+                        >
+                          {formatItemStatValue(item, stat)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+            <div className="text-sm font-semibold text-slate-700">見つかりません</div>
+            <p className="mt-1 text-xs text-slate-500">
+              「{searchQuery}」に一致する装備がありません。
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1018,7 +1049,8 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         <div>
           <h2 className="text-sm font-semibold text-gray-800">釣り場と条件</h2>
           <p className="mt-1 text-xs leading-relaxed text-gray-600">
-            未指定なら釣り場は自動選択、時間帯と天気はまとめて計算します。
+            そのままでも始められます。釣り場はおすすめを自動で選び、時間帯と天気は
+            平均して計算します。
           </p>
         </div>
 
@@ -1040,7 +1072,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             ))}
           </select>
           <p className="mt-1 text-xs text-gray-500">
-            期待値/時間が最も高い釣り場を装備ごとに自動で選びます。
+            今の装備でいちばん稼ぎやすい釣り場を選びます。
           </p>
         </div>
 
@@ -1065,7 +1097,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">
-              自動でまとめる を選ぶと、全時間帯を同じ割合で扱います。
+              平均で見る を選ぶと、すべての時間帯をならして計算します。
             </p>
           </div>
 
@@ -1089,7 +1121,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               ))}
             </select>
             <p className="mt-1 text-xs text-gray-500">
-              自動でまとめる を選ぶと、全天気を同じ割合で扱います。
+              平均で見る を選ぶと、すべての天気をならして計算します。
             </p>
           </div>
         </div>
@@ -1179,9 +1211,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
 
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-xs leading-relaxed text-gray-600">
-          <div className="mb-2 font-semibold text-gray-800">
-            この装備の組み合わせでの自動見積もり
-          </div>
+          <div className="mb-2 font-semibold text-gray-800">この装備ならこのくらい</div>
           <ul className="space-y-1">
             <li>• 投げてから着水まで: {model.effectiveCastTimeSec?.toFixed(2) ?? '—'} sec</li>
             <li>
@@ -1234,7 +1264,8 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   このページが計算に使っている値
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                  上の入力から、このページが実際に計算へ入れている値です。確認できた値と、まだ推定中の値を分けて表示しています。
+                  上の条件から、このページが計算に使っている値です。確認できているものと、
+                  まだ推定のものを分けて表示しています。
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
                   <StatCard
@@ -1276,7 +1307,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                     </ul>
                   </div>
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
-                    <div className="mb-1 font-semibold">まだ推定で入れている部分</div>
+                    <div className="mb-1 font-semibold">まだ推定している部分</div>
                     <ul className="space-y-1">
                       {model.experimentalNotes.map((note) => (
                         <li key={note}>• {note}</li>

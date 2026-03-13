@@ -137,9 +137,90 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const notesPanel = screen.getByTestId('calculation-notes-panel');
-    const diagnosticNodes = screen.getAllByText('対象魚種');
+    const diagnosticNodes = screen.getAllByText('計算に入っている魚');
     for (const node of diagnosticNodes) {
       expect(notesPanel.contains(node)).toBe(true);
     }
+  });
+
+  it('equipment picker search filters items by name', () => {
+    renderDefault();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+    const searchInput = screen.getByRole('textbox', {
+      name: 'Rod を検索',
+    }) as HTMLInputElement;
+
+    // All items should be visible initially
+    let rows = screen.getAllByTestId('picker-option-row');
+    const initialCount = rows.length;
+    expect(initialCount).toBeGreaterThan(1);
+
+    // Type a search query
+    fireEvent.change(searchInput, { target: { value: 'stick' } });
+
+    // Should show filtered results
+    rows = screen.getAllByTestId('picker-option-row');
+    expect(rows.length).toBeLessThan(initialCount);
+    for (const row of rows) {
+      expect(row.textContent.toLowerCase()).toContain('stick');
+    }
+  });
+
+  it('equipment picker shows empty state when search has no matches', () => {
+    renderDefault();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+    const searchInput = screen.getByRole('textbox', {
+      name: 'Rod を検索',
+    }) as HTMLInputElement;
+
+    // Search for something that doesn't exist
+    fireEvent.change(searchInput, { target: { value: 'zzzzzzz_nonexistent' } });
+
+    // Should show "見つかりません" message
+    expect(screen.getByText('見つかりません')).toBeInTheDocument();
+    expect(screen.getByText(/zzzzzzz_nonexistent/)).toBeInTheDocument();
+    expect(screen.queryAllByTestId('picker-option-row')).toHaveLength(0);
+  });
+
+  it('equipment picker search is case-insensitive', () => {
+    renderDefault();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+    const searchInput = screen.getByRole('textbox', {
+      name: 'Rod を検索',
+    }) as HTMLInputElement;
+
+    // Search with uppercase
+    fireEvent.change(searchInput, { target: { value: 'STICK' } });
+
+    // Should still find items
+    const rows = screen.getAllByTestId('picker-option-row');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows[0].textContent.toLowerCase()).toContain('stick');
+  });
+
+  it('time-of-day and weather selection labels use 平均で見る instead of 自動でまとめる', () => {
+    renderDefault();
+
+    // Check that the option labels contain the new wording
+    const timeOptions = screen.getAllByText('平均で見る');
+    expect(timeOptions.length).toBeGreaterThanOrEqual(2); // One for time, one for weather
+
+    // Verify old wording is not present
+    expect(screen.queryByText('自動でまとめる')).not.toBeInTheDocument();
+  });
+
+  it('time-of-day and weather help text explains averaging naturally', () => {
+    renderDefault();
+
+    const helpTexts = screen.getAllByText(
+      /すべての時間帯をならして計算します。|すべての天気をならして計算します。/,
+    );
+    expect(helpTexts.length).toBeGreaterThanOrEqual(2);
+
+    // Verify old stiff wording is not present
+    expect(screen.queryByText(/平均値を用います/)).not.toBeInTheDocument();
   });
 });
