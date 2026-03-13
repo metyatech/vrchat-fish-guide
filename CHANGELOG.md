@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.35] - 2026-03-13
+
+### Fixed
+
+- **Step 1 no longer crushes the current-loadout table while a picker is open**: the replacement picker is back to being an anchored overlay, so the full left-hand loadout stays readable while you compare.
+- **Overall build context now stays visible without breaking the layout**: the picker keeps a compact total-stats summary inside the panel itself instead of shrinking the main comparison table.
+
 ## [0.12.34] - 2026-03-13
 
 ### Changed
