@@ -345,7 +345,7 @@ describe('ParameterForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
 
     expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent(
-      '左の「いまの装備」を見たまま、右の候補と比べて選べます。',
+      '左の「いまの装備」を見たまま、この候補と比べて選べます。',
     );
     expect(screen.getByTestId('picker-current-item-row')).toHaveTextContent('Stick and String');
     expect(screen.getByTestId('current-loadout-table')).toHaveTextContent('Basic Line');

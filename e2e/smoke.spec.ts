@@ -74,7 +74,6 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod を編集中');
-  await expect(page.getByTestId('slot-picker-anchor')).toBeVisible();
   await expect(page.getByTestId('current-loadout-table')).toContainText('Basic Line');
   await expect(page.getByTestId('current-loadout-table')).toContainText('Bobber');
   await expect(page.getByTestId('total-stats-section')).toContainText('Luck');
@@ -197,6 +196,50 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
   expect((loadoutBoardOverflow as { overflow: boolean }).overflow).toBe(false);
 });
 
+test('medium desktop widths keep the loadout visible and move the picker below instead of overlapping', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+  const pickerPanel = page.getByTestId('slot-picker-panel');
+  await expect(pickerPanel).toContainText('Rod の候補');
+  const stackedShell = page.getByTestId('slot-picker-stacked-shell');
+  await expect(stackedShell).toBeVisible();
+  await expect(page.getByTestId('total-stats-section')).toBeVisible();
+
+  const geometry = await page.evaluate(() => {
+    const stacked = document.querySelector(
+      '[data-testid="slot-picker-stacked-shell"]',
+    ) as HTMLElement | null;
+    const table = document.querySelector(
+      '[data-testid="current-loadout-table"]',
+    ) as HTMLElement | null;
+    const totals = document.querySelector(
+      '[data-testid="total-stats-section"]',
+    ) as HTMLElement | null;
+    if (!stacked || !table || !totals) {
+      return { error: 'missing step 1 geometry' };
+    }
+    const stackedRect = stacked.getBoundingClientRect();
+    const tableRect = table.getBoundingClientRect();
+    const totalsRect = totals.getBoundingClientRect();
+    return {
+      stackedBelowTable: stackedRect.top >= tableRect.bottom - 1,
+      stackedBelowTotals: stackedRect.top >= totalsRect.bottom - 1,
+      tableVisibleWidth: tableRect.width,
+      stackedFitsViewport: stackedRect.right <= window.innerWidth - 8,
+    };
+  });
+
+  expect(geometry).not.toHaveProperty('error');
+  expect((geometry as { stackedBelowTable: boolean }).stackedBelowTable).toBe(true);
+  expect((geometry as { stackedBelowTotals: boolean }).stackedBelowTotals).toBe(true);
+  expect((geometry as { tableVisibleWidth: number }).tableVisibleWidth).toBeGreaterThan(900);
+  expect((geometry as { stackedFitsViewport: boolean }).stackedFitsViewport).toBe(true);
+});
+
 test('calculator avoids horizontal scrolling on a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/calculator/');
@@ -219,7 +262,7 @@ test('calculator avoids horizontal scrolling on a narrow viewport', async ({ pag
 });
 
 test('current loadout table visual appearance matches snapshot', async ({ page }) => {
-  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.setViewportSize({ width: 1720, height: 900 });
   await page.goto('/calculator/');
 
   const loadoutTable = page.getByTestId('current-loadout-table');

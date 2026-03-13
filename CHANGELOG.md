@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.40] - 2026-03-14
+
+### Fixed
+
+- **Step 1 no longer lets the replacement picker cover or crush the current-loadout table**: wide desktops still get the anchored right-side picker, but narrower desktop widths now move the picker below the loadout and total-stats cards instead of overlapping or squeezing the left-hand view.
+- **The non-overlapping Step 1 layout is now covered by regression checks**: the verification suite now asserts that medium-width desktops keep the loadout visible, move the picker below the current state, and avoid horizontal overflow while the picker is open.
+
 ## [0.12.39] - 2026-03-13
 
 ### Fixed
