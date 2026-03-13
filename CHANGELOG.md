@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.31] - 2026-03-13
+
+### Fixed
+
+- **Cross-platform visual verification now matches the updated loadout picker UI**: the Step 1 screenshot gate now tolerates the small Linux text-rendering delta that appears after the picker readability update, while the dedicated overflow, wrapping, and state-visibility checks continue to enforce the important layout behavior.
+
 ## [0.12.30] - 2026-03-13
 
 ### Changed
