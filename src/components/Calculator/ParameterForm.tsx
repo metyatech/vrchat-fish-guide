@@ -174,6 +174,26 @@ function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
   );
 }
 
+function formatTotalStatValue(
+  totalStats: DerivedModelSummary['totalStats'],
+  stat: StatThemeKey,
+): string {
+  switch (stat) {
+    case 'luck':
+      return formatSignedDisplayNumber(totalStats.luck);
+    case 'strength':
+      return formatSignedDisplayNumber(totalStats.strength);
+    case 'expertise':
+      return formatSignedDisplayNumber(totalStats.expertise);
+    case 'attractionRate':
+      return formatSignedDisplayNumber(totalStats.attractionPct, '%');
+    case 'bigCatchRate':
+      return formatSignedDisplayNumber(totalStats.bigCatch);
+    case 'maxWeight':
+      return formatWeightKg(totalStats.maxWeightKg);
+  }
+}
+
 /** Slot-specific active row class on the dark loadout board. ring-{color}-400 must be present for ui-quality tests. */
 const SLOT_ACTIVE_ROW_CLASS: Record<LoadoutSlot, string> = {
   rod: 'relative ring-2 ring-amber-400 shadow-[0_18px_36px_rgba(245,158,11,0.18)] before:absolute before:inset-y-4 before:left-0 before:w-1.5 before:rounded-r-full before:bg-amber-400',
@@ -306,6 +326,7 @@ function SlotLabelChip({
 function CurrentLoadoutTable({
   activeSlot,
   selectedIds,
+  totalStats,
   recentlyUpdatedSlot,
   onActivate,
   onCloseActivePicker,
@@ -314,6 +335,7 @@ function CurrentLoadoutTable({
 }: {
   activeSlot: LoadoutSlot | null;
   selectedIds: Record<LoadoutSlot, string>;
+  totalStats: DerivedModelSummary['totalStats'];
   recentlyUpdatedSlot: LoadoutSlot | null;
   onActivate: (slot: LoadoutSlot) => void;
   onCloseActivePicker: () => void;
@@ -339,7 +361,7 @@ function CurrentLoadoutTable({
   });
 
   const loadoutBoardRef = React.useRef<HTMLDivElement | null>(null);
-  const overlayLayerRef = React.useRef<HTMLDivElement | null>(null);
+  const desktopPickerRailRef = React.useRef<HTMLDivElement | null>(null);
   const pickerPanelRef = React.useRef<HTMLDivElement | null>(null);
   const rowRefs = React.useRef<Record<LoadoutSlot, HTMLDivElement | null>>({
     rod: null,
@@ -357,14 +379,14 @@ function CurrentLoadoutTable({
       }
 
       const board = loadoutBoardRef.current;
-      const layer = overlayLayerRef.current;
+      const rail = desktopPickerRailRef.current;
       const row = rowRefs.current[activeSlot];
-      if (!board || !layer || !row) {
+      if (!board || !rail || !row) {
         setOverlayTop(null);
         return;
       }
 
-      const layerRect = layer.getBoundingClientRect();
+      const layerRect = rail.getBoundingClientRect();
       const rowRect = row.getBoundingClientRect();
       setOverlayTop(rowRect.top - layerRect.top + rowRect.height / 2);
     };
@@ -418,7 +440,10 @@ function CurrentLoadoutTable({
   };
 
   return (
-    <div data-testid="current-loadout-card" className="overflow-visible">
+    <div
+      data-testid="current-loadout-card"
+      className={`overflow-visible ${activeSlot ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_42rem] xl:items-start xl:gap-5 2xl:grid-cols-[minmax(0,1fr)_48rem]' : ''}`}
+    >
       <div
         ref={loadoutBoardRef}
         className="relative overflow-visible rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(238,246,255,0.96))] shadow-[0_28px_64px_rgba(30,70,136,0.14)]"
@@ -435,7 +460,7 @@ function CurrentLoadoutTable({
           </p>
         </div>
 
-        <div ref={overlayLayerRef} className="relative overflow-visible px-3 py-4">
+        <div className="relative overflow-visible px-3 py-4">
           <div
             data-testid="current-loadout-table"
             className="overflow-visible rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,248,255,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_14px_28px_rgba(30,70,136,0.08)]"
@@ -663,13 +688,16 @@ function CurrentLoadoutTable({
               </div>
             ) : null}
           </div>
+        </div>
+      </div>
 
-          {activeSlot && overlayTop !== null ? (
+      {activeSlot ? (
+        <div ref={desktopPickerRailRef} className="relative hidden min-h-full xl:block">
+          {overlayTop !== null ? (
             <div
-              className="pointer-events-none absolute right-4 z-30 hidden xl:block"
+              className="pointer-events-none absolute inset-x-0 z-30"
               style={{
                 top: `${overlayTop}px`,
-                width: 'min(44rem, calc(100% - 3rem))',
                 transform: 'translateY(-50%)',
               }}
             >
@@ -702,9 +730,32 @@ function CurrentLoadoutTable({
                 </div>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="h-full" />
+          )}
+
+          <div
+            data-testid="picker-total-stats-summary"
+            className="mt-4 rounded-[22px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-[0_18px_36px_rgba(15,23,42,0.08)]"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                  合計ステータス
+                </div>
+                <div className="mt-1 text-xs text-slate-500">
+                  候補を見比べながらここで確認できます。
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                <StatBadge key={stat} stat={stat} value={formatTotalStatValue(totalStats, stat)} />
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -713,6 +764,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   slot,
   items,
   selectedId,
+  totalStats,
   onSelect,
   onClose,
   testId = 'slot-picker-panel',
@@ -720,6 +772,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   slot: LoadoutSlot;
   items: readonly T[];
   selectedId: string;
+  totalStats: DerivedModelSummary['totalStats'];
   onSelect: (id: string) => void;
   onClose: () => void;
   testId?: string;
@@ -759,6 +812,11 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
               上の「いまの装備」を見たまま、下の候補と見比べられます。
             </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                <StatBadge key={stat} stat={stat} value={formatTotalStatValue(totalStats, stat)} />
+              ))}
+            </div>
           </div>
           <button
             type="button"
@@ -1040,6 +1098,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               bobber: params.loadout.bobberId,
               enchant: params.loadout.enchantId,
             }}
+            totalStats={model.totalStats}
             recentlyUpdatedSlot={recentlyUpdatedSlot}
             onActivate={activateSlot}
             onCloseActivePicker={() => setActiveSlot(null)}
@@ -1049,6 +1108,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   slot={activeSlot}
                   items={loadoutItems[activeSlot]}
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
+                  totalStats={model.totalStats}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
                 />
@@ -1067,6 +1127,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
                   slot={activeSlot}
                   items={loadoutItems[activeSlot]}
                   selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
+                  totalStats={model.totalStats}
                   onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
                   onClose={() => setActiveSlot(null)}
                   testId="slot-picker-panel"

@@ -348,5 +348,7 @@ describe('ParameterForm', () => {
       '上の「いまの装備」を見たまま、下の候補と見比べられます。',
     );
     expect(screen.getByTestId('picker-current-item-row')).toHaveTextContent('Stick and String');
+    expect(screen.getByTestId('picker-total-stats-summary')).toHaveTextContent('合計ステータス');
+    expect(screen.getByTestId('picker-total-stats-summary')).toHaveTextContent('Lk');
   });
 });

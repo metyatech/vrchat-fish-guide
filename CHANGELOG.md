@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.34] - 2026-03-13
+
+### Changed
+
+- **You can keep comparing against your current build while a picker is open**: the Step 1 layout now reserves a proper right-side comparison rail on desktop, so the full current-loadout table stays visible instead of being covered by the picker.
+- **The picker now keeps total stats visible while you compare replacements**: a compact total-stats summary is shown alongside the open picker, so you can judge the effect of a Rod / Line / Bobber / Enchant change without losing the overall build context.
+
 ## [0.12.33] - 2026-03-13
 
 ### Changed
