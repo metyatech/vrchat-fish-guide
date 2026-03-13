@@ -474,17 +474,17 @@ function CurrentLoadoutTable({
                     }}
                     data-slot={slot}
                     data-state={isActive ? 'active' : 'inactive'}
-                    className={`relative overflow-visible transition-all duration-200 ${
+                    className={`relative overflow-visible transition-all duration-200 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ocean-300 ${
                       isActive
                         ? `${SLOT_ACTIVE_ROW_CLASS[slot]} z-20 bg-white/96`
-                        : 'group bg-white/70 hover:bg-white/92 focus-within:bg-white/92 focus-within:ring-2 focus-within:ring-ocean-300'
+                        : 'group bg-white/70 hover:bg-white/92 focus-within:bg-white/92'
                     } ${isUpdated ? 'animate-loadout-settle' : ''}`}
                   >
                     <button
                       type="button"
                       aria-label={`${LOADOUT_SLOT_LABELS[slot]} を選び直す`}
                       aria-pressed={isActive ? 'true' : 'false'}
-                      className="absolute inset-0 z-10 rounded-[inherit]"
+                      className="absolute inset-0 z-10 rounded-[inherit] focus:outline-none"
                       onClick={activate}
                     />
 

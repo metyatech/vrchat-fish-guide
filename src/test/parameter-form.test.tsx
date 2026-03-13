@@ -90,6 +90,20 @@ describe('Step 1 loadout UI quality', () => {
     expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
   });
 
+  it('uses the row container for focus styling instead of the browser default button outline', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const rodRow = currentLoadoutTable.querySelector('[data-slot="rod"]');
+    expect(rodRow).not.toBeNull();
+    expect(rodRow?.className).toContain('focus-within:ring-inset');
+
+    const rodButton = within(rodRow as HTMLElement).getByRole('button', { name: 'Rod を選び直す' });
+    expect(rodButton.className).toContain('focus:outline-none');
+  });
+
   it('keeps loadout detail text hidden by default and only shows it when expanded', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);

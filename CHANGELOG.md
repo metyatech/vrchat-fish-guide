@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.29] - 2026-03-13
+
+### Fixed
+
+- **Loadout-row focus no longer renders with an uneven browser outline after closing a picker**: the row now owns the focus ring consistently, and the invisible row button suppresses the default browser outline that was creating the odd faded lower edge.
+
 ## [0.12.28] - 2026-03-13
 
 ### Changed
