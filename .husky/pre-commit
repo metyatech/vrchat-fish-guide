@@ -1,3 +1,0 @@
-npm run verify
-compose-agentsmd --compose
-git add AGENTS.md

@@ -1,0 +1,5 @@
+User-Agent: *
+Allow: /
+
+Host: https://metyatech.github.io/vrchat-fish-guide/
+Sitemap: https://metyatech.github.io/vrchat-fish-guide/sitemap.xml
