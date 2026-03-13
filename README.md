@@ -204,7 +204,7 @@ GitHub Actions で以下を回します。
   - format / lint / typecheck / unit+a11y / build / Playwright E2E
   - Step 1 loadout board の横はみ出し、短いボタン文言の折返し、見た目の大きな崩れも回帰検知
 - `deploy-pages.yml`
-  - `Node 24` で `main` push 時に `verify` を通したうえで GitHub Pages へデプロイ
+  - `Node 24` で `main` push 時に `verify` を通したうえで `out/` を `gh-pages` branch へ公開
 - `codeql.yml`
   - `Node 24` で JavaScript / TypeScript の CodeQL 解析
 - `security.yml`
@@ -232,7 +232,7 @@ GitHub Actions で以下を回します。
 ## リリース / デプロイ
 
 GitHub Pages への自動公開を設定しています。  
-`main` ブランチへ push されると `deploy-pages.yml` が `out/` を公開します。
+`main` ブランチへ push されると `deploy-pages.yml` が `verify` と静的 build を通し、`out/` を `gh-pages` branch に反映します。
 
 公開 URL:
 

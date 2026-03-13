@@ -5,26 +5,19 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
+  contents: write
 
 jobs:
-  build:
-    name: Build and Upload Pages Artifact
+  deploy:
+    name: Build and Publish gh-pages Branch
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -46,28 +39,33 @@ jobs:
           DEPLOY_TARGET: github-pages
         run: npm run build
 
-      - name: Package Pages artifact
+      - name: Publish static site to gh-pages
+        shell: bash
         run: |
-          tar --dereference --hard-dereference -cvf github-pages.tar --directory ./out .
-          gzip -f github-pages.tar
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Upload Pages artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: github-pages
-          path: ./github-pages.tar.gz
-          retention-days: 1
-          compression-level: 0
+          DEPLOY_DIR="${RUNNER_TEMP}/gh-pages"
+          rm -rf "${DEPLOY_DIR}"
 
-  deploy:
-    name: Deploy to GitHub Pages
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+          git fetch origin gh-pages --depth=1 || true
+          if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
+            git worktree add --detach "${DEPLOY_DIR}" origin/gh-pages
+          else
+            git worktree add -b gh-pages "${DEPLOY_DIR}"
+          fi
 
-    steps:
-      - name: Deploy Pages artifact
-        id: deployment
-        uses: actions/deploy-pages@v4
+          find "${DEPLOY_DIR}" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -a out/. "${DEPLOY_DIR}/"
+          touch "${DEPLOY_DIR}/.nojekyll"
+
+          cd "${DEPLOY_DIR}"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "No Pages changes to publish."
+            exit 0
+          fi
+
+          git commit -m "Deploy GitHub Pages for ${GITHUB_SHA}"
+          git push origin HEAD:gh-pages --force

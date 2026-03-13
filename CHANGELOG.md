@@ -8,7 +8,7 @@ All notable changes to this project are documented here.
 
 ### Changed
 
-- **GitHub Actions no longer rely on the deprecated Node 20 Pages packaging path**: the Pages workflow now packages the `github-pages` artifact directly and uploads it with `actions/upload-artifact@v7`, removing the old `configure-pages` / `upload-pages-artifact` warning path.
+- **GitHub Actions no longer rely on the deprecated Node 20 Pages action chain**: the Pages workflow now builds and publishes the static export straight to the `gh-pages` branch, removing the old `configure-pages` / `upload-pages-artifact` / `deploy-pages` warning path entirely.
 - **Secret scanning no longer depends on the Node 20 gitleaks action wrapper**: the Security workflow now installs the official `gitleaks` CLI release directly and runs the scan without the deprecated JavaScript action.
 
 ## [0.12.22] - 2026-03-13
