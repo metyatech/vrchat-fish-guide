@@ -131,6 +131,23 @@ describe('Step 1 loadout UI quality', () => {
       'inactive',
     );
   });
+
+  it('keeps the detail disclosure visually quiet after mouse clicks by using focus-visible styling', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
+    const rodRow = currentLoadoutTable.querySelector('[data-slot="rod"]');
+    expect(rodRow).not.toBeNull();
+
+    const detailButton = within(rodRow as HTMLElement).getAllByRole('button', {
+      name: '詳細を開く',
+    })[0];
+
+    expect(detailButton.className).toContain('focus-visible:bg-slate-100');
+    expect(detailButton.className).not.toContain('focus:bg-slate-100');
+  });
 });
 
 describe('ParameterForm', () => {

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.27] - 2026-03-13
+
+### Fixed
+
+- **The small loadout-detail disclosure no longer looks persistently active after mouse clicks**: its strong visual state now follows `focus-visible`, so mouse users do not see a lingering highlighted helper control while keyboard users still get a clear accessibility focus cue.
+
 ## [0.12.26] - 2026-03-13
 
 ### Fixed

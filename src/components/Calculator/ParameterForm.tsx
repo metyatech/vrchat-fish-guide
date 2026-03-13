@@ -239,7 +239,7 @@ function DetailDisclosureButton({
       aria-label={label}
       aria-expanded={expanded}
       title={label}
-      className="relative z-20 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 opacity-70 transition hover:bg-slate-100 hover:text-slate-600 hover:opacity-100 focus:bg-slate-100 focus:text-slate-700 focus:opacity-100"
+      className="relative z-20 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 opacity-70 transition hover:bg-slate-100 hover:text-slate-600 hover:opacity-100 focus:outline-none focus-visible:bg-slate-100 focus-visible:text-slate-700 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ocean-300/70"
     >
       <svg
         aria-hidden="true"
