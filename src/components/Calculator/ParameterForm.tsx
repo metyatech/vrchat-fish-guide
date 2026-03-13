@@ -787,53 +787,52 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         </div>
       </div>
 
-      {selectedItem ? (
-        <div
-          data-testid="picker-current-item-row"
-          className="border-b border-emerald-200 bg-emerald-50/55 px-4"
-        >
-          <div className="px-2 pt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">
-            いまの装備
-          </div>
-          <div className={`grid ${PICKER_GRID_COLUMNS} items-center`}>
-            <div className="px-2 py-3">
-              <span className="whitespace-nowrap rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
-                現在
-              </span>
-            </div>
-            <div className="min-w-0 px-2 py-3">
-              <div className="text-sm font-semibold leading-5 text-gray-900">
-                {selectedItem.nameEn}
-              </div>
-              <div className="mt-0.5 break-words text-xs leading-5 text-gray-600">
-                {formatItemDetail(selectedItem)}
-              </div>
-            </div>
-            {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
-              const theme = STAT_THEME[stat];
-              return (
-                <div key={stat} className="px-1 py-3 text-center">
-                  <span
-                    className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
-                    style={{
-                      borderColor: theme.cardBorder,
-                      backgroundColor: theme.cardBackground,
-                      color: theme.surfaceText,
-                    }}
-                  >
-                    {formatItemStatValue(selectedItem, stat)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
       <div
         data-testid="picker-scroll-body"
         className="relative z-0 max-h-[calc(68vh-2.5rem)] overflow-auto bg-white"
       >
+        {selectedItem ? (
+          <div
+            data-testid="picker-current-item-row"
+            className="sticky top-0 z-10 border-b border-emerald-200 bg-emerald-50/95 px-4 backdrop-blur-sm"
+          >
+            <div className="px-2 pt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+              いまの装備
+            </div>
+            <div className={`grid ${PICKER_GRID_COLUMNS} items-center`}>
+              <div className="px-2 py-3">
+                <span className="whitespace-nowrap rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
+                  現在
+                </span>
+              </div>
+              <div className="min-w-0 px-2 py-3">
+                <div className="text-sm font-semibold leading-5 text-gray-900">
+                  {selectedItem.nameEn}
+                </div>
+                <div className="mt-0.5 break-words text-xs leading-5 text-gray-600">
+                  {formatItemDetail(selectedItem)}
+                </div>
+              </div>
+              {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
+                const theme = STAT_THEME[stat];
+                return (
+                  <div key={stat} className="px-1 py-3 text-center">
+                    <span
+                      className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
+                      style={{
+                        borderColor: theme.cardBorder,
+                        backgroundColor: theme.cardBackground,
+                        color: theme.surfaceText,
+                      }}
+                    >
+                      {formatItemStatValue(selectedItem, stat)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
         {candidateItems.length > 0 ? (
           <div id={`loadout-picker-${slot}`} className="bg-white px-4 pb-3">
             {candidateItems.map((item) => {

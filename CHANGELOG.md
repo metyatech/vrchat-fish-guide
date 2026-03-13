@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.32] - 2026-03-13
+
+### Fixed
+
+- **The current-equipment row in Step 1 now lines up with the candidate columns**: the pinned “いまの装備” row now lives inside the same scroll area as the replacement list, so its stat pills stay horizontally aligned with the candidate rows even when the picker has a scrollbar.
+
 ## [0.12.31] - 2026-03-13
 
 ### Fixed
