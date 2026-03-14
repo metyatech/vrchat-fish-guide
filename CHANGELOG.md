@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.48] - 2026-03-14
+
+### Fixed
+
+- **The aligned current-loadout board now survives both Windows and Linux verification**: the Step 1 visual-regression snapshot now pins a stable comparison-board height as well as width, so the compact left-hand comparison table keeps passing CI instead of failing from cross-platform line-height drift.
+
 ## [0.12.47] - 2026-03-14
 
 ### Fixed
