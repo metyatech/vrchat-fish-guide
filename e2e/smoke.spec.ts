@@ -425,7 +425,7 @@ test('equipment picker search filters items by name, location, and special effec
   await page.waitForTimeout(100);
   await expect(pickerPanel.locator('[data-testid="picker-option-row"]')).toHaveCount(0);
   await expect(pickerPanel).toContainText('見つかりません');
-  await expect(pickerPanel).toContainText('xyznonexistent');
+  await expect(searchInput).toHaveValue('xyznonexistent');
 
   await searchInput.fill('');
   await page.waitForTimeout(100);

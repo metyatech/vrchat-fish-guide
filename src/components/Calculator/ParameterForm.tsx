@@ -183,6 +183,7 @@ const PRICE_COLUMN_LABEL = 'Price';
 type PickerPresetSortMode = 'default' | 'ev-desc' | 'delta-desc' | 'price-asc';
 type PickerColumnSortKey = 'name' | 'price' | StatThemeKey;
 type PickerColumnSortDirection = 'asc' | 'desc';
+type PickerPriceBand = 'all' | 'free' | 'budget' | 'mid' | 'premium';
 
 interface PickerColumnSort {
   key: PickerColumnSortKey;
@@ -258,6 +259,57 @@ function formatEvDeltaPercent(current: number, next: number): string {
   }
   const percent = Math.round((delta / current) * 100);
   return `いまより ${percent > 0 ? '+' : ''}${percent}%`;
+}
+
+function getEvDeltaPercent(current: number, next: number): number {
+  if (current <= 0) {
+    return next > current ? 100 : 0;
+  }
+  return ((next - current) / current) * 100;
+}
+
+function matchesPriceBand(price: number, band: PickerPriceBand): boolean {
+  switch (band) {
+    case 'free':
+      return price === 0;
+    case 'budget':
+      return price > 0 && price <= 10000;
+    case 'mid':
+      return price > 10000 && price <= 100000;
+    case 'premium':
+      return price > 100000;
+    case 'all':
+    default:
+      return true;
+  }
+}
+
+function getRecommendationTags(
+  entry: SlotRankEntry,
+  selectedEntry: SlotRankEntry | undefined,
+): string[] {
+  const tags: string[] = [];
+  const evDeltaPercent = selectedEntry
+    ? getEvDeltaPercent(selectedEntry.expectedValuePerHour, entry.expectedValuePerHour)
+    : 0;
+
+  if (entry.item.price === 0) {
+    tags.push('無料');
+  }
+  if (entry.item.price > 0 && entry.item.price <= 10000) {
+    tags.push('序盤向け');
+  }
+  if (entry.item.price >= 100000) {
+    tags.push('終盤向け');
+  }
+  if (selectedEntry && evDeltaPercent >= 10 && entry.item.price <= 100000) {
+    tags.push('コスパ');
+  }
+  if (selectedEntry && evDeltaPercent >= 20) {
+    tags.push('伸び幅大');
+  }
+
+  return tags.slice(0, 2);
 }
 
 function compareSourceOrder(
@@ -1237,6 +1289,8 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const [sortMode, setSortMode] = React.useState<PickerPresetSortMode>('ev-desc');
   const [columnSort, setColumnSort] = React.useState<PickerColumnSort | null>(null);
   const [showOnlyImproved, setShowOnlyImproved] = React.useState(false);
+  const [locationFilter, setLocationFilter] = React.useState('all');
+  const [priceBand, setPriceBand] = React.useState<PickerPriceBand>('all');
   const rankedEntries = React.useMemo(() => rankSlot(params, slot), [params, slot]);
   const selectedEntry = rankedEntries.find((entry) => entry.item.id === selectedId);
   const selectedItem = selectedEntry?.item ?? items.find((item) => item.id === selectedId);
@@ -1244,6 +1298,13 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     () => new Map(items.map((item, index) => [item.id, index])),
     [items],
   );
+  const locationOptions = React.useMemo(() => {
+    const labels = new Set<string>();
+    for (const item of items) {
+      labels.add(item.location);
+    }
+    return ['all', ...Array.from(labels).sort((a, b) => a.localeCompare(b, 'en'))];
+  }, [items]);
   const filteredEntries = searchQuery.trim()
     ? rankedEntries.filter((entry) => {
         const term = searchQuery.toLowerCase();
@@ -1258,6 +1319,12 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const candidateEntries = sortRankEntries(
     filteredEntries.filter((entry) => {
       if (entry.item.id === selectedId) {
+        return false;
+      }
+      if (locationFilter !== 'all' && entry.item.location !== locationFilter) {
+        return false;
+      }
+      if (!matchesPriceBand(entry.item.price, priceBand)) {
         return false;
       }
       if (!showOnlyImproved || !selectedEntry) {
@@ -1338,6 +1405,39 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 <option value="ev-desc">期待値/時間が高い順</option>
                 <option value="delta-desc">いまより伸びる順</option>
                 <option value="price-asc">安い順</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              入手場所
+              <select
+                value={locationFilter}
+                onChange={(event) => setLocationFilter(event.target.value)}
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                aria-label="候補の入手場所"
+              >
+                <option value="all">すべて</option>
+                {locationOptions
+                  .filter((option) => option !== 'all')
+                  .map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              価格帯
+              <select
+                value={priceBand}
+                onChange={(event) => setPriceBand(event.target.value as PickerPriceBand)}
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                aria-label="候補の価格帯"
+              >
+                <option value="all">すべて</option>
+                <option value="free">無料</option>
+                <option value="budget">1万G まで</option>
+                <option value="mid">1万G〜10万G</option>
+                <option value="premium">10万G 超</option>
               </select>
             </label>
             <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
@@ -1528,6 +1628,16 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                     <div className="mt-0.5 break-words text-xs leading-5 text-gray-500">
                       {formatItemDetail(item)}
                     </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {getRecommendationTags(entry, selectedEntry).map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                     {selectedEntry ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <span className="inline-flex items-center rounded-full border border-ocean-200 bg-ocean-50 px-2 py-0.5 text-[10px] font-semibold text-ocean-700">
@@ -1568,7 +1678,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             <p className="mt-1 text-xs text-slate-500">
               {showOnlyImproved
                 ? 'いまより良い候補が見つかりません。'
-                : `「${searchQuery}」に一致する装備がありません。`}
+                : '条件に合う候補が見つかりません。絞り込みを少し緩めてみてください。'}
             </p>
           </div>
         )}

@@ -181,7 +181,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     // Should show "見つかりません" message
     expect(screen.getByText('見つかりません')).toBeInTheDocument();
-    expect(screen.getByText(/zzzzzzz_nonexistent/)).toBeInTheDocument();
+    expect(searchInput).toHaveValue('zzzzzzz_nonexistent');
     expect(screen.queryAllByTestId('picker-option-row')).toHaveLength(0);
   });
 

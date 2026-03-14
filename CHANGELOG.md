@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.54] - 2026-03-14
+
+### Changed
+
+- **The Step 1 candidate table is easier to narrow down before you read every row**: you can now filter by `入手場所` and `価格帯`, so it is much faster to isolate the realistic gear pool for your current progression instead of scanning the whole slot inventory every time.
+- **Candidate rows now explain why they are worth looking at**: the table adds lightweight recommendation tags such as `無料`, `序盤向け`, `終盤向け`, `コスパ`, and `伸び幅大`, which helps you spot cheap upgrades and high-impact options before reading every stat delta in detail.
+
 ## [0.12.53] - 2026-03-14
 
 ### Changed

@@ -127,6 +127,8 @@ describe('Step 1 loadout UI quality', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
 
     expect(screen.getByLabelText('候補の並び順')).toBeInTheDocument();
+    expect(screen.getByLabelText('候補の入手場所')).toBeInTheDocument();
+    expect(screen.getByLabelText('候補の価格帯')).toBeInTheDocument();
     expect(screen.getByLabelText('いまより期待値が上がる候補だけを表示')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '初期設定順' })).toBeInTheDocument();
 
@@ -147,6 +149,31 @@ describe('Step 1 loadout UI quality', () => {
       .find((row) => row.textContent?.includes('Metallic Rod'));
     expect(metallicRow).toHaveTextContent('期待値/時間');
     expect(metallicRow).toHaveTextContent('いまより');
+  });
+
+  it('supports filtering by location and price band while showing recommendation tags', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    fireEvent.change(screen.getByLabelText('候補の入手場所'), {
+      target: { value: 'Coconut Bay' },
+    });
+    fireEvent.change(screen.getByLabelText('候補の価格帯'), {
+      target: { value: 'budget' },
+    });
+
+    const candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.length).toBeGreaterThan(0);
+    candidateRows.forEach((row) => {
+      expect(row.textContent).toContain('Coconut Bay');
+    });
+
+    expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(false);
+    expect(candidateRows.some((row) => row.textContent?.includes('Toy Rod'))).toBe(true);
+    expect(candidateRows.some((row) => row.textContent?.includes('序盤向け'))).toBe(true);
   });
 
   it('supports column-header sorting and can return to the initial item order', () => {
