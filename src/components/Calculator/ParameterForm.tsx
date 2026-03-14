@@ -312,18 +312,20 @@ function CurrentLoadoutTable({
   recentlyUpdatedSlot,
   onActivate,
   onCloseActivePicker,
-  allowDesktopOverlay,
+  isDesktop,
   desktopPickerPanel,
   pickerContainerRef,
+  onDesktopOverlayAvailabilityChange,
 }: {
   activeSlot: LoadoutSlot | null;
   selectedIds: Record<LoadoutSlot, string>;
   recentlyUpdatedSlot: LoadoutSlot | null;
   onActivate: (slot: LoadoutSlot) => void;
   onCloseActivePicker: () => void;
-  allowDesktopOverlay: boolean;
+  isDesktop: boolean;
   desktopPickerPanel: React.ReactNode;
   pickerContainerRef: React.RefObject<HTMLElement | null>;
+  onDesktopOverlayAvailabilityChange?: (available: boolean) => void;
 }) {
   const [detailOpenSlots, setDetailOpenSlots] = React.useState<Record<LoadoutSlot, boolean>>({
     rod: false,
@@ -353,14 +355,16 @@ function CurrentLoadoutTable({
 
   React.useLayoutEffect(() => {
     const updateDesktopPickerPosition = () => {
-      if (!activeSlot || !allowDesktopOverlay || typeof window === 'undefined') {
+      if (!activeSlot || !isDesktop || typeof window === 'undefined') {
         setDesktopPickerPosition(null);
+        onDesktopOverlayAvailabilityChange?.(false);
         return;
       }
 
       const row = rowRefs.current[activeSlot];
       if (!row) {
         setDesktopPickerPosition(null);
+        onDesktopOverlayAvailabilityChange?.(false);
         return;
       }
 
@@ -371,6 +375,7 @@ function CurrentLoadoutTable({
 
       if (availableRight < width) {
         setDesktopPickerPosition(null);
+        onDesktopOverlayAvailabilityChange?.(false);
         return;
       }
 
@@ -385,6 +390,7 @@ function CurrentLoadoutTable({
         width,
         arrowTop,
       });
+      onDesktopOverlayAvailabilityChange?.(true);
     };
 
     updateDesktopPickerPosition();
@@ -396,7 +402,8 @@ function CurrentLoadoutTable({
     };
   }, [
     activeSlot,
-    allowDesktopOverlay,
+    isDesktop,
+    onDesktopOverlayAvailabilityChange,
     selectedIds.rod,
     selectedIds.line,
     selectedIds.bobber,
@@ -966,10 +973,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     if (typeof window.matchMedia !== 'function') return true;
     return window.matchMedia('(min-width: 1280px)').matches;
   });
-  const [allowDesktopOverlay, setAllowDesktopOverlay] = React.useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.innerWidth >= 1720;
-  });
+  const [desktopOverlayAvailable, setDesktopOverlayAvailable] = React.useState(false);
   const pickerPanelRef = React.useRef<HTMLDivElement | null>(null);
 
   const handleChange = <K extends keyof CalculatorParams>(field: K, value: CalculatorParams[K]) => {
@@ -1041,12 +1045,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
   }, []);
 
   React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const update = () => setAllowDesktopOverlay(window.innerWidth >= 1720);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
+    if (!activeSlot) {
+      setDesktopOverlayAvailable(false);
+    }
+  }, [activeSlot]);
 
   const loadoutItems: Record<LoadoutSlot, readonly (EquipmentItem | EnchantItem)[]> = {
     rod: RODS,
@@ -1072,7 +1074,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
       testId="slot-picker-panel"
     />
   ) : null;
-  const showStackedPicker = activeSlot !== null && (!isDesktop || !allowDesktopOverlay);
+  const showStackedPicker = activeSlot !== null && (!isDesktop || !desktopOverlayAvailable);
 
   return (
     <div className="space-y-5">
@@ -1096,9 +1098,10 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             recentlyUpdatedSlot={recentlyUpdatedSlot}
             onActivate={activateSlot}
             onCloseActivePicker={() => setActiveSlot(null)}
-            allowDesktopOverlay={allowDesktopOverlay}
+            isDesktop={isDesktop}
             desktopPickerPanel={activePickerPanel}
             pickerContainerRef={pickerPanelRef}
+            onDesktopOverlayAvailabilityChange={setDesktopOverlayAvailable}
           />
           {/* Total stats */}
           <div

@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.41] - 2026-03-14
+
+### Fixed
+
+- **Step 1 no longer drops the replacement picker at 1920-class desktop widths**: the UI now decides between a right-side overlay and the below-the-table fallback from the actual available space, so opening a picker always shows either the anchored panel or the stacked panel instead of disappearing.
+- **Wide-screen picker behavior is now covered by regression checks**: the E2E suite now verifies that a 1920px desktop always renders a visible replacement picker and never silently loses it.
+
 ## [0.12.40] - 2026-03-14
 
 ### Fixed

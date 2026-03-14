@@ -240,6 +240,62 @@ test('medium desktop widths keep the loadout visible and move the picker below i
   expect((geometry as { stackedFitsViewport: boolean }).stackedFitsViewport).toBe(true);
 });
 
+test('1920-width desktop still shows a picker instead of dropping it entirely', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+
+  const overlayShell = page.getByTestId('slot-picker-shell');
+  const stackedShell = page.getByTestId('slot-picker-stacked-shell');
+
+  await expect(async () => {
+    const overlayCount = await overlayShell.count();
+    const stackedCount = await stackedShell.count();
+    expect(overlayCount + stackedCount).toBeGreaterThan(0);
+  }).toPass();
+
+  const geometry = await page.evaluate(() => {
+    const overlay = document.querySelector(
+      '[data-testid="slot-picker-shell"]',
+    ) as HTMLElement | null;
+    const stacked = document.querySelector(
+      '[data-testid="slot-picker-stacked-shell"]',
+    ) as HTMLElement | null;
+    const table = document.querySelector(
+      '[data-testid="current-loadout-table"]',
+    ) as HTMLElement | null;
+    const totals = document.querySelector(
+      '[data-testid="total-stats-section"]',
+    ) as HTMLElement | null;
+    if (!table || !totals) {
+      return { error: 'missing base step 1 sections' };
+    }
+    return {
+      hasOverlay: !!overlay,
+      hasStacked: !!stacked,
+      overlayInsideViewport: overlay
+        ? overlay.getBoundingClientRect().right <= window.innerWidth - 8
+        : true,
+      stackedBelowTotals: stacked
+        ? stacked.getBoundingClientRect().top >= totals.getBoundingClientRect().bottom - 1
+        : true,
+      tableVisibleWidth: table.getBoundingClientRect().width,
+    };
+  });
+
+  expect(geometry).not.toHaveProperty('error');
+  expect(
+    (geometry as { hasOverlay: boolean; hasStacked: boolean }).hasOverlay ||
+      (geometry as { hasOverlay: boolean; hasStacked: boolean }).hasStacked,
+  ).toBe(true);
+  expect((geometry as { overlayInsideViewport: boolean }).overlayInsideViewport).toBe(true);
+  expect((geometry as { stackedBelowTotals: boolean }).stackedBelowTotals).toBe(true);
+  expect((geometry as { tableVisibleWidth: number }).tableVisibleWidth).toBeGreaterThan(900);
+});
+
 test('calculator avoids horizontal scrolling on a narrow viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/calculator/');
