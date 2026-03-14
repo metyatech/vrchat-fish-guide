@@ -101,6 +101,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
       hasText: 'Money Maker',
     })
     .click();
+  await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
   await page.getByLabel('釣り場').selectOption('open-sea');
   await page.getByLabel('時間帯').selectOption('night');
   await page.getByLabel('天気').selectOption('rainy');

@@ -2082,10 +2082,18 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の並び順"
               >
-                <option value="default">初期設定順</option>
-                <option value="ev-desc">期待値/時間が高い順</option>
-                <option value="delta-desc">いまより伸びる順</option>
-                <option value="price-asc">安い順</option>
+                <option key="default" value="default">
+                  初期設定順
+                </option>
+                <option key="ev-desc" value="ev-desc">
+                  期待値/時間が高い順
+                </option>
+                <option key="delta-desc" value="delta-desc">
+                  いまより伸びる順
+                </option>
+                <option key="price-asc" value="price-asc">
+                  安い順
+                </option>
               </select>
             </label>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
@@ -2121,9 +2129,13 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の入手場所"
               >
-                <option value="all">すべて</option>
+                <option key="all" value="all">
+                  すべて
+                </option>
                 {selectedLocations.length > 1 ? (
-                  <option value={MULTIPLE_LOCATIONS_VALUE}>複数選択中</option>
+                  <option key={MULTIPLE_LOCATIONS_VALUE} value={MULTIPLE_LOCATIONS_VALUE}>
+                    複数選択中
+                  </option>
                 ) : null}
                 {locationOptions.map((option) => (
                   <option key={option} value={option}>
@@ -2140,11 +2152,21 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の価格帯"
               >
-                <option value="all">すべて</option>
-                <option value="free">無料</option>
-                <option value="budget">1万G まで</option>
-                <option value="mid">1万G〜10万G</option>
-                <option value="premium">10万G 超</option>
+                <option key="all" value="all">
+                  すべて
+                </option>
+                <option key="free" value="free">
+                  無料
+                </option>
+                <option key="budget" value="budget">
+                  1万G まで
+                </option>
+                <option key="mid" value="mid">
+                  1万G〜10万G
+                </option>
+                <option key="premium" value="premium">
+                  10万G 超
+                </option>
               </select>
             </label>
             <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
@@ -2714,7 +2736,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
     advanceTimerRef.current = window.setTimeout(() => {
       const nextSlot = NEXT_LOADOUT_SLOT[slot];
-      setActiveSlot(nextSlot ?? slot);
+      setActiveSlot(nextSlot);
       advanceTimerRef.current = null;
     }, 220);
   };
@@ -2850,7 +2872,9 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             value={params.areaId}
             onChange={(event) => handleChange('areaId', event.target.value)}
           >
-            <option value={BEST_AREA_ID}>おすすめの釣り場を自動で選ぶ</option>
+            <option key={BEST_AREA_ID} value={BEST_AREA_ID}>
+              おすすめの釣り場を自動で選ぶ
+            </option>
             {FISHING_AREAS.map((area) => (
               <option key={area.id} value={area.id}>
                 {area.nameEn}

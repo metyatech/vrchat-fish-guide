@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.61] - 2026-03-14
+
+### Changed
+
+- **Selecting an Enchant now closes the Step 1 candidate panel immediately**: Rod / Line / Bobber still advance through the comparison flow, but Enchant selection now ends that picker flow cleanly instead of leaving the chooser open.
+
 ## [0.12.60] - 2026-03-14
 
 ### Changed

@@ -95,6 +95,25 @@ describe('Step 1 loadout UI quality', () => {
     );
   });
 
+  it('closes the picker after selecting an enchant candidate', async () => {
+    const params = getDefaultParams();
+    const onChange = vi.fn();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enchant を選び直す' }));
+    expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Enchant の候補');
+
+    const candidateRow = screen
+      .getAllByTestId('picker-option-row')
+      .find((row) => row.textContent?.includes('Powerful'));
+    expect(candidateRow).toBeDefined();
+    fireEvent.click(candidateRow as HTMLElement);
+
+    expect(onChange).toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument());
+  });
+
   it('shows a separate price column in both the current loadout table and the picker table', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
