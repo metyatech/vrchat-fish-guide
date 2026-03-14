@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.60] - 2026-03-14
+
+### Changed
+
+- **The Step 1 picker now lets you keep the current item without leaving the comparison flow**: the sticky いまの装備 row in the candidate panel is now clickable as a このまま使う choice, so you can explicitly keep the current Rod / Line / Bobber / Enchant and move on to the next slot from the same picker.
+
 ## [0.12.59] - 2026-03-14
 
 ### Changed

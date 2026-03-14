@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { STAT_THEME } from '@/components/Calculator/statTheme';
@@ -77,6 +77,22 @@ describe('Step 1 loadout UI quality', () => {
     const candidateRows = screen.getAllByTestId('picker-option-row');
     expect(candidateRows.length).toBeGreaterThan(0);
     expect(candidateRows.some((row) => row.textContent?.includes('Stick and String'))).toBe(false);
+  });
+
+  it('lets you keep the current equipment from the picker header row', async () => {
+    const params = getDefaultParams();
+    const onChange = vi.fn();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stick and String をこのまま使う' }));
+
+    expect(onChange).toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Line の候補'),
+    );
   });
 
   it('shows a separate price column in both the current loadout table and the picker table', () => {

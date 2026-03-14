@@ -2513,7 +2513,20 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             <div className="px-2 pt-2 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">
               いまの装備
             </div>
-            <div className={`grid ${PICKER_GRID_COLUMNS} items-center`}>
+            <div
+              tabIndex={0}
+              role="button"
+              aria-pressed="true"
+              aria-label={`${selectedItem.nameEn} をこのまま使う`}
+              onClick={() => onSelect(selectedItem.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelect(selectedItem.id);
+                }
+              }}
+              className={`grid ${PICKER_GRID_COLUMNS} cursor-pointer items-center rounded-xl outline-none transition-all duration-150 hover:bg-emerald-100/80 focus:bg-emerald-100/80 focus:ring-2 focus:ring-inset focus:ring-emerald-400`}
+            >
               <div className="px-2 py-3">
                 <span className="whitespace-nowrap rounded-full border border-emerald-300 bg-white px-3 py-1 text-xs font-semibold text-emerald-700">
                   現在
@@ -2525,6 +2538,11 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 </div>
                 <div className="mt-0.5 break-words text-xs leading-5 text-gray-600">
                   {formatItemDetail(selectedItem)}
+                </div>
+                <div className="mt-2">
+                  <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                    このまま使う
+                  </span>
                 </div>
               </div>
               <div className="px-1 py-3 text-center">
