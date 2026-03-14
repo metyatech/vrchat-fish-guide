@@ -111,7 +111,7 @@ describe('Step 1 loadout UI quality', () => {
     fireEvent.click(candidateRow as HTMLElement);
 
     expect(onChange).toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument());
+    expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
   });
 
   it('shows a separate price column in both the current loadout table and the picker table', () => {

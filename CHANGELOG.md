@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.62] - 2026-03-14
+
+### Fixed
+
+- **Enchant picker now closes immediately when you choose a candidate**: the final slot no longer waits for the next-step transition timer, so selecting an Enchant dismisses the Step 1 picker right away instead of lingering briefly on screen.
+
 ## [0.12.61] - 2026-03-14
 
 ### Changed

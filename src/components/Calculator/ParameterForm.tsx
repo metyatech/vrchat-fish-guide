@@ -2734,8 +2734,14 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
       clearRecentUpdateTimerRef.current = null;
     }, 720);
 
+    const nextSlot = NEXT_LOADOUT_SLOT[slot];
+    if (nextSlot === null) {
+      setActiveSlot(null);
+      advanceTimerRef.current = null;
+      return;
+    }
+
     advanceTimerRef.current = window.setTimeout(() => {
-      const nextSlot = NEXT_LOADOUT_SLOT[slot];
       setActiveSlot(nextSlot);
       advanceTimerRef.current = null;
     }, 220);
