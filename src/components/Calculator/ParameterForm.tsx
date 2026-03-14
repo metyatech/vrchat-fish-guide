@@ -180,7 +180,14 @@ const LOADOUT_WORKSPACE_GRID_COLUMNS =
   'grid-cols-[minmax(0,1.75fr)_4.5rem_2.55rem_2.55rem_2.55rem_3.05rem_3.05rem_3.75rem]';
 
 const PRICE_COLUMN_LABEL = 'Price';
-type PickerSortMode = 'ev-desc' | 'delta-desc' | 'price-asc';
+type PickerPresetSortMode = 'default' | 'ev-desc' | 'delta-desc' | 'price-asc';
+type PickerColumnSortKey = 'name' | 'price' | StatThemeKey;
+type PickerColumnSortDirection = 'asc' | 'desc';
+
+interface PickerColumnSort {
+  key: PickerColumnSortKey;
+  direction: PickerColumnSortDirection;
+}
 
 function formatItemPrice(item: EquipmentItem | EnchantItem): string {
   return item.price > 0 ? `${item.price.toLocaleString()}G` : '—';
@@ -253,24 +260,82 @@ function formatEvDeltaPercent(current: number, next: number): string {
   return `いまより ${percent > 0 ? '+' : ''}${percent}%`;
 }
 
-function sortRankEntries(entries: SlotRankEntry[], mode: PickerSortMode): SlotRankEntry[] {
-  const sorted = [...entries];
+function compareSourceOrder(
+  a: SlotRankEntry,
+  b: SlotRankEntry,
+  sourceOrder: Map<string, number>,
+): number {
+  return (
+    (sourceOrder.get(a.item.id) ?? Number.MAX_SAFE_INTEGER) -
+    (sourceOrder.get(b.item.id) ?? Number.MAX_SAFE_INTEGER)
+  );
+}
 
+function compareEntriesByPreset(
+  a: SlotRankEntry,
+  b: SlotRankEntry,
+  mode: PickerPresetSortMode,
+  selectedEntry: SlotRankEntry | undefined,
+  sourceOrder: Map<string, number>,
+): number {
   switch (mode) {
-    case 'delta-desc':
-      return sorted.sort(
-        (a, b) => b.expectedValuePerHour - a.expectedValuePerHour || a.item.price - b.item.price,
+    case 'default':
+      return compareSourceOrder(a, b, sourceOrder);
+    case 'delta-desc': {
+      const selectedEv = selectedEntry?.expectedValuePerHour ?? 0;
+      const deltaDiff = b.expectedValuePerHour - selectedEv - (a.expectedValuePerHour - selectedEv);
+      return (
+        deltaDiff ||
+        b.expectedValuePerHour - a.expectedValuePerHour ||
+        compareSourceOrder(a, b, sourceOrder)
       );
+    }
     case 'price-asc':
-      return sorted.sort(
-        (a, b) => a.item.price - b.item.price || b.expectedValuePerHour - a.expectedValuePerHour,
-      );
+      return a.item.price - b.item.price || compareSourceOrder(a, b, sourceOrder);
     case 'ev-desc':
     default:
-      return sorted.sort(
-        (a, b) => b.expectedValuePerHour - a.expectedValuePerHour || a.item.price - b.item.price,
+      return (
+        b.expectedValuePerHour - a.expectedValuePerHour || compareSourceOrder(a, b, sourceOrder)
       );
   }
+}
+
+function compareEntriesByColumn(
+  a: SlotRankEntry,
+  b: SlotRankEntry,
+  columnSort: PickerColumnSort,
+  sourceOrder: Map<string, number>,
+): number {
+  let result = 0;
+
+  if (columnSort.key === 'name') {
+    result = a.item.nameEn.localeCompare(b.item.nameEn, 'en', { sensitivity: 'base' });
+  } else if (columnSort.key === 'price') {
+    result = a.item.price - b.item.price;
+  } else {
+    result = getItemStatValue(a.item, columnSort.key) - getItemStatValue(b.item, columnSort.key);
+  }
+
+  if (columnSort.direction === 'desc') {
+    result *= -1;
+  }
+
+  return result || compareSourceOrder(a, b, sourceOrder);
+}
+
+function sortRankEntries(
+  entries: SlotRankEntry[],
+  mode: PickerPresetSortMode,
+  selectedEntry: SlotRankEntry | undefined,
+  sourceOrder: Map<string, number>,
+  columnSort: PickerColumnSort | null,
+): SlotRankEntry[] {
+  const sorted = [...entries];
+  return sorted.sort((a, b) =>
+    columnSort
+      ? compareEntriesByColumn(a, b, columnSort, sourceOrder)
+      : compareEntriesByPreset(a, b, mode, selectedEntry, sourceOrder),
+  );
 }
 
 function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
@@ -356,6 +421,40 @@ function ComparisonStatCell({
         {deltaText}
       </span>
     </div>
+  );
+}
+
+function PickerHeaderSortButton({
+  label,
+  onClick,
+  active = false,
+  direction,
+  textColorClass = 'text-slate-500',
+}: {
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  direction?: PickerColumnSortDirection;
+  textColorClass?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex w-full items-center justify-center gap-1 rounded-full px-2 py-1 transition ${
+        active
+          ? 'bg-slate-100 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.35)]'
+          : 'hover:bg-slate-50'
+      }`}
+    >
+      <span className={`${active ? 'text-slate-800' : textColorClass}`}>{label}</span>
+      <span
+        aria-hidden="true"
+        className={`text-[10px] ${active ? 'text-slate-700' : 'text-slate-300'}`}
+      >
+        {direction === 'asc' ? '↑' : direction === 'desc' ? '↓' : '↕'}
+      </span>
+    </button>
   );
 }
 
@@ -1135,11 +1234,16 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   testId?: string;
 }) {
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [sortMode, setSortMode] = React.useState<PickerSortMode>('ev-desc');
+  const [sortMode, setSortMode] = React.useState<PickerPresetSortMode>('ev-desc');
+  const [columnSort, setColumnSort] = React.useState<PickerColumnSort | null>(null);
   const [showOnlyImproved, setShowOnlyImproved] = React.useState(false);
   const rankedEntries = React.useMemo(() => rankSlot(params, slot), [params, slot]);
   const selectedEntry = rankedEntries.find((entry) => entry.item.id === selectedId);
   const selectedItem = selectedEntry?.item ?? items.find((item) => item.id === selectedId);
+  const sourceOrder = React.useMemo(
+    () => new Map(items.map((item, index) => [item.id, index])),
+    [items],
+  );
   const filteredEntries = searchQuery.trim()
     ? rankedEntries.filter((entry) => {
         const term = searchQuery.toLowerCase();
@@ -1162,7 +1266,22 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       return entry.expectedValuePerHour > selectedEntry.expectedValuePerHour;
     }),
     sortMode,
+    selectedEntry,
+    sourceOrder,
+    columnSort,
   );
+
+  const toggleColumnSort = (key: PickerColumnSortKey) => {
+    setColumnSort((current) => {
+      if (!current || current.key !== key) {
+        return { key, direction: 'asc' };
+      }
+      if (current.direction === 'asc') {
+        return { key, direction: 'desc' };
+      }
+      return null;
+    });
+  };
 
   return (
     <div
@@ -1208,10 +1327,14 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
               並び順
               <select
                 value={sortMode}
-                onChange={(event) => setSortMode(event.target.value as PickerSortMode)}
+                onChange={(event) => {
+                  setSortMode(event.target.value as PickerPresetSortMode);
+                  setColumnSort(null);
+                }}
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の並び順"
               >
+                <option value="default">初期設定順</option>
                 <option value="ev-desc">期待値/時間が高い順</option>
                 <option value="delta-desc">いまより伸びる順</option>
                 <option value="price-asc">安い順</option>
@@ -1242,28 +1365,77 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           className={`grid ${PICKER_GRID_COLUMNS} items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]`}
         >
           <div className="px-2 text-left text-slate-500">選択</div>
-          <div className="px-2 text-left text-slate-500">名前</div>
-          <div className="px-1 text-center text-slate-500">{PRICE_COLUMN_LABEL}</div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
-            Lk
+          <div className="px-2 text-left">
+            <PickerHeaderSortButton
+              label="名前"
+              onClick={() => toggleColumnSort('name')}
+              active={columnSort?.key === 'name'}
+              direction={columnSort?.key === 'name' ? columnSort.direction : undefined}
+              textColorClass="text-slate-500"
+            />
           </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
-            Str
+          <div className="px-1 text-center">
+            <PickerHeaderSortButton
+              label={PRICE_COLUMN_LABEL}
+              onClick={() => toggleColumnSort('price')}
+              active={columnSort?.key === 'price'}
+              direction={columnSort?.key === 'price' ? columnSort.direction : undefined}
+              textColorClass="text-slate-500"
+            />
           </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
-            Exp
+          <div className="px-1 text-center">
+            <PickerHeaderSortButton
+              label="Lk"
+              onClick={() => toggleColumnSort('luck')}
+              active={columnSort?.key === 'luck'}
+              direction={columnSort?.key === 'luck' ? columnSort.direction : undefined}
+              textColorClass="text-amber-700"
+            />
           </div>
-          <div
-            className="px-1 text-center"
-            style={{ color: STAT_THEME.attractionRate.surfaceText }}
-          >
-            Atk
+          <div className="px-1 text-center">
+            <PickerHeaderSortButton
+              label="Str"
+              onClick={() => toggleColumnSort('strength')}
+              active={columnSort?.key === 'strength'}
+              direction={columnSort?.key === 'strength' ? columnSort.direction : undefined}
+              textColorClass="text-rose-700"
+            />
           </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
-            BigC
+          <div className="px-1 text-center">
+            <PickerHeaderSortButton
+              label="Exp"
+              onClick={() => toggleColumnSort('expertise')}
+              active={columnSort?.key === 'expertise'}
+              direction={columnSort?.key === 'expertise' ? columnSort.direction : undefined}
+              textColorClass="text-sky-700"
+            />
           </div>
-          <div className="px-1 text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
-            MaxWt
+          <div className="px-1 text-center">
+            <PickerHeaderSortButton
+              label="Atk"
+              onClick={() => toggleColumnSort('attractionRate')}
+              active={columnSort?.key === 'attractionRate'}
+              direction={columnSort?.key === 'attractionRate' ? columnSort.direction : undefined}
+              textColorClass="text-emerald-700"
+            />
+          </div>
+          <div className="px-1 text-center">
+            <PickerHeaderSortButton
+              label="BigC"
+              onClick={() => toggleColumnSort('bigCatchRate')}
+              active={columnSort?.key === 'bigCatchRate'}
+              direction={columnSort?.key === 'bigCatchRate' ? columnSort.direction : undefined}
+              textColorClass="text-amber-700"
+            />
+          </div>
+          <div className="px-1 text-center">
+            <PickerHeaderSortButton
+              label="MaxWt"
+              onClick={() => toggleColumnSort('maxWeight')}
+              active={columnSort?.key === 'maxWeight'}
+              direction={columnSort?.key === 'maxWeight' ? columnSort.direction : undefined}
+              textColorClass="text-violet-700"
+            />
           </div>
         </div>
       </div>

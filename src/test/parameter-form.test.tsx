@@ -128,6 +128,7 @@ describe('Step 1 loadout UI quality', () => {
 
     expect(screen.getByLabelText('候補の並び順')).toBeInTheDocument();
     expect(screen.getByLabelText('いまより期待値が上がる候補だけを表示')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '初期設定順' })).toBeInTheDocument();
 
     const beforeFilter = screen
       .getAllByTestId('picker-option-row')
@@ -146,6 +147,29 @@ describe('Step 1 loadout UI quality', () => {
       .find((row) => row.textContent?.includes('Metallic Rod'));
     expect(metallicRow).toHaveTextContent('期待値/時間');
     expect(metallicRow).toHaveTextContent('いまより');
+  });
+
+  it('supports column-header sorting and can return to the initial item order', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    const pickerHeader = screen.getByTestId('picker-column-header');
+    const priceSortButton = within(pickerHeader).getByRole('button', { name: 'Price' });
+    fireEvent.click(priceSortButton);
+    fireEvent.click(priceSortButton);
+
+    let candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows[0]).toHaveTextContent('Rod of the Pharaoh');
+
+    fireEvent.change(screen.getByLabelText('候補の並び順'), {
+      target: { value: 'default' },
+    });
+
+    candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows[0]).toHaveTextContent('Sunleaf Rod');
   });
 
   it('closes the picker when clicking outside the picker panel', () => {

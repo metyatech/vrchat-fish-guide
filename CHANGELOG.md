@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.53] - 2026-03-14
+
+### Changed
+
+- **The Step 1 candidate table now sorts like a real comparison sheet**: you can click the `名前 / Price / Lk / Str / Exp / Atk / BigC / MaxWt` column headers to toggle ascending and descending order, then click again to fall back to the current preset sort.
+- **The sort preset menu now includes `初期設定順`**: when you want to stop exploring EV- or stat-based sorts, you can return the candidate list to the original item order defined by the gear tables.
+
 ## [0.12.52] - 2026-03-14
 
 ### Changed
