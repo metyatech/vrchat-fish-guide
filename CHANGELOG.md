@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.49] - 2026-03-14
+
+### Fixed
+
+- **The Step 1 comparison workspace now gives the current-loadout board enough room for the active-edit badge**: the left-side comparison board widens at desktop widths and stacks the active-slot marker inside the equipment column, so `Rod を編集中` no longer collides with the `Price` column at 1920-class window sizes.
+- **Windows and Linux visual baselines now match the wider desktop board**: the Step 1 screenshot snapshots were refreshed so CI keeps guarding the non-overlapping active-row layout instead of the older cramped version.
+
 ## [0.12.48] - 2026-03-14
 
 ### Fixed

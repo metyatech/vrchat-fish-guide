@@ -614,7 +614,7 @@ function CurrentLoadoutTable({
                     <div className="relative px-3 py-3">
                       <div className={`grid ${LOADOUT_WORKSPACE_GRID_COLUMNS} items-center gap-2`}>
                         <div className="min-w-0">
-                          <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex min-w-0 flex-col gap-1.5">
                             <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
                             {isActive ? (
                               <div data-testid="slot-picker-anchor">
@@ -1406,7 +1406,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
 
         <div
-          className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[35rem_minmax(0,1fr)] 2xl:grid-cols-[36rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
+          className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[42rem_minmax(0,1fr)] 2xl:grid-cols-[44rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
         >
           <div className="min-w-0">
             <CurrentLoadoutTable
