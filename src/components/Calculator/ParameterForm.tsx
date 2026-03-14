@@ -104,6 +104,23 @@ function formatItemStatValue(item: EquipmentItem | EnchantItem, stat: StatThemeK
   return formatSignedDisplayNumber(value);
 }
 
+function formatTotalStatValue(model: DerivedModelSummary, stat: StatThemeKey): string {
+  switch (stat) {
+    case 'luck':
+      return formatSignedDisplayNumber(model.totalStats.luck);
+    case 'strength':
+      return formatSignedDisplayNumber(model.totalStats.strength);
+    case 'expertise':
+      return formatSignedDisplayNumber(model.totalStats.expertise);
+    case 'attractionRate':
+      return formatSignedDisplayNumber(model.totalStats.attractionPct, '%');
+    case 'bigCatchRate':
+      return formatSignedDisplayNumber(model.totalStats.bigCatch);
+    case 'maxWeight':
+      return formatWeightKg(model.totalStats.maxWeightKg);
+  }
+}
+
 function getHighlightedStats(item: EquipmentItem | EnchantItem): StatThemeKey[] {
   const stats = STAT_THEME_ORDER.filter((stat) => {
     const value = getItemStatValue(item, stat);
@@ -727,123 +744,93 @@ function CurrentLoadoutTable({
               })}
               <div
                 data-testid="total-stats-section"
-                className="relative overflow-hidden bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.98))] text-white"
+                className="relative overflow-hidden bg-emerald-50/55"
               >
-                <div className="hidden xl:grid xl:items-center xl:gap-2 xl:px-4 xl:py-4">
-                  <div className={desktopLoadoutGridColumns}>
-                    <div className="flex flex-col gap-2">
-                      <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
-                        <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
-                        合計
-                      </span>
-                    </div>
+                <div
+                  className={`hidden xl:grid ${desktopLoadoutGridColumns} xl:items-center xl:gap-2 xl:px-4 xl:py-4`}
+                >
+                  <div className="flex flex-col gap-2">
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                      合計
+                    </span>
+                  </div>
 
-                    <div className="min-w-0">
-                      <div className="text-base font-bold text-white">装備の合計</div>
-                      <div className="mt-1 text-xs font-semibold text-slate-300">
-                        選択中の Rod / Line / Bobber / Enchant を足した値です
-                      </div>
-                      <div className="mt-2">
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                            model.enchantState === 'active'
-                              ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
-                              : model.enchantState === 'conditional'
-                                ? 'border-sky-400/40 bg-sky-400/10 text-sky-300'
-                                : 'border-slate-500/50 bg-white/5 text-slate-300'
-                          }`}
-                        >
-                          {model.enchantStatusText ?? 'No Enchant selected'}
-                        </span>
-                      </div>
+                  <div className="min-w-0">
+                    <div className="text-base font-bold text-slate-900">装備の合計</div>
+                    <div className="mt-1 text-xs font-semibold text-slate-500">
+                      Rod / Line / Bobber / Enchant を足した値です
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                          model.enchantState === 'active'
+                            ? 'border-emerald-200 bg-white text-emerald-700'
+                            : model.enchantState === 'conditional'
+                              ? 'border-sky-200 bg-white text-sky-700'
+                              : 'border-slate-200 bg-white text-slate-500'
+                        }`}
+                      >
+                        {model.enchantStatusText ?? 'No Enchant selected'}
+                      </span>
                       {model.inactiveEnchantReason ? (
-                        <div className="mt-2 text-xs leading-relaxed text-amber-300">
+                        <span className="text-xs leading-relaxed text-amber-700">
                           {model.inactiveEnchantReason}
-                        </div>
+                        </span>
                       ) : null}
                     </div>
-
-                    <div className="flex justify-center border-l border-white/10 pl-1">
-                      <span className="inline-flex min-w-[4.5rem] items-center justify-center rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-bold text-slate-300">
-                        —
-                      </span>
-                    </div>
-
-                    {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                      <div
-                        key={stat}
-                        data-total-stat={stat}
-                        className="flex justify-center border-l border-white/10 pl-1"
-                      >
-                        <StatBadge
-                          stat={stat}
-                          value={
-                            stat === 'attractionRate'
-                              ? formatSignedDisplayNumber(model.totalStats.attractionPct, '%')
-                              : stat === 'maxWeight'
-                                ? formatWeightKg(model.totalStats.maxWeightKg)
-                                : stat === 'luck'
-                                  ? formatSignedDisplayNumber(model.totalStats.luck)
-                                  : stat === 'strength'
-                                    ? formatSignedDisplayNumber(model.totalStats.strength)
-                                    : stat === 'expertise'
-                                      ? formatSignedDisplayNumber(model.totalStats.expertise)
-                                      : formatSignedDisplayNumber(model.totalStats.bigCatch)
-                          }
-                        />
-                      </div>
-                    ))}
                   </div>
+
+                  <div className="flex justify-center border-l border-slate-100/80 pl-1">
+                    <span className="inline-flex min-w-[4.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-400">
+                      —
+                    </span>
+                  </div>
+
+                  {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                    <div
+                      key={stat}
+                      data-total-stat={stat}
+                      className="flex justify-center border-l border-slate-100/80 pl-1"
+                    >
+                      <StatBadge stat={stat} value={formatTotalStatValue(model, stat)} />
+                    </div>
+                  ))}
                 </div>
 
                 <div className="space-y-3 px-4 py-4 xl:hidden">
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
+                    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
                       合計
                     </span>
-                    <span className="text-sm font-semibold text-white">装備の合計</span>
+                    <span className="text-sm font-semibold text-slate-900">装備の合計</span>
                   </div>
-                  <div className="text-xs leading-relaxed text-slate-300">
-                    選択中の Rod / Line / Bobber / Enchant を足した値です
+                  <div className="text-xs leading-relaxed text-slate-500">
+                    Rod / Line / Bobber / Enchant を足した値です
                   </div>
-                  <div>
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
                         model.enchantState === 'active'
-                          ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
+                          ? 'border-emerald-200 bg-white text-emerald-700'
                           : model.enchantState === 'conditional'
-                            ? 'border-sky-400/40 bg-sky-400/10 text-sky-300'
-                            : 'border-slate-500/50 bg-white/5 text-slate-300'
+                            ? 'border-sky-200 bg-white text-sky-700'
+                            : 'border-slate-200 bg-white text-slate-500'
                       }`}
                     >
                       {model.enchantStatusText ?? 'No Enchant selected'}
                     </span>
+                    {model.inactiveEnchantReason ? (
+                      <span className="text-xs leading-relaxed text-amber-700">
+                        {model.inactiveEnchantReason}
+                      </span>
+                    ) : null}
                   </div>
-                  {model.inactiveEnchantReason ? (
-                    <div className="text-xs leading-relaxed text-amber-300">
-                      {model.inactiveEnchantReason}
-                    </div>
-                  ) : null}
                   <div className="flex max-w-full flex-wrap gap-1.5">
                     {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
                       <div key={stat} data-total-stat={stat}>
-                        <StatBadge
-                          stat={stat}
-                          value={
-                            stat === 'attractionRate'
-                              ? formatSignedDisplayNumber(model.totalStats.attractionPct, '%')
-                              : stat === 'maxWeight'
-                                ? formatWeightKg(model.totalStats.maxWeightKg)
-                                : stat === 'luck'
-                                  ? formatSignedDisplayNumber(model.totalStats.luck)
-                                  : stat === 'strength'
-                                    ? formatSignedDisplayNumber(model.totalStats.strength)
-                                    : stat === 'expertise'
-                                      ? formatSignedDisplayNumber(model.totalStats.expertise)
-                                      : formatSignedDisplayNumber(model.totalStats.bigCatch)
-                          }
-                        />
+                        <StatBadge stat={stat} value={formatTotalStatValue(model, stat)} />
                       </div>
                     ))}
                   </div>

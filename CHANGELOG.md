@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.44] - 2026-03-14
+
+### Fixed
+
+- **The total-stats footer row now reads like a real table row instead of a separate dark panel**: the Step 1 total line now uses the same row structure and readable contrast as the loadout table, so the combined values stay aligned with the same columns as Rod / Line / Bobber / Enchant.
+- **Visual regression baselines were refreshed for the corrected total row**: the screenshot gate now matches the readable table-style footer on both Windows and Linux.
+
 ## [0.12.43] - 2026-03-14
 
 ### Fixed
