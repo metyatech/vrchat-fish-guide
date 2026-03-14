@@ -186,6 +186,13 @@ type PickerColumnSortDirection = 'asc' | 'desc';
 type PickerPriceBand = 'all' | 'free' | 'budget' | 'mid' | 'premium';
 type PickerRecommendationFilter = 'all' | 'free' | 'early' | 'endgame' | 'value' | 'big-upgrade';
 type PickerStatFilterInputs = Record<StatThemeKey, string>;
+type PickerActiveFilterChip = {
+  id: string;
+  label: string;
+  onRemove: () => void;
+};
+
+const MULTIPLE_LOCATIONS_VALUE = '__multiple__';
 
 interface PickerColumnSort {
   key: PickerColumnSortKey;
@@ -369,6 +376,40 @@ function matchesRecommendationFilter(tags: string[], filter: PickerRecommendatio
     case 'all':
     default:
       return true;
+  }
+}
+
+function formatPriceBandLabel(band: PickerPriceBand): string {
+  switch (band) {
+    case 'free':
+      return '価格: 無料';
+    case 'budget':
+      return '価格: 1万G まで';
+    case 'mid':
+      return '価格: 1万G〜10万G';
+    case 'premium':
+      return '価格: 10万G 超';
+    case 'all':
+    default:
+      return '価格: すべて';
+  }
+}
+
+function formatRecommendationFilterLabel(filter: PickerRecommendationFilter): string {
+  switch (filter) {
+    case 'free':
+      return 'おすすめ: 無料';
+    case 'early':
+      return 'おすすめ: 序盤向け';
+    case 'endgame':
+      return 'おすすめ: 終盤向け';
+    case 'value':
+      return 'おすすめ: コスパ';
+    case 'big-upgrade':
+      return 'おすすめ: 伸び幅大';
+    case 'all':
+    default:
+      return 'おすすめ: すべて';
   }
 }
 
@@ -1422,7 +1463,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const [sortMode, setSortMode] = React.useState<PickerPresetSortMode>('ev-desc');
   const [columnSort, setColumnSort] = React.useState<PickerColumnSort | null>(null);
   const [showOnlyImproved, setShowOnlyImproved] = React.useState(false);
-  const [locationFilter, setLocationFilter] = React.useState('all');
+  const [selectedLocations, setSelectedLocations] = React.useState<string[]>([]);
   const [priceBand, setPriceBand] = React.useState<PickerPriceBand>('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
   const [priceMinInput, setPriceMinInput] = React.useState('');
@@ -1457,6 +1498,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const priceMax = React.useMemo(() => parseOptionalFilterNumber(priceMaxInput), [priceMaxInput]);
   const activeAdvancedFilterCount = React.useMemo(() => {
     let count = 0;
+    count += selectedLocations.length;
     if (priceMin !== null) count += 1;
     if (priceMax !== null) count += 1;
     for (const stat of LOADOUT_STAT_COLUMN_ORDER) {
@@ -1465,7 +1507,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       }
     }
     return count;
-  }, [minimumStatFilters, priceMax, priceMin]);
+  }, [minimumStatFilters, priceMax, priceMin, selectedLocations.length]);
   const sourceOrder = React.useMemo(
     () => new Map(items.map((item, index) => [item.id, index])),
     [items],
@@ -1475,8 +1517,14 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     for (const item of items) {
       labels.add(item.location);
     }
-    return ['all', ...Array.from(labels).sort((a, b) => a.localeCompare(b, 'en'))];
+    return Array.from(labels).sort((a, b) => a.localeCompare(b, 'en'));
   }, [items]);
+  const locationFilterValue =
+    selectedLocations.length === 0
+      ? 'all'
+      : selectedLocations.length === 1
+        ? selectedLocations[0]
+        : MULTIPLE_LOCATIONS_VALUE;
   const filteredEntries = searchQuery.trim()
     ? rankedEntries.filter((entry) => {
         const term = searchQuery.toLowerCase();
@@ -1492,12 +1540,19 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     filteredEntries,
     filteredEntries.find((entry) => entry.item.id === selectedId) ?? selectedEntry,
   );
+  const toggleLocationSelection = (location: string) => {
+    setSelectedLocations((current) =>
+      current.includes(location)
+        ? current.filter((entry) => entry !== location)
+        : [...current, location].sort((a, b) => a.localeCompare(b, 'en')),
+    );
+  };
   const candidateEntries = sortRankEntries(
     filteredEntries.filter((entry) => {
       if (entry.item.id === selectedId) {
         return false;
       }
-      if (locationFilter !== 'all' && entry.item.location !== locationFilter) {
+      if (selectedLocations.length > 0 && !selectedLocations.includes(entry.item.location)) {
         return false;
       }
       if (!matchesPriceBand(entry.item.price, priceBand)) {
@@ -1539,6 +1594,94 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     sourceOrder,
     columnSort,
   );
+  const activeFilterChips = React.useMemo<PickerActiveFilterChip[]>(() => {
+    const chips: PickerActiveFilterChip[] = [];
+
+    if (recommendationFilter !== 'all') {
+      chips.push({
+        id: `recommendation-${recommendationFilter}`,
+        label: formatRecommendationFilterLabel(recommendationFilter),
+        onRemove: () => setRecommendationFilter('all'),
+      });
+    }
+
+    for (const location of selectedLocations) {
+      chips.push({
+        id: `location-${location}`,
+        label: `入手場所: ${location}`,
+        onRemove: () =>
+          setSelectedLocations((current) => current.filter((entry) => entry !== location)),
+      });
+    }
+
+    if (priceBand !== 'all') {
+      chips.push({
+        id: `price-band-${priceBand}`,
+        label: formatPriceBandLabel(priceBand),
+        onRemove: () => setPriceBand('all'),
+      });
+    }
+
+    if (showOnlyImproved) {
+      chips.push({
+        id: 'only-improved',
+        label: 'いまより良い候補だけ',
+        onRemove: () => setShowOnlyImproved(false),
+      });
+    }
+
+    if (priceMin !== null) {
+      chips.push({
+        id: 'price-min',
+        label: `${PRICE_COLUMN_LABEL} 最低値 ${priceMin.toLocaleString()}G`,
+        onRemove: () => setPriceMinInput(''),
+      });
+    }
+
+    if (priceMax !== null) {
+      chips.push({
+        id: 'price-max',
+        label: `${PRICE_COLUMN_LABEL} 最高値 ${priceMax.toLocaleString()}G`,
+        onRemove: () => setPriceMaxInput(''),
+      });
+    }
+
+    for (const stat of LOADOUT_STAT_COLUMN_ORDER) {
+      const minimum = minimumStatFilters[stat];
+      if (minimum === null) {
+        continue;
+      }
+      chips.push({
+        id: `minimum-${stat}`,
+        label: `${STAT_THEME[stat].shortLabel} 最低値 ${minimum}`,
+        onRemove: () =>
+          setMinimumStatInputs((current) => ({
+            ...current,
+            [stat]: '',
+          })),
+      });
+    }
+
+    for (const stat of requiredImprovementStats) {
+      chips.push({
+        id: `required-${stat}`,
+        label: `${STAT_THEME[stat].shortLabel}+ だけ`,
+        onRemove: () =>
+          setRequiredImprovementStats((current) => current.filter((entry) => entry !== stat)),
+      });
+    }
+
+    return chips;
+  }, [
+    minimumStatFilters,
+    priceBand,
+    priceMax,
+    priceMin,
+    recommendationFilter,
+    requiredImprovementStats,
+    selectedLocations,
+    showOnlyImproved,
+  ]);
 
   const toggleColumnSort = (key: PickerColumnSortKey) => {
     setColumnSort((current) => {
@@ -1705,19 +1848,22 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
               入手場所
               <select
-                value={locationFilter}
-                onChange={(event) => setLocationFilter(event.target.value)}
+                value={locationFilterValue}
+                onChange={(event) =>
+                  setSelectedLocations(event.target.value === 'all' ? [] : [event.target.value])
+                }
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の入手場所"
               >
                 <option value="all">すべて</option>
-                {locationOptions
-                  .filter((option) => option !== 'all')
-                  .map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
+                {selectedLocations.length > 1 ? (
+                  <option value={MULTIPLE_LOCATIONS_VALUE}>複数選択中</option>
+                ) : null}
+                {locationOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
@@ -1759,11 +1905,76 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
               ) : null}
             </button>
           </div>
+          {activeFilterChips.length > 0 ? (
+            <div
+              data-testid="active-filter-chips"
+              className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-2"
+            >
+              <span className="text-[11px] font-semibold text-slate-500">
+                いま効いている絞り込み
+              </span>
+              {activeFilterChips.map((chip) => (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={chip.onRemove}
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                >
+                  <span>{chip.label}</span>
+                  <span aria-hidden="true" className="text-slate-400">
+                    ×
+                  </span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setRecommendationFilter('all');
+                  setSelectedLocations([]);
+                  setPriceBand('all');
+                  setShowOnlyImproved(false);
+                  setPriceMinInput('');
+                  setPriceMaxInput('');
+                  setMinimumStatInputs(createEmptyStatFilterInputs());
+                  setRequiredImprovementStats([]);
+                }}
+                className="ml-auto rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900"
+              >
+                すべて解除
+              </button>
+            </div>
+          ) : null}
           {showAdvancedFilters ? (
             <div
               data-testid="advanced-candidate-filters"
               className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3"
             >
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-600">入手場所を複数選ぶ</div>
+                <div className="flex flex-wrap gap-2">
+                  {locationOptions.map((location) => {
+                    const active = selectedLocations.includes(location);
+                    return (
+                      <button
+                        key={`location-toggle-${location}`}
+                        type="button"
+                        onClick={() => toggleLocationSelection(location)}
+                        aria-pressed={active}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? 'border-ocean-300 bg-ocean-100 text-ocean-800'
+                            : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100'
+                        }`}
+                      >
+                        {location}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  複数の入手場所をまとめて残したいときに使います。何も選ばないと、すべて残します。
+                </p>
+              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="space-y-1 text-xs font-semibold text-slate-600">
                   <span>{PRICE_COLUMN_LABEL} 最低値</span>
@@ -1823,6 +2034,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 <button
                   type="button"
                   onClick={() => {
+                    setSelectedLocations([]);
                     setPriceMinInput('');
                     setPriceMaxInput('');
                     setMinimumStatInputs(createEmptyStatFilterInputs());

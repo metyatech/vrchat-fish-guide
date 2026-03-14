@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.56] - 2026-03-14
+
+### Changed
+
+- **Step 1 now makes active candidate filters visible instead of hiding them inside controls**: the candidate picker shows removable filter chips for active recommendation, location, price, minimum-stat, and improvement filters, so you can tell at a glance why the list is narrowed and clear any condition with one click.
+- **Location filtering is no longer limited to one place at a time**: `さらに絞る` now lets you keep multiple acquisition locations at once, which makes it much easier to compare realistic upgrade pools such as `Coconut Bay + Sell Shops` without manually switching the picker back and forth.
+
 ## [0.12.55] - 2026-03-14
 
 ### Changed

@@ -212,7 +212,7 @@ describe('Step 1 loadout UI quality', () => {
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
-    fireEvent.click(screen.getByRole('button', { name: 'さらに絞る' }));
+    fireEvent.click(screen.getByRole('button', { name: /さらに絞る/ }));
 
     fireEvent.change(screen.getByLabelText('Price 最高値'), {
       target: { value: '1000' },
@@ -232,6 +232,36 @@ describe('Step 1 loadout UI quality', () => {
     candidateRows = screen.getAllByTestId('picker-option-row');
     expect(candidateRows.some((row) => row.textContent?.includes('Metallic Rod'))).toBe(true);
     expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(false);
+  });
+
+  it('shows active filter chips and supports multi-location filtering', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+    fireEvent.change(screen.getByLabelText('候補の入手場所'), {
+      target: { value: 'Coconut Bay' },
+    });
+
+    const activeChips = screen.getByTestId('active-filter-chips');
+    expect(activeChips).toHaveTextContent('入手場所: Coconut Bay');
+
+    fireEvent.click(screen.getByRole('button', { name: /さらに絞る/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sell Shops' }));
+
+    const locationSelect = screen.getByLabelText('候補の入手場所') as HTMLSelectElement;
+    expect(locationSelect.value).toBe('__multiple__');
+
+    const candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.some((row) => row.textContent?.includes('Toy Rod'))).toBe(true);
+    expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(true);
+    expect(candidateRows.some((row) => row.textContent?.includes('Alien Rod'))).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: '入手場所: Coconut Bay' }));
+    const narrowedRows = screen.getAllByTestId('picker-option-row');
+    expect(narrowedRows.some((row) => row.textContent?.includes('Toy Rod'))).toBe(false);
+    expect(narrowedRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(true);
   });
 
   it('supports column-header sorting and can return to the initial item order', () => {

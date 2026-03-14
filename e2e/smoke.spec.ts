@@ -458,7 +458,7 @@ test('candidate picker supports advanced price and stat minimum filters', async 
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
-  await page.getByRole('button', { name: 'さらに絞る' }).click();
+  await page.getByRole('button', { name: /さらに絞る/ }).click();
   const advancedFilters = page.getByTestId('advanced-candidate-filters');
 
   await advancedFilters.getByLabel('Price 最高値').fill('1000');
@@ -469,6 +469,32 @@ test('candidate picker supports advanced price and stat minimum filters', async 
   await advancedFilters.getByLabel('Str 最低値').fill('50');
   await expect(pickerPanel).toContainText('Metallic Rod');
   await expect(pickerPanel).not.toContainText('Sunleaf Rod');
+});
+
+test('candidate picker shows active filter chips and supports multiple locations', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+  const pickerPanel = page.getByTestId('slot-picker-panel');
+
+  await page.getByLabel('候補の入手場所').selectOption('Coconut Bay');
+  await expect(page.getByTestId('active-filter-chips')).toContainText('入手場所: Coconut Bay');
+
+  await page.getByRole('button', { name: /さらに絞る/ }).click();
+  await page.getByRole('button', { name: 'Sell Shops' }).click();
+
+  await expect(page.getByLabel('候補の入手場所')).toHaveValue('__multiple__');
+  await expect(pickerPanel).toContainText('Toy Rod');
+  await expect(pickerPanel).toContainText('Sunleaf Rod');
+  await expect(pickerPanel).not.toContainText('Alien Rod');
+
+  await page.getByRole('button', { name: '入手場所: Coconut Bay' }).click();
+
+  await expect(pickerPanel).not.toContainText('Toy Rod');
+  await expect(pickerPanel).toContainText('Sunleaf Rod');
 });
 
 test('mobile widths keep a compact current-loadout summary above the stacked picker', async ({
