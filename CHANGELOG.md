@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.51] - 2026-03-14
+
+### Fixed
+
+- **The Step 1 comparison workspace now gives the candidate table enough room to stay readable**: the calculator page widens its comparison canvas and shifts more width to the right-hand candidate list, so names, locations, prices, and per-stat deltas stay legible instead of collapsing into a cramped narrow pane while the current loadout remains visible on the left.
+
 ## [0.12.50] - 2026-03-14
 
 ### Fixed

@@ -295,7 +295,7 @@ export function CalculatorPageClient() {
   if (!activeBuild) return null;
 
   return (
-    <div className="relative mx-auto max-w-7xl px-4 py-8">
+    <div className="relative mx-auto max-w-[96rem] px-4 py-8">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden"

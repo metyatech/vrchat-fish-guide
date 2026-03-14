@@ -1406,7 +1406,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
 
         <div
-          className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[42rem_minmax(0,1fr)] 2xl:grid-cols-[44rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
+          className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[38rem_minmax(0,1fr)] 2xl:grid-cols-[40rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
         >
           <div className="min-w-0">
             <CurrentLoadoutTable
