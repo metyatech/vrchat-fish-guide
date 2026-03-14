@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.63] - 2026-03-14
+
+### Fixed
+
+- **Removed the remaining React key warning from the Step 1 picker filters**: the filter selects now use stable option keys, so local test runs no longer emit the `select` child key warning while keeping the picker behavior unchanged.
+
 ## [0.12.62] - 2026-03-14
 
 ### Fixed

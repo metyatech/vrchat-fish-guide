@@ -2082,16 +2082,16 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の並び順"
               >
-                <option key="default" value="default">
+                <option key="sort-default" value="default">
                   初期設定順
                 </option>
-                <option key="ev-desc" value="ev-desc">
+                <option key="sort-ev-desc" value="ev-desc">
                   期待値/時間が高い順
                 </option>
-                <option key="delta-desc" value="delta-desc">
+                <option key="sort-delta-desc" value="delta-desc">
                   いまより伸びる順
                 </option>
-                <option key="price-asc" value="price-asc">
+                <option key="sort-price-asc" value="price-asc">
                   安い順
                 </option>
               </select>
@@ -2129,16 +2129,19 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の入手場所"
               >
-                <option key="all" value="all">
+                <option key="location-all" value="all">
                   すべて
                 </option>
                 {selectedLocations.length > 1 ? (
-                  <option key={MULTIPLE_LOCATIONS_VALUE} value={MULTIPLE_LOCATIONS_VALUE}>
+                  <option
+                    key={`location-${MULTIPLE_LOCATIONS_VALUE}`}
+                    value={MULTIPLE_LOCATIONS_VALUE}
+                  >
                     複数選択中
                   </option>
                 ) : null}
                 {locationOptions.map((option) => (
-                  <option key={option} value={option}>
+                  <option key={`location-${option}`} value={option}>
                     {option}
                   </option>
                 ))}
@@ -2152,19 +2155,19 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
                 aria-label="候補の価格帯"
               >
-                <option key="all" value="all">
+                <option key="priceband-all" value="all">
                   すべて
                 </option>
-                <option key="free" value="free">
+                <option key="priceband-free" value="free">
                   無料
                 </option>
-                <option key="budget" value="budget">
+                <option key="priceband-budget" value="budget">
                   1万G まで
                 </option>
-                <option key="mid" value="mid">
+                <option key="priceband-mid" value="mid">
                   1万G〜10万G
                 </option>
-                <option key="premium" value="premium">
+                <option key="priceband-premium" value="premium">
                   10万G 超
                 </option>
               </select>
@@ -2878,11 +2881,11 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
             value={params.areaId}
             onChange={(event) => handleChange('areaId', event.target.value)}
           >
-            <option key={BEST_AREA_ID} value={BEST_AREA_ID}>
+            <option key={`area-${BEST_AREA_ID}`} value={BEST_AREA_ID}>
               おすすめの釣り場を自動で選ぶ
             </option>
             {FISHING_AREAS.map((area) => (
-              <option key={area.id} value={area.id}>
+              <option key={`area-${area.id}`} value={area.id}>
                 {area.nameEn}
               </option>
             ))}
@@ -2907,7 +2910,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               onChange={(event) => handleChange('timeOfDay', event.target.value as TimeOfDay)}
             >
               {(Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[]).map((timeOfDay) => (
-                <option key={timeOfDay} value={timeOfDay}>
+                <option key={`timeofday-${timeOfDay}`} value={timeOfDay}>
                   {TIME_OF_DAY_HELPER[timeOfDay]}
                 </option>
               ))}
@@ -2931,7 +2934,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
               onChange={(event) => handleChange('weatherType', event.target.value as WeatherType)}
             >
               {(Object.keys(WEATHER_TYPE_LABELS) as WeatherType[]).map((weatherType) => (
-                <option key={weatherType} value={weatherType}>
+                <option key={`weather-${weatherType}`} value={weatherType}>
                   {WEATHER_TYPE_HELPER[weatherType]}
                 </option>
               ))}
