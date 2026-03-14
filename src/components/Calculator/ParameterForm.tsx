@@ -170,6 +170,8 @@ const LOADOUT_TABLE_GRID_COLUMNS =
 const LOADOUT_TABLE_GRID_COLUMNS_COMPACT =
   'xl:grid-cols-[5.5rem_minmax(0,1fr)_4.75rem_3.5rem_3.5rem_3.5rem_4.25rem_4.25rem_4.75rem]';
 const PICKER_GRID_COLUMNS = 'grid-cols-[56px_minmax(0,1.15fr)_72px_48px_48px_48px_56px_56px_72px]';
+const LOADOUT_WORKSPACE_GRID_COLUMNS =
+  'grid-cols-[minmax(0,1.75fr)_4.5rem_2.55rem_2.55rem_2.55rem_3.05rem_3.05rem_3.75rem]';
 
 const PRICE_COLUMN_LABEL = 'Price';
 
@@ -238,6 +240,22 @@ function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
   );
 }
 
+function CompactPriceCell({ item }: { item?: EquipmentItem | EnchantItem }) {
+  if (!item || item.price <= 0) {
+    return (
+      <span className="inline-flex min-w-[3.8rem] items-center justify-center whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-400">
+        —
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex min-w-[3.8rem] items-center justify-center whitespace-nowrap rounded-full border border-slate-300 bg-slate-100 px-2 py-1 text-[10px] font-semibold text-slate-700">
+      {item.price.toLocaleString()}G
+    </span>
+  );
+}
+
 function ComparisonPriceCell({
   item,
   baseItem,
@@ -285,6 +303,23 @@ function ComparisonStatCell({
         {deltaText}
       </span>
     </div>
+  );
+}
+
+function CompactWorkspaceStatCell({ stat, value }: { stat: StatThemeKey; value: string }) {
+  const theme = STAT_THEME[stat];
+
+  return (
+    <span
+      className="inline-flex min-w-[2.45rem] items-center justify-center whitespace-nowrap rounded-full border px-1.5 py-1 text-[10px] font-semibold"
+      style={{
+        borderColor: theme.cardBorder,
+        backgroundColor: theme.cardBackground,
+        color: theme.surfaceText,
+      }}
+    >
+      {value}
+    </span>
   );
 }
 
@@ -513,6 +548,36 @@ function CurrentLoadoutTable({
             </div>
 
             <div className="space-y-3 p-4">
+              <div
+                className={`grid ${LOADOUT_WORKSPACE_GRID_COLUMNS} items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500`}
+              >
+                <span>装備</span>
+                <span className="text-center">{PRICE_COLUMN_LABEL}</span>
+                <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+                  Lk
+                </span>
+                <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+                  Str
+                </span>
+                <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+                  Exp
+                </span>
+                <span
+                  className="text-center"
+                  style={{ color: STAT_THEME.attractionRate.surfaceText }}
+                >
+                  Atk
+                </span>
+                <span
+                  className="text-center"
+                  style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
+                >
+                  BigC
+                </span>
+                <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+                  MaxWt
+                </span>
+              </div>
               {LOADOUT_SLOT_ORDER.map((slot) => {
                 const item = selectedItems[slot];
                 const isActive = activeSlot === slot;
@@ -546,66 +611,59 @@ function CurrentLoadoutTable({
                       }}
                     />
 
-                    <div className="relative px-4 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex flex-col gap-2">
-                          <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
-                          {isActive ? (
-                            <div data-testid="slot-picker-anchor">
-                              <span
-                                data-testid="active-slot-indicator"
-                                className="inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white"
-                              >
+                    <div className="relative px-3 py-3">
+                      <div className={`grid ${LOADOUT_WORKSPACE_GRID_COLUMNS} items-center gap-2`}>
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <SlotLabelChip slot={slot} label={LOADOUT_SLOT_LABELS[slot]} />
+                            {isActive ? (
+                              <div data-testid="slot-picker-anchor">
                                 <span
-                                  className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
-                                  aria-hidden="true"
-                                />
-                                {LOADOUT_SLOT_LABELS[slot]} を編集中
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-[11px] font-semibold text-slate-500">
-                              クリックで変更
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div
-                                className={`truncate font-bold text-slate-900 ${isActive ? 'text-[1.05rem]' : 'text-base'}`}
-                              >
-                                {item.nameEn}
+                                  data-testid="active-slot-indicator"
+                                  className="inline-flex w-fit items-center gap-2 whitespace-nowrap rounded-full bg-slate-900 px-2 py-1 text-[10px] font-semibold text-white"
+                                >
+                                  <span
+                                    className={`h-2 w-2 rounded-full ${SLOT_THEME[slot].dotClassName}`}
+                                    aria-hidden="true"
+                                  />
+                                  {LOADOUT_SLOT_LABELS[slot]} を編集中
+                                </span>
                               </div>
-                            </div>
-                            <PriceCell item={item} />
+                            ) : null}
                           </div>
-
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                              <StatBadge
-                                key={stat}
-                                stat={stat}
-                                value={formatItemStatValue(item, stat)}
-                              />
-                            ))}
+                          <div className="mt-2 truncate text-[0.95rem] font-bold text-slate-900">
+                            {item.nameEn}
                           </div>
-
-                          <div
-                            className={`mt-2 text-xs font-semibold ${isActive ? 'text-slate-600' : 'text-slate-500'}`}
-                          >
-                            {isActive
-                              ? '右の候補から選ぶとこの装備だけが更新されます'
-                              : 'この行をクリックして変更'}
-                          </div>
-                          {isActive ? (
-                            <div className="mt-1 text-xs font-semibold text-slate-600">
-                              選んだ装備がここに反映されます
-                            </div>
-                          ) : null}
                         </div>
+
+                        <div className="flex justify-center">
+                          <CompactPriceCell item={item} />
+                        </div>
+
+                        {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                          <div key={stat} className="flex justify-center">
+                            <CompactWorkspaceStatCell
+                              stat={stat}
+                              value={formatItemStatValue(item, stat)}
+                            />
+                          </div>
+                        ))}
                       </div>
+
+                      <div
+                        className={`mt-2 text-[11px] font-semibold leading-relaxed ${
+                          isActive ? 'text-slate-600' : 'text-slate-500'
+                        }`}
+                      >
+                        {isActive
+                          ? '右の候補から選ぶと、この行だけが更新されます'
+                          : 'この行をクリックして変更'}
+                      </div>
+                      {isActive ? (
+                        <div className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-600">
+                          選んだ装備がここに反映されます
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -615,39 +673,53 @@ function CurrentLoadoutTable({
                 data-testid="total-stats-section"
                 className="overflow-hidden rounded-[24px] border border-emerald-200 bg-emerald-50/65"
               >
-                <div className="px-4 py-4">
-                  <div className="flex items-center gap-2">
+                <div
+                  className={`grid ${LOADOUT_WORKSPACE_GRID_COLUMNS} items-center gap-2 px-3 py-3`}
+                >
+                  <div className="min-w-0">
                     <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700">
                       <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
                       合計
                     </span>
-                    <span className="text-sm font-semibold text-slate-700">装備の合計</span>
+                    <div className="mt-2 truncate text-[0.95rem] font-bold text-slate-900">
+                      装備の合計
+                    </div>
+                    <div className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-600">
+                      Rod / Line / Bobber / Enchant を足した値です
+                    </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
-                      <div key={stat} data-total-stat={stat}>
-                        <StatBadge stat={stat} value={formatTotalStatValue(model, stat)} />
-                      </div>
-                    ))}
+
+                  <div className="flex justify-center">
+                    <CompactPriceCell />
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                    <span
-                      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                        model.enchantState === 'active'
-                          ? 'border-emerald-200 bg-white text-emerald-700'
-                          : model.enchantState === 'conditional'
-                            ? 'border-sky-200 bg-white text-sky-700'
-                            : 'border-slate-200 bg-white text-slate-500'
-                      }`}
-                    >
-                      {model.enchantStatusText ?? 'No Enchant selected'}
+
+                  {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                    <div key={stat} data-total-stat={stat} className="flex justify-center">
+                      <CompactWorkspaceStatCell
+                        stat={stat}
+                        value={formatTotalStatValue(model, stat)}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 border-t border-emerald-100 px-3 pb-3 pt-0 text-xs text-slate-600">
+                  <span
+                    className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                      model.enchantState === 'active'
+                        ? 'border-emerald-200 bg-white text-emerald-700'
+                        : model.enchantState === 'conditional'
+                          ? 'border-sky-200 bg-white text-sky-700'
+                          : 'border-slate-200 bg-white text-slate-500'
+                    }`}
+                  >
+                    {model.enchantStatusText ?? 'No Enchant selected'}
+                  </span>
+                  {model.inactiveEnchantReason ? (
+                    <span className="leading-relaxed text-amber-700">
+                      {model.inactiveEnchantReason}
                     </span>
-                    {model.inactiveEnchantReason ? (
-                      <span className="leading-relaxed text-amber-700">
-                        {model.inactiveEnchantReason}
-                      </span>
-                    ) : null}
-                  </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -1334,7 +1406,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         </div>
 
         <div
-          className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)] 2xl:grid-cols-[24rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
+          className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[35rem_minmax(0,1fr)] 2xl:grid-cols-[36rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
         >
           <div className="min-w-0">
             <CurrentLoadoutTable

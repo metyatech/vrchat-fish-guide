@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.47] - 2026-03-14
+
+### Fixed
+
+- **The current-loadout board now keeps each stat in its own aligned column while you compare gear**: the left-hand comparison board uses a compact table layout with a single equipment column plus aligned `Price / Lk / Str / Exp / Atk / BigC / MaxWt` columns, so the active loadout no longer wraps stat chips onto multiple lines or forces you to scan staggered rows to compare the same stat across Rod / Line / Bobber / Enchant.
+- **The comparison-workspace regression checks now follow the compact aligned-board layout**: the Step 1 Playwright assertions and Windows/Linux visual baselines were refreshed so the published desktop comparison flow stays readable and column-aligned instead of regressing to wrapped stat chips.
+
 ## [0.12.46] - 2026-03-14
 
 ### Changed

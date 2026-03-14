@@ -75,7 +75,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByTestId('current-loadout-table')).toContainText('Bobber');
   await expect(
     page.getByTestId('total-stats-section').locator('[data-total-stat="luck"]').first(),
-  ).toContainText('Lk');
+  ).toContainText('-50');
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')
@@ -309,7 +309,7 @@ test('current loadout workspace visual appearance matches snapshot', async ({ pa
   await expect(workspaceBoard).toBeVisible();
   // Pin the board width so the screenshot stays stable across desktop widths.
   await workspaceBoard.evaluate((node) => {
-    (node as HTMLElement).style.width = '352px';
+    (node as HTMLElement).style.width = '560px';
   });
   // Wait a tick for CSS animations to settle.
   await page.waitForTimeout(500);
