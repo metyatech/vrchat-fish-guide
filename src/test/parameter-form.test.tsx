@@ -113,6 +113,41 @@ describe('Step 1 loadout UI quality', () => {
     expect(sunleafRow).toHaveTextContent('+245kg');
   });
 
+  it('shows recommendation controls and can filter to only better candidates', () => {
+    const params = {
+      ...getDefaultParams(),
+      loadout: {
+        ...getDefaultParams().loadout,
+        rodId: 'slim-rod',
+      },
+    };
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    expect(screen.getByLabelText('候補の並び順')).toBeInTheDocument();
+    expect(screen.getByLabelText('いまより期待値が上がる候補だけを表示')).toBeInTheDocument();
+
+    const beforeFilter = screen
+      .getAllByTestId('picker-option-row')
+      .some((row) => row.textContent?.includes('Stick and String'));
+    expect(beforeFilter).toBe(true);
+
+    fireEvent.click(screen.getByLabelText('いまより期待値が上がる候補だけを表示'));
+
+    const afterFilter = screen
+      .getAllByTestId('picker-option-row')
+      .some((row) => row.textContent?.includes('Stick and String'));
+    expect(afterFilter).toBe(false);
+
+    const metallicRow = screen
+      .getAllByTestId('picker-option-row')
+      .find((row) => row.textContent?.includes('Metallic Rod'));
+    expect(metallicRow).toHaveTextContent('期待値/時間');
+    expect(metallicRow).toHaveTextContent('いまより');
+  });
+
   it('closes the picker when clicking outside the picker panel', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);

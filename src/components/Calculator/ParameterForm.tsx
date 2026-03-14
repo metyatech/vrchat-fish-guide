@@ -11,7 +11,13 @@ import {
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { SLOT_THEME } from '@/components/Calculator/slotTheme';
 import { STAT_THEME, STAT_THEME_ORDER, StatThemeKey } from '@/components/Calculator/statTheme';
-import { BEST_AREA_ID, formatSignedDisplayNumber, formatWeightKg } from '@/lib/calculator';
+import {
+  BEST_AREA_ID,
+  formatCurrency,
+  formatSignedDisplayNumber,
+  formatWeightKg,
+} from '@/lib/calculator';
+import { rankSlot, SlotRankEntry } from '@/lib/ranking';
 import {
   CalculatorParams,
   DerivedModelSummary,
@@ -174,6 +180,7 @@ const LOADOUT_WORKSPACE_GRID_COLUMNS =
   'grid-cols-[minmax(0,1.75fr)_4.5rem_2.55rem_2.55rem_2.55rem_3.05rem_3.05rem_3.75rem]';
 
 const PRICE_COLUMN_LABEL = 'Price';
+type PickerSortMode = 'ev-desc' | 'delta-desc' | 'price-asc';
 
 function formatItemPrice(item: EquipmentItem | EnchantItem): string {
   return item.price > 0 ? `${item.price.toLocaleString()}G` : '—';
@@ -224,6 +231,48 @@ function deltaToneClass(deltaText: string): string {
   return 'text-slate-400';
 }
 
+function deltaBadgeClass(deltaText: string): string {
+  if (deltaText.startsWith('+')) {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  }
+  if (deltaText.startsWith('-')) {
+    return 'border-rose-200 bg-rose-50 text-rose-700';
+  }
+  return 'border-slate-200 bg-slate-50 text-slate-500';
+}
+
+function formatEvDeltaPercent(current: number, next: number): string {
+  const delta = next - current;
+  if (Math.abs(delta) < 0.001) {
+    return 'いまの装備と同じ';
+  }
+  if (current <= 0) {
+    return delta > 0 ? 'いまより上がる' : 'いまより下がる';
+  }
+  const percent = Math.round((delta / current) * 100);
+  return `いまより ${percent > 0 ? '+' : ''}${percent}%`;
+}
+
+function sortRankEntries(entries: SlotRankEntry[], mode: PickerSortMode): SlotRankEntry[] {
+  const sorted = [...entries];
+
+  switch (mode) {
+    case 'delta-desc':
+      return sorted.sort(
+        (a, b) => b.expectedValuePerHour - a.expectedValuePerHour || a.item.price - b.item.price,
+      );
+    case 'price-asc':
+      return sorted.sort(
+        (a, b) => a.item.price - b.item.price || b.expectedValuePerHour - a.expectedValuePerHour,
+      );
+    case 'ev-desc':
+    default:
+      return sorted.sort(
+        (a, b) => b.expectedValuePerHour - a.expectedValuePerHour || a.item.price - b.item.price,
+      );
+  }
+}
+
 function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
   const hasPrice = item.price > 0;
 
@@ -268,7 +317,9 @@ function ComparisonPriceCell({
   return (
     <div className="flex flex-col items-center gap-1.5">
       <PriceCell item={item} />
-      <span className={`text-[10px] font-semibold tabular-nums ${deltaToneClass(deltaText)}`}>
+      <span
+        className={`inline-flex min-w-[4.25rem] items-center justify-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums ${deltaBadgeClass(deltaText)}`}
+      >
         {deltaText}
       </span>
     </div>
@@ -299,7 +350,9 @@ function ComparisonStatCell({
       >
         {formatItemStatValue(item, stat)}
       </span>
-      <span className={`text-[10px] font-semibold tabular-nums ${deltaToneClass(deltaText)}`}>
+      <span
+        className={`inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums ${deltaBadgeClass(deltaText)}`}
+      >
         {deltaText}
       </span>
     </div>
@@ -1066,6 +1119,7 @@ function CurrentLoadoutTable({
 
 function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   slot,
+  params,
   items,
   selectedId,
   onSelect,
@@ -1073,6 +1127,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   testId = 'slot-picker-panel',
 }: {
   slot: LoadoutSlot;
+  params: CalculatorParams;
   items: readonly T[];
   selectedId: string;
   onSelect: (id: string) => void;
@@ -1080,18 +1135,34 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   testId?: string;
 }) {
   const [searchQuery, setSearchQuery] = React.useState('');
-  const selectedItem = items.find((item) => item.id === selectedId);
-  const filteredItems = searchQuery.trim()
-    ? items.filter((item) => {
+  const [sortMode, setSortMode] = React.useState<PickerSortMode>('ev-desc');
+  const [showOnlyImproved, setShowOnlyImproved] = React.useState(false);
+  const rankedEntries = React.useMemo(() => rankSlot(params, slot), [params, slot]);
+  const selectedEntry = rankedEntries.find((entry) => entry.item.id === selectedId);
+  const selectedItem = selectedEntry?.item ?? items.find((item) => item.id === selectedId);
+  const filteredEntries = searchQuery.trim()
+    ? rankedEntries.filter((entry) => {
         const term = searchQuery.toLowerCase();
+        const item = entry.item;
         return (
           item.nameEn.toLowerCase().includes(term) ||
           item.location.toLowerCase().includes(term) ||
           ('specialEffect' in item && item.specialEffect?.toLowerCase().includes(term))
         );
       })
-    : items;
-  const candidateItems = filteredItems.filter((item) => item.id !== selectedId);
+    : rankedEntries;
+  const candidateEntries = sortRankEntries(
+    filteredEntries.filter((entry) => {
+      if (entry.item.id === selectedId) {
+        return false;
+      }
+      if (!showOnlyImproved || !selectedEntry) {
+        return true;
+      }
+      return entry.expectedValuePerHour > selectedEntry.expectedValuePerHour;
+    }),
+    sortMode,
+  );
 
   return (
     <div
@@ -1123,7 +1194,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             <span className="whitespace-nowrap">閉じる</span>
           </button>
         </div>
-        <div className="mt-3">
+        <div className="mt-3 space-y-3">
           <input
             type="text"
             placeholder="名前・入手場所・効果で検索..."
@@ -1132,6 +1203,31 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-500 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500 focus:ring-opacity-30"
             aria-label={`${LOADOUT_SLOT_LABELS[slot]} を検索`}
           />
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              並び順
+              <select
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as PickerSortMode)}
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                aria-label="候補の並び順"
+              >
+                <option value="ev-desc">期待値/時間が高い順</option>
+                <option value="delta-desc">いまより伸びる順</option>
+                <option value="price-asc">安い順</option>
+              </select>
+            </label>
+            <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              <input
+                type="checkbox"
+                checked={showOnlyImproved}
+                onChange={(event) => setShowOnlyImproved(event.target.checked)}
+                className="h-3.5 w-3.5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                aria-label="いまより期待値が上がる候補だけを表示"
+              />
+              いまより良い候補だけ
+            </label>
+          </div>
         </div>
       </div>
 
@@ -1221,9 +1317,10 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             </div>
           </div>
         ) : null}
-        {selectedItem && candidateItems.length > 0 ? (
+        {selectedItem && candidateEntries.length > 0 ? (
           <div id={`loadout-picker-${slot}`} className="bg-white px-4 pb-3">
-            {candidateItems.map((item) => {
+            {candidateEntries.map((entry) => {
+              const item = entry.item;
               const selected = item.id === selectedId;
               const selectItem = () => onSelect(item.id);
               const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -1259,6 +1356,25 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                     <div className="mt-0.5 break-words text-xs leading-5 text-gray-500">
                       {formatItemDetail(item)}
                     </div>
+                    {selectedEntry ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center rounded-full border border-ocean-200 bg-ocean-50 px-2 py-0.5 text-[10px] font-semibold text-ocean-700">
+                          期待値/時間 {formatCurrency(entry.expectedValuePerHour)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${deltaBadgeClass(
+                            formatSignedDisplayNumber(
+                              entry.expectedValuePerHour - selectedEntry.expectedValuePerHour,
+                            ),
+                          )}`}
+                        >
+                          {formatEvDeltaPercent(
+                            selectedEntry.expectedValuePerHour,
+                            entry.expectedValuePerHour,
+                          )}
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="px-1 py-3 text-center">
                     <ComparisonPriceCell item={item} baseItem={selectedItem} />
@@ -1278,7 +1394,9 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
             <div className="text-sm font-semibold text-slate-700">見つかりません</div>
             <p className="mt-1 text-xs text-slate-500">
-              「{searchQuery}」に一致する装備がありません。
+              {showOnlyImproved
+                ? 'いまより良い候補が見つかりません。'
+                : `「${searchQuery}」に一致する装備がありません。`}
             </p>
           </div>
         )}
@@ -1385,6 +1503,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
   const activePickerPanel = activeSlot ? (
     <LoadoutPickerPanel
       slot={activeSlot}
+      params={params}
       items={loadoutItems[activeSlot]}
       selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
       onSelect={(id) => handleLoadoutSelect(activeSlot, id)}

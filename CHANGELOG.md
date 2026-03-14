@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.52] - 2026-03-14
+
+### Changed
+
+- **The Step 1 candidate table now behaves like a real decision surface instead of a dense stat dump**: you can sort candidates by EV/hour or price, hide options that are worse than the current item, and read each row's `期待値/時間` plus `いまより ±%` summary before scanning the detailed stat deltas.
+- **Per-column deltas are now easier to scan at a glance**: price and stat differences render as colored delta pills instead of plain text, so improvements and regressions stand out without forcing you to parse tiny numbers in every cell.
+
 ## [0.12.51] - 2026-03-14
 
 ### Fixed
