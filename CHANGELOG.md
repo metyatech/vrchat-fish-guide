@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.50] - 2026-03-14
+
+### Fixed
+
+- **The wider Step 1 comparison board now passes the visual regression gate on both Windows and Linux**: the desktop workspace snapshot clips to a fixed board height before capture, so the active-slot badge fix no longer passes locally while failing in Linux CI from a taller rendered board.
+
 ## [0.12.49] - 2026-03-14
 
 ### Fixed

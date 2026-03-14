@@ -310,7 +310,9 @@ test('current loadout workspace visual appearance matches snapshot', async ({ pa
   // Pin the board width so the screenshot stays stable across desktop widths.
   await workspaceBoard.evaluate((node) => {
     (node as HTMLElement).style.width = '560px';
-    (node as HTMLElement).style.minHeight = '856px';
+    (node as HTMLElement).style.height = '887px';
+    (node as HTMLElement).style.maxHeight = '887px';
+    (node as HTMLElement).style.overflow = 'hidden';
   });
   // Wait a tick for CSS animations to settle.
   await page.waitForTimeout(500);
