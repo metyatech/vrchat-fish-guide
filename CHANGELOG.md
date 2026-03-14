@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.43] - 2026-03-14
+
+### Fixed
+
+- **Linux visual regression baselines now match the integrated total-stats table layout**: the Playwright snapshot set was refreshed for the new Step 1 table footer row so CI, Pages, and the published release all validate the same layout on both Windows and Linux runners.
+
 ## [0.12.42] - 2026-03-14
 
 ### Changed
