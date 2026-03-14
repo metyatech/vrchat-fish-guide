@@ -12,7 +12,12 @@ import { ResultTable } from '@/components/Calculator/ResultTable';
 import { CompareTarget, SLOT_THEME } from '@/components/Calculator/slotTheme';
 import { WarningBanner } from '@/components/Calculator/WarningBanner';
 import { AREA_MAP, RARITY_LABELS, TIME_OF_DAY_LABELS, WEATHER_TYPE_LABELS } from '@/data/fish';
-import { calculateDistribution, formatCurrency, getDefaultParams } from '@/lib/calculator';
+import {
+  BEST_AREA_ID,
+  calculateDistribution,
+  formatCurrency,
+  getDefaultParams,
+} from '@/lib/calculator';
 import { rankAllSlots, RankSlot } from '@/lib/ranking';
 import {
   createBuildFrom,
@@ -236,6 +241,12 @@ export function CalculatorPageClient() {
   const activeResult = results[builds.findIndex((b) => b.id === activeId)] ?? results[0];
   const catchesPerHour = 3600 / Math.max(1, activeResult.model.effectiveAvgCatchTimeSec);
   const rankedBySlot = useMemo(() => rankAllSlots(activeBuild.params), [activeBuild.params]);
+  const effectiveAreaId = activeResult.model.autoSelectedAreaId ?? activeResult.params.areaId;
+  const effectiveAreaName = AREA_MAP[effectiveAreaId]?.nameEn ?? '—';
+  const areaContextText =
+    activeBuild.params.areaId === BEST_AREA_ID
+      ? `${effectiveAreaName}（おすすめから自動選択）`
+      : effectiveAreaName;
 
   const bestNextTry = useMemo(() => {
     if (compareTarget === 'full-build') return null;
@@ -540,6 +551,25 @@ export function CalculatorPageClient() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-ocean-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,249,255,0.95))] p-4 text-sm shadow-[0_14px_28px_rgba(30,70,136,0.08)] md:col-span-2 xl:col-span-4">
+              <div className="text-xs font-bold uppercase tracking-[0.16em] text-ocean-700">
+                いま見ている結果
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-700">
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+                  ビルド: {activeBuild.name}
+                </span>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+                  釣り場: {areaContextText}
+                </span>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+                  時間帯: {formatSelectedTimeLabel(activeResult.params.timeOfDay)}
+                </span>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+                  天気: {formatSelectedWeatherLabel(activeResult.params.weatherType)}
+                </span>
+              </div>
+            </div>
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               <div className="mb-1 font-semibold text-gray-800">期待値/回</div>
               {'1回あたりの平均収益です。'}

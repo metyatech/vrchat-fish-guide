@@ -85,13 +85,13 @@ describe('Step 1 loadout UI quality', () => {
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
     const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    expect(within(currentLoadoutTable).getByText('Price')).toBeInTheDocument();
+    expect(within(currentLoadoutTable).getByText('価格')).toBeInTheDocument();
     expect(within(currentLoadoutTable).getAllByText('—').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
 
     const pickerHeader = screen.getByTestId('picker-column-header');
-    expect(within(pickerHeader).getByText('Price')).toBeInTheDocument();
+    expect(within(pickerHeader).getByText('価格')).toBeInTheDocument();
     expect(screen.getByTestId('picker-current-item-row')).toHaveTextContent('—');
     expect(screen.getByText('750G')).toBeInTheDocument();
   });
@@ -222,7 +222,7 @@ describe('Step 1 loadout UI quality', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     fireEvent.click(screen.getByRole('button', { name: /さらに絞る/ }));
 
-    fireEvent.change(screen.getByLabelText('Price 最高値'), {
+    fireEvent.change(screen.getByLabelText('価格 最高値'), {
       target: { value: '1000' },
     });
 
@@ -230,7 +230,7 @@ describe('Step 1 loadout UI quality', () => {
     expect(candidateRows.some((row) => row.textContent?.includes('Toy Rod'))).toBe(true);
     expect(candidateRows.some((row) => row.textContent?.includes('Sturdy Wooden Rod'))).toBe(false);
 
-    fireEvent.change(screen.getByLabelText('Price 最高値'), {
+    fireEvent.change(screen.getByLabelText('価格 最高値'), {
       target: { value: '' },
     });
     fireEvent.change(screen.getByLabelText('Str 最低値'), {
@@ -291,7 +291,7 @@ describe('Step 1 loadout UI quality', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
 
     const pickerHeader = screen.getByTestId('picker-column-header');
-    const priceSortButton = within(pickerHeader).getByRole('button', { name: 'Price' });
+    const priceSortButton = within(pickerHeader).getByRole('button', { name: '価格 で並び替え' });
     fireEvent.click(priceSortButton);
     fireEvent.click(priceSortButton);
 
@@ -304,6 +304,19 @@ describe('Step 1 loadout UI quality', () => {
 
     candidateRows = screen.getAllByTestId('picker-option-row');
     expect(candidateRows[0]).toHaveTextContent('Sunleaf Rod');
+  });
+
+  it('shows a nearby legend for stat abbreviations', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    const legends = screen.getAllByTestId('stat-abbreviation-legend');
+    expect(legends.length).toBeGreaterThan(0);
+    expect(legends[0]).toHaveTextContent('Lk');
+    expect(legends[0]).toHaveTextContent('Luck');
+    expect(legends[0]).toHaveTextContent('MaxWt');
+    expect(legends[0]).toHaveTextContent('Max Weight');
   });
 
   it('closes the picker when clicking outside the picker panel', () => {

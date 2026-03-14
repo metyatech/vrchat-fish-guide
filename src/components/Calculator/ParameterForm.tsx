@@ -179,7 +179,7 @@ const PICKER_GRID_COLUMNS = 'grid-cols-[56px_minmax(0,1.15fr)_72px_48px_48px_48p
 const LOADOUT_WORKSPACE_GRID_COLUMNS =
   'grid-cols-[minmax(0,1.75fr)_4.5rem_2.55rem_2.55rem_2.55rem_3.05rem_3.05rem_3.75rem]';
 
-const PRICE_COLUMN_LABEL = 'Price';
+const PRICE_COLUMN_LABEL = '価格';
 type PickerPresetSortMode = 'default' | 'ev-desc' | 'delta-desc' | 'price-asc';
 type PickerColumnSortKey = 'name' | 'price' | StatThemeKey;
 type PickerColumnSortDirection = 'asc' | 'desc';
@@ -272,6 +272,39 @@ function formatItemStatDelta(
     return '±0';
   }
   return formatSignedDisplayNumber(delta);
+}
+
+function StatAbbreviationLegend({
+  className = '',
+  align = 'left',
+}: {
+  className?: string;
+  align?: 'left' | 'center';
+}) {
+  return (
+    <div
+      data-testid="stat-abbreviation-legend"
+      className={`flex flex-wrap gap-1.5 text-[11px] leading-relaxed text-slate-500 ${
+        align === 'center' ? 'justify-center' : ''
+      } ${className}`}
+    >
+      {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
+        const theme = STAT_THEME[stat];
+        return (
+          <span
+            key={stat}
+            className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/85 px-2 py-0.5"
+            title={`${theme.shortLabel} = ${theme.label}`}
+          >
+            <span className="font-semibold" style={{ color: theme.surfaceText }}>
+              {theme.shortLabel}
+            </span>
+            <span>{theme.label}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 function deltaToneClass(deltaText: string): string {
@@ -782,12 +815,14 @@ function ComparisonStatCell({
 
 function PickerHeaderSortButton({
   label,
+  fullLabel,
   onClick,
   active = false,
   direction,
   textColorClass = 'text-slate-500',
 }: {
   label: string;
+  fullLabel?: string;
   onClick: () => void;
   active?: boolean;
   direction?: PickerColumnSortDirection;
@@ -797,6 +832,8 @@ function PickerHeaderSortButton({
     <button
       type="button"
       onClick={onClick}
+      aria-label={`${fullLabel ?? label} で並び替え`}
+      title={fullLabel ? `${label} = ${fullLabel}` : label}
       className={`inline-flex w-full items-center justify-center gap-1 rounded-full px-2 py-1 transition ${
         active
           ? 'bg-slate-100 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.35)]'
@@ -1048,6 +1085,7 @@ function CurrentLoadoutTable({
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 左を見ながら、右の候補を比べて選べます。
               </p>
+              <StatAbbreviationLegend className="mt-3" />
             </div>
 
             <div className="space-y-3 p-4">
@@ -1056,28 +1094,46 @@ function CurrentLoadoutTable({
               >
                 <span>装備</span>
                 <span className="text-center">{PRICE_COLUMN_LABEL}</span>
-                <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+                <span
+                  className="text-center"
+                  style={{ color: STAT_THEME.luck.surfaceText }}
+                  title="Lk = Luck"
+                >
                   Lk
                 </span>
-                <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+                <span
+                  className="text-center"
+                  style={{ color: STAT_THEME.strength.surfaceText }}
+                  title="Str = Strength"
+                >
                   Str
                 </span>
-                <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+                <span
+                  className="text-center"
+                  style={{ color: STAT_THEME.expertise.surfaceText }}
+                  title="Exp = Expertise"
+                >
                   Exp
                 </span>
                 <span
                   className="text-center"
                   style={{ color: STAT_THEME.attractionRate.surfaceText }}
+                  title="Atk = Attraction Rate"
                 >
                   Atk
                 </span>
                 <span
                   className="text-center"
                   style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
+                  title="BigC = Big Catch Rate"
                 >
                   BigC
                 </span>
-                <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+                <span
+                  className="text-center"
+                  style={{ color: STAT_THEME.maxWeight.surfaceText }}
+                  title="MaxWt = Max Weight"
+                >
                   MaxWt
                 </span>
               </div>
@@ -1245,6 +1301,7 @@ function CurrentLoadoutTable({
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
             変更したい行をクリックすると、その部位の候補が近くに開きます。
           </p>
+          <StatAbbreviationLegend className="mt-3" />
         </div>
 
         <div className="px-3 py-4">
@@ -1258,25 +1315,46 @@ function CurrentLoadoutTable({
               <span>Slot</span>
               <span>Name</span>
               <span className="text-center text-slate-500">{PRICE_COLUMN_LABEL}</span>
-              <span className="text-center" style={{ color: STAT_THEME.luck.surfaceText }}>
+              <span
+                className="text-center"
+                style={{ color: STAT_THEME.luck.surfaceText }}
+                title="Lk = Luck"
+              >
                 Lk
               </span>
-              <span className="text-center" style={{ color: STAT_THEME.strength.surfaceText }}>
+              <span
+                className="text-center"
+                style={{ color: STAT_THEME.strength.surfaceText }}
+                title="Str = Strength"
+              >
                 Str
               </span>
-              <span className="text-center" style={{ color: STAT_THEME.expertise.surfaceText }}>
+              <span
+                className="text-center"
+                style={{ color: STAT_THEME.expertise.surfaceText }}
+                title="Exp = Expertise"
+              >
                 Exp
               </span>
               <span
                 className="text-center"
                 style={{ color: STAT_THEME.attractionRate.surfaceText }}
+                title="Atk = Attraction Rate"
               >
                 Atk
               </span>
-              <span className="text-center" style={{ color: STAT_THEME.bigCatchRate.surfaceText }}>
+              <span
+                className="text-center"
+                style={{ color: STAT_THEME.bigCatchRate.surfaceText }}
+                title="BigC = Big Catch Rate"
+              >
                 BigC
               </span>
-              <span className="text-center" style={{ color: STAT_THEME.maxWeight.surfaceText }}>
+              <span
+                className="text-center"
+                style={{ color: STAT_THEME.maxWeight.surfaceText }}
+                title="MaxWt = Max Weight"
+              >
                 MaxWt
               </span>
             </div>
@@ -2335,6 +2413,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         <div className="px-2 pt-2 text-[11px] font-medium text-slate-500">
           候補の値と、いまの装備との差を同じ列で見比べられます。
         </div>
+        <StatAbbreviationLegend className="px-2 pb-1 pt-1" />
         <div
           className={`grid ${PICKER_GRID_COLUMNS} items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]`}
         >
@@ -2342,6 +2421,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-2 text-left">
             <PickerHeaderSortButton
               label="名前"
+              fullLabel="名前"
               onClick={() => toggleColumnSort('name')}
               active={columnSort?.key === 'name'}
               direction={columnSort?.key === 'name' ? columnSort.direction : undefined}
@@ -2351,6 +2431,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-1 text-center">
             <PickerHeaderSortButton
               label={PRICE_COLUMN_LABEL}
+              fullLabel="価格"
               onClick={() => toggleColumnSort('price')}
               active={columnSort?.key === 'price'}
               direction={columnSort?.key === 'price' ? columnSort.direction : undefined}
@@ -2360,6 +2441,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-1 text-center">
             <PickerHeaderSortButton
               label="Lk"
+              fullLabel="Luck"
               onClick={() => toggleColumnSort('luck')}
               active={columnSort?.key === 'luck'}
               direction={columnSort?.key === 'luck' ? columnSort.direction : undefined}
@@ -2369,6 +2451,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-1 text-center">
             <PickerHeaderSortButton
               label="Str"
+              fullLabel="Strength"
               onClick={() => toggleColumnSort('strength')}
               active={columnSort?.key === 'strength'}
               direction={columnSort?.key === 'strength' ? columnSort.direction : undefined}
@@ -2378,6 +2461,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-1 text-center">
             <PickerHeaderSortButton
               label="Exp"
+              fullLabel="Expertise"
               onClick={() => toggleColumnSort('expertise')}
               active={columnSort?.key === 'expertise'}
               direction={columnSort?.key === 'expertise' ? columnSort.direction : undefined}
@@ -2387,6 +2471,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-1 text-center">
             <PickerHeaderSortButton
               label="Atk"
+              fullLabel="Attraction Rate"
               onClick={() => toggleColumnSort('attractionRate')}
               active={columnSort?.key === 'attractionRate'}
               direction={columnSort?.key === 'attractionRate' ? columnSort.direction : undefined}
@@ -2396,6 +2481,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-1 text-center">
             <PickerHeaderSortButton
               label="BigC"
+              fullLabel="Big Catch Rate"
               onClick={() => toggleColumnSort('bigCatchRate')}
               active={columnSort?.key === 'bigCatchRate'}
               direction={columnSort?.key === 'bigCatchRate' ? columnSort.direction : undefined}
@@ -2405,6 +2491,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
           <div className="px-1 text-center">
             <PickerHeaderSortButton
               label="MaxWt"
+              fullLabel="Max Weight"
               onClick={() => toggleColumnSort('maxWeight')}
               active={columnSort?.key === 'maxWeight'}
               direction={columnSort?.key === 'maxWeight' ? columnSort.direction : undefined}

@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.59] - 2026-03-14
+
+### Changed
+
+- **The calculator now shows the viewing context before the charts and totals**: the results section keeps the active build, effective fishing area, time-of-day setting, and weather setting visible without forcing you to open `この計算について`, which makes shared links and side-by-side build comparisons less ambiguous.
+- **Step 1 no longer mixes English shorthand with unlabeled abbreviations**: `Price` is now `価格`, `Any` is now `条件なし`, and both the current-loadout board and candidate picker show a nearby `Lk / Str / Exp / Atk / BigC / MaxWt` legend so first-time users can understand each comparison column without guessing.
+
 ## [0.12.58] - 2026-03-14
 
 ### Changed

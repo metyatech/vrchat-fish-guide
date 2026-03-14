@@ -467,11 +467,11 @@ test('candidate picker supports advanced price and stat range filters', async ({
   await page.getByRole('button', { name: /さらに絞る/ }).click();
   const advancedFilters = page.getByTestId('advanced-candidate-filters');
 
-  await advancedFilters.getByLabel('Price 最高値').fill('1000');
+  await advancedFilters.getByLabel('価格 最高値').fill('1000');
   await expect(pickerPanel).toContainText('Toy Rod');
   await expect(pickerPanel).not.toContainText('Sturdy Wooden Rod');
 
-  await advancedFilters.getByLabel('Price 最高値').fill('');
+  await advancedFilters.getByLabel('価格 最高値').fill('');
   await advancedFilters.getByLabel('Str 最低値').fill('50');
   await expect(pickerPanel).toContainText('Metallic Rod');
   await expect(pickerPanel).not.toContainText('Sunleaf Rod');

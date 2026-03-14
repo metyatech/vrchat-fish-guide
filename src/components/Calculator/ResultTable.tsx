@@ -28,7 +28,7 @@ function formatCondition(fish: FishEntry): string {
     conditionParts.push(WEATHER_TYPE_LABELS[fish.weatherType]);
   }
 
-  return conditionParts.length > 0 ? conditionParts.join(' / ') : 'Any';
+  return conditionParts.length > 0 ? conditionParts.join(' / ') : '条件なし';
 }
 
 export function ResultTable({ result }: ResultTableProps) {

@@ -224,4 +224,14 @@ describe('UI quality – overflow and wrapping prevention', () => {
     // Verify old stiff wording is not present
     expect(screen.queryByText(/平均値を用います/)).not.toBeInTheDocument();
   });
+
+  it('keeps the visible result context outside the calculation notes', () => {
+    render(<CalculatorPageClient />);
+
+    expect(screen.getByText('いま見ている結果')).toBeInTheDocument();
+    expect(screen.getByText(/ビルド:/)).toBeInTheDocument();
+    expect(screen.getByText(/釣り場:/)).toBeInTheDocument();
+    expect(screen.getByText(/時間帯:/)).toBeInTheDocument();
+    expect(screen.getByText(/天気:/)).toBeInTheDocument();
+  });
 });
