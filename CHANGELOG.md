@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.46] - 2026-03-14
+
+### Changed
+
+- **The Step 1 picker now behaves like a real comparison table instead of a plain candidate list**: each candidate row shows both its own stat values and the per-column delta versus the currently equipped item, so you can scan how each option changes Luck, Strength, Expertise, Attraction Rate, Big Catch Rate, Max Weight, and price without mentally subtracting values.
+- **Comparison readability is now covered by regression checks**: unit and browser tests verify that the picker keeps the current loadout as the baseline and exposes visible per-stat deltas for candidate rows.
+
 ## [0.12.45] - 2026-03-14
 
 ### Changed

@@ -430,6 +430,18 @@ test('equipment picker search filters items by name, location, and special effec
   expect(clearedRowCount).toBe(initialRowCount);
 });
 
+test('candidate rows show per-stat deltas against the current equipment', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+  const sunleafRow = page.getByTestId('picker-option-row').filter({ hasText: 'Sunleaf Rod' });
+
+  await expect(sunleafRow).toContainText('+60');
+  await expect(sunleafRow).toContainText('+115');
+  await expect(sunleafRow).toContainText('+245kg');
+});
+
 test('sources page shows data governance and current source set', async ({ page }) => {
   await page.goto('/sources/');
 

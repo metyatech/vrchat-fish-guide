@@ -96,6 +96,23 @@ describe('Step 1 loadout UI quality', () => {
     expect(screen.getByText('750G')).toBeInTheDocument();
   });
 
+  it('shows per-column deltas against the current equipment in the picker table', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    const sunleafRow = screen
+      .getAllByTestId('picker-option-row')
+      .find((row) => row.textContent?.includes('Sunleaf Rod'));
+
+    expect(sunleafRow).toBeTruthy();
+    expect(sunleafRow).toHaveTextContent('+60');
+    expect(sunleafRow).toHaveTextContent('+115');
+    expect(sunleafRow).toHaveTextContent('+245kg');
+  });
+
   it('closes the picker when clicking outside the picker panel', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);

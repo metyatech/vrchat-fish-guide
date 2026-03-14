@@ -177,6 +177,51 @@ function formatItemPrice(item: EquipmentItem | EnchantItem): string {
   return item.price > 0 ? `${item.price.toLocaleString()}G` : '—';
 }
 
+function formatPriceDelta(
+  item: EquipmentItem | EnchantItem,
+  baseItem: EquipmentItem | EnchantItem,
+): string {
+  const delta = item.price - baseItem.price;
+  if (delta === 0) {
+    return '±0G';
+  }
+  return `${delta > 0 ? '+' : ''}${delta.toLocaleString()}G`;
+}
+
+function formatItemStatDelta(
+  item: EquipmentItem | EnchantItem,
+  baseItem: EquipmentItem | EnchantItem,
+  stat: StatThemeKey,
+): string {
+  const delta = getItemStatValue(item, stat) - getItemStatValue(baseItem, stat);
+  if (stat === 'maxWeight') {
+    if (Math.abs(delta) < 0.001) {
+      return '±0kg';
+    }
+    return `${delta > 0 ? '+' : ''}${Number(delta.toFixed(3)).toLocaleString()}kg`;
+  }
+  if (stat === 'attractionRate') {
+    if (Math.abs(delta) < 0.001) {
+      return '±0%';
+    }
+    return `${delta > 0 ? '+' : ''}${Number(delta.toFixed(3)).toLocaleString()}%`;
+  }
+  if (Math.abs(delta) < 0.001) {
+    return '±0';
+  }
+  return formatSignedDisplayNumber(delta);
+}
+
+function deltaToneClass(deltaText: string): string {
+  if (deltaText.startsWith('+')) {
+    return 'text-emerald-600';
+  }
+  if (deltaText.startsWith('-')) {
+    return 'text-rose-600';
+  }
+  return 'text-slate-400';
+}
+
 function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
   const hasPrice = item.price > 0;
 
@@ -190,6 +235,56 @@ function PriceCell({ item }: { item: EquipmentItem | EnchantItem }) {
     >
       {formatItemPrice(item)}
     </span>
+  );
+}
+
+function ComparisonPriceCell({
+  item,
+  baseItem,
+}: {
+  item: EquipmentItem | EnchantItem;
+  baseItem: EquipmentItem | EnchantItem;
+}) {
+  const deltaText = formatPriceDelta(item, baseItem);
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <PriceCell item={item} />
+      <span className={`text-[10px] font-semibold tabular-nums ${deltaToneClass(deltaText)}`}>
+        {deltaText}
+      </span>
+    </div>
+  );
+}
+
+function ComparisonStatCell({
+  item,
+  baseItem,
+  stat,
+}: {
+  item: EquipmentItem | EnchantItem;
+  baseItem: EquipmentItem | EnchantItem;
+  stat: StatThemeKey;
+}) {
+  const theme = STAT_THEME[stat];
+  const deltaText = formatItemStatDelta(item, baseItem, stat);
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <span
+        className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
+        style={{
+          borderColor: theme.cardBorder,
+          backgroundColor: theme.cardBackground,
+          color: theme.surfaceText,
+        }}
+      >
+        {formatItemStatValue(item, stat)}
+      </span>
+      <span className={`text-[10px] font-semibold tabular-nums ${deltaToneClass(deltaText)}`}>
+        {deltaText}
+      </span>
+    </div>
   );
 }
 
@@ -972,6 +1067,9 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         data-testid="picker-column-header"
         className="border-b border-slate-200 bg-white px-4 shadow-[0_1px_0_rgba(226,232,240,1)]"
       >
+        <div className="px-2 pt-2 text-[11px] font-medium text-slate-500">
+          候補の値と、いまの装備との差を同じ列で見比べられます。
+        </div>
         <div
           className={`grid ${PICKER_GRID_COLUMNS} items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]`}
         >
@@ -1051,7 +1149,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             </div>
           </div>
         ) : null}
-        {candidateItems.length > 0 ? (
+        {selectedItem && candidateItems.length > 0 ? (
           <div id={`loadout-picker-${slot}`} className="bg-white px-4 pb-3">
             {candidateItems.map((item) => {
               const selected = item.id === selectedId;
@@ -1091,22 +1189,12 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                     </div>
                   </div>
                   <div className="px-1 py-3 text-center">
-                    <PriceCell item={item} />
+                    <ComparisonPriceCell item={item} baseItem={selectedItem} />
                   </div>
                   {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
-                    const theme = STAT_THEME[stat];
                     return (
                       <div key={stat} className="px-1 py-3 text-center">
-                        <span
-                          className="inline-flex min-w-[3.25rem] items-center justify-center rounded-full border px-2 py-1 text-[11px] font-semibold"
-                          style={{
-                            borderColor: theme.cardBorder,
-                            backgroundColor: theme.cardBackground,
-                            color: theme.surfaceText,
-                          }}
-                        >
-                          {formatItemStatValue(item, stat)}
-                        </span>
+                        <ComparisonStatCell item={item} baseItem={selectedItem} stat={stat} />
                       </div>
                     );
                   })}
