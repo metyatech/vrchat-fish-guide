@@ -42,7 +42,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('heading', { name: '比べる部位を選ぶ' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Rod の候補を追加' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '比較一覧' })).toBeVisible();
-  await expect(page.getByText('装備の合計ステータス', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /詳細設定/ })).toBeVisible();
@@ -50,24 +50,21 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
   const totalStatsSection = page.getByTestId('total-stats-section');
-  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Luck' })).toHaveCSS(
-    'background-color',
-    'rgb(255, 231, 86)',
-  );
-  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Strength' })).toHaveCSS(
-    'background-color',
-    'rgb(254, 108, 109)',
-  );
-  await expect(totalStatsSection.locator('span.rounded-full', { hasText: 'Expertise' })).toHaveCSS(
-    'background-color',
-    'rgb(75, 188, 224)',
-  );
   await expect(
-    totalStatsSection.locator('span.rounded-full', { hasText: 'Attraction Rate' }),
-  ).toHaveCSS('background-color', 'rgb(146, 213, 188)');
+    totalStatsSection.locator('[data-total-stat="luck"] span.rounded-full').first(),
+  ).toHaveCSS('background-color', 'rgba(255, 231, 86, 0.12)');
   await expect(
-    totalStatsSection.locator('span.rounded-full', { hasText: 'Big Catch Rate' }),
-  ).toHaveCSS('background-color', 'rgb(255, 215, 109)');
+    totalStatsSection.locator('[data-total-stat="strength"] span.rounded-full').first(),
+  ).toHaveCSS('background-color', 'rgba(254, 108, 109, 0.12)');
+  await expect(
+    totalStatsSection.locator('[data-total-stat="expertise"] span.rounded-full').first(),
+  ).toHaveCSS('background-color', 'rgba(75, 188, 224, 0.12)');
+  await expect(
+    totalStatsSection.locator('[data-total-stat="attractionRate"] span.rounded-full').first(),
+  ).toHaveCSS('background-color', 'rgba(146, 213, 188, 0.12)');
+  await expect(
+    totalStatsSection.locator('[data-total-stat="bigCatchRate"] span.rounded-full').first(),
+  ).toHaveCSS('background-color', 'rgba(255, 215, 109, 0.12)');
   await expect(totalStatsSection).not.toContainText('11.999999999999');
   await expect(totalStatsSection).not.toContainText('16.999999999999');
 
@@ -76,7 +73,9 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod を編集中');
   await expect(page.getByTestId('current-loadout-table')).toContainText('Basic Line');
   await expect(page.getByTestId('current-loadout-table')).toContainText('Bobber');
-  await expect(page.getByTestId('total-stats-section')).toContainText('Luck');
+  await expect(
+    page.getByTestId('total-stats-section').locator('[data-total-stat="luck"]').first(),
+  ).toContainText('Lk');
 
   const initialExpectedValuePerHour = await page
     .getByTestId('summary-expected-value-per-hour')

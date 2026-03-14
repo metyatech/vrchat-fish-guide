@@ -222,19 +222,37 @@ describe('ParameterForm', () => {
 
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
-    const currentLoadoutTable = screen.getByTestId('current-loadout-table');
-    expect(screen.getAllByText('Luck')[0]).toHaveStyle({ color: STAT_THEME.luck.surfaceText });
-
     const totalStatsSection = screen.getByTestId('total-stats-section');
+    expect(totalStatsSection).toHaveTextContent('装備の合計');
 
-    const attractionLabel = within(totalStatsSection).getByText('Attraction Rate');
-    const bigCatchLabel = within(totalStatsSection).getByText('Big Catch Rate');
+    const luckBadge = totalStatsSection.querySelector('[data-total-stat="luck"] span.rounded-full');
+    const attractionBadge = totalStatsSection.querySelector(
+      '[data-total-stat="attractionRate"] span.rounded-full',
+    );
+    const bigCatchBadge = totalStatsSection.querySelector(
+      '[data-total-stat="bigCatchRate"] span.rounded-full',
+    );
+    const maxWeightBadge = totalStatsSection.querySelector(
+      '[data-total-stat="maxWeight"] span.rounded-full',
+    );
 
-    expect(attractionLabel).toHaveStyle({ backgroundColor: STAT_THEME.attractionRate.accent });
-    expect(bigCatchLabel).toHaveStyle({ backgroundColor: STAT_THEME.bigCatchRate.accent });
+    expect(luckBadge).not.toBeNull();
+    expect(attractionBadge).not.toBeNull();
+    expect(bigCatchBadge).not.toBeNull();
+    expect(maxWeightBadge).not.toBeNull();
 
-    const maxWeightLabel = within(totalStatsSection).getByText('Max Weight');
-    expect(maxWeightLabel).toHaveStyle({ backgroundColor: STAT_THEME.maxWeight.accent });
+    expect(luckBadge as HTMLElement).toHaveStyle({
+      backgroundColor: STAT_THEME.luck.cardBackground,
+    });
+    expect(attractionBadge as HTMLElement).toHaveStyle({
+      backgroundColor: STAT_THEME.attractionRate.cardBackground,
+    });
+    expect(bigCatchBadge as HTMLElement).toHaveStyle({
+      backgroundColor: STAT_THEME.bigCatchRate.cardBackground,
+    });
+    expect(maxWeightBadge as HTMLElement).toHaveStyle({
+      backgroundColor: STAT_THEME.maxWeight.cardBackground,
+    });
   });
 
   it('updates loadout when a table row is selected', () => {
@@ -351,6 +369,9 @@ describe('ParameterForm', () => {
     expect(screen.getByTestId('current-loadout-table')).toHaveTextContent('Basic Line');
     expect(screen.getByTestId('current-loadout-table')).toHaveTextContent('Basic Bobber');
     expect(screen.getByTestId('current-loadout-table')).toHaveTextContent('No Enchant');
-    expect(screen.getByTestId('total-stats-section')).toHaveTextContent('Luck');
+    expect(screen.getByTestId('total-stats-section')).toHaveTextContent('装備の合計');
+    expect(
+      screen.getByTestId('total-stats-section').querySelector('[data-total-stat="luck"]'),
+    ).not.toBeNull();
   });
 });

@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.42] - 2026-03-14
+
+### Changed
+
+- **Step 1 now shows the total gear stats as the last row of the current-loadout table**: the previous standalone total-stats block has been folded into the same table so Rod / Line / Bobber / Enchant and the combined result can be read like a single spreadsheet-style comparison.
+- **The new total row is covered by tests and snapshots**: unit, E2E, and visual regression checks now treat the integrated total row as the expected Step 1 layout.
+
 ## [0.12.41] - 2026-03-14
 
 ### Fixed
