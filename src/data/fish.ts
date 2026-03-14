@@ -582,7 +582,7 @@ export const FISH_DATA: FishEntry[] = [
     areas: ['tanglewood-bog'],
     sourceIds: ['fish-fandom-index', 'fish-info-by-snerx'],
     approxWeightKg: 30700,
-    minWeightKg: 30000,
+    minWeightKg: 26000,
     maxWeightKg: 50000,
     priceFloor: 1502,
     priceCeiling: 9389,

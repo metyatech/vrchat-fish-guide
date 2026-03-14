@@ -48,6 +48,10 @@ describe('getFishPool', () => {
       expect(getFishPool(area.id)).toHaveLength(area.fishPool.length);
     });
   });
+
+  it('keeps refreshed public fact-only weight ranges for modeled fish', () => {
+    expect(FISH_MAP['dreadshell-colossus']?.minWeightKg).toBe(26000);
+  });
 });
 
 describe('getEligibleFish', () => {

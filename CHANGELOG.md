@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.64] - 2026-03-14
+
+### Fixed
+
+- **Refreshed the modeled source data against the latest public community references**: the calculator now matches the current Snerx/Fandom-backed minimum weight for `Dreadshell Colossus` (`26,000kg` instead of the stale `30,000kg`), and a regression test now guards that fact-only range from drifting again.
+
 ## [0.12.63] - 2026-03-14
 
 ### Fixed
