@@ -131,6 +131,8 @@ describe('Step 1 loadout UI quality', () => {
     expect(screen.getByLabelText('候補の価格帯')).toBeInTheDocument();
     expect(screen.getByLabelText('いまより期待値が上がる候補だけを表示')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: '初期設定順' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'おすすめタグ: 期待値重視' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'おすすめタグ: バランス型' })).toBeInTheDocument();
 
     const beforeFilter = screen
       .getAllByTestId('picker-option-row')
@@ -198,8 +200,13 @@ describe('Step 1 loadout UI quality', () => {
       expect(row.textContent).toContain('終盤向け');
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'おすすめタグ: 期待値重視' }));
+    candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.some((row) => row.textContent?.includes('Alien Rod'))).toBe(true);
+
     fireEvent.click(screen.getByRole('button', { name: 'おすすめタグ: コスパ' }));
     expect(screen.getByTestId('active-filter-chips')).toHaveTextContent('おすすめ: 終盤向け');
+    expect(screen.getByTestId('active-filter-chips')).toHaveTextContent('おすすめ: 期待値重視');
     expect(screen.getByTestId('active-filter-chips')).toHaveTextContent('おすすめ: コスパ');
 
     fireEvent.click(screen.getByRole('button', { name: 'Lk が上がる候補だけを表示' }));

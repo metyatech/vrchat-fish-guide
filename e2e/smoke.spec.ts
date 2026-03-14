@@ -445,13 +445,15 @@ test('candidate picker supports recommendation-tag filters and stat-improvement 
   await page.getByRole('button', { name: 'おすすめタグ: 終盤向け' }).click();
   const endgameRows = pickerPanel.locator('[data-testid="picker-option-row"]');
   await expect(endgameRows.first()).toContainText('終盤向け');
+  await expect(pickerPanel).toContainText('Alien Rod');
   await page.getByRole('button', { name: 'おすすめタグ: コスパ' }).click();
   await expect(page.getByTestId('active-filter-chips')).toContainText('おすすめ: 終盤向け');
   await expect(page.getByTestId('active-filter-chips')).toContainText('おすすめ: コスパ');
-  await expect(pickerPanel).toContainText('Sunleaf Rod');
+  await expect(pickerPanel).toContainText('Fortunate Rod');
+  await expect(pickerPanel).not.toContainText('Sunleaf Rod');
 
   await page.getByRole('button', { name: 'Lk が上がる候補だけを表示' }).click();
-  await expect(pickerPanel).toContainText('Sunleaf Rod');
+  await expect(pickerPanel).toContainText('Fortunate Rod');
   await expect(pickerPanel).toContainText('Alien Rod');
 });
 

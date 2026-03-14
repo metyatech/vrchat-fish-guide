@@ -184,7 +184,14 @@ type PickerPresetSortMode = 'default' | 'ev-desc' | 'delta-desc' | 'price-asc';
 type PickerColumnSortKey = 'name' | 'price' | StatThemeKey;
 type PickerColumnSortDirection = 'asc' | 'desc';
 type PickerPriceBand = 'all' | 'free' | 'budget' | 'mid' | 'premium';
-type PickerRecommendationFilter = 'free' | 'early' | 'endgame' | 'value' | 'big-upgrade';
+type PickerRecommendationFilter =
+  | 'free'
+  | 'early'
+  | 'endgame'
+  | 'ev-focus'
+  | 'value'
+  | 'balanced'
+  | 'big-upgrade';
 type PickerStatFilterInputs = Record<StatThemeKey, string>;
 type PickerActiveFilterChip = {
   id: string;
@@ -197,7 +204,9 @@ const PICKER_RECOMMENDATION_FILTERS: PickerRecommendationFilter[] = [
   'free',
   'early',
   'endgame',
+  'ev-focus',
   'value',
+  'balanced',
   'big-upgrade',
 ];
 
@@ -343,10 +352,26 @@ function getSelectedLoadoutItems(
 function getRecommendationTags(
   entry: SlotRankEntry,
   selectedEntry: SlotRankEntry | undefined,
+  context: {
+    evFocusIds: Set<string>;
+    valueIds: Set<string>;
+  },
 ): string[] {
   const tags: string[] = [];
   const evDeltaPercent = selectedEntry
     ? getEvDeltaPercent(selectedEntry.expectedValuePerHour, entry.expectedValuePerHour)
+    : 0;
+  const positiveStatCount = selectedEntry
+    ? LOADOUT_STAT_COLUMN_ORDER.filter(
+        (stat) =>
+          getItemStatValue(entry.item, stat) > getItemStatValue(selectedEntry.item, stat) + 0.001,
+      ).length
+    : 0;
+  const negativeStatCount = selectedEntry
+    ? LOADOUT_STAT_COLUMN_ORDER.filter(
+        (stat) =>
+          getItemStatValue(entry.item, stat) < getItemStatValue(selectedEntry.item, stat) - 0.001,
+      ).length
     : 0;
 
   if (entry.item.price === 0) {
@@ -358,14 +383,74 @@ function getRecommendationTags(
   if (entry.item.price >= 100000) {
     tags.push('終盤向け');
   }
-  if (selectedEntry && evDeltaPercent >= 10 && entry.item.price <= 100000) {
+  if (context.evFocusIds.has(entry.item.id)) {
+    tags.push('期待値重視');
+  }
+  if (
+    context.valueIds.has(entry.item.id) ||
+    (selectedEntry && evDeltaPercent >= 10 && entry.item.price > 0 && entry.item.price <= 100000)
+  ) {
     tags.push('コスパ');
+  }
+  if (selectedEntry && positiveStatCount >= 3 && negativeStatCount <= 1 && evDeltaPercent >= 0) {
+    tags.push('バランス型');
   }
   if (selectedEntry && evDeltaPercent >= 20) {
     tags.push('伸び幅大');
   }
 
-  return tags.slice(0, 2);
+  return Array.from(new Set(tags)).slice(0, 3);
+}
+
+function buildRecommendationTagMap(
+  entries: SlotRankEntry[],
+  selectedEntry: SlotRankEntry | undefined,
+): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+
+  if (!selectedEntry) {
+    for (const entry of entries) {
+      map.set(
+        entry.item.id,
+        getRecommendationTags(entry, selectedEntry, {
+          evFocusIds: new Set<string>(),
+          valueIds: new Set<string>(),
+        }),
+      );
+    }
+    return map;
+  }
+
+  const positiveEntries = entries.filter(
+    (entry) =>
+      entry.item.id !== selectedEntry.item.id &&
+      entry.expectedValuePerHour > selectedEntry.expectedValuePerHour,
+  );
+
+  const evFocusCount = Math.max(3, Math.ceil(positiveEntries.length * 0.2));
+  const evFocusIds = new Set(
+    [...positiveEntries]
+      .sort((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)
+      .slice(0, evFocusCount)
+      .map((entry) => entry.item.id),
+  );
+
+  const valueScored = positiveEntries
+    .filter((entry) => entry.item.price > 0)
+    .map((entry) => ({
+      entry,
+      score:
+        (entry.expectedValuePerHour - selectedEntry.expectedValuePerHour) /
+        Math.max(entry.item.price, 1),
+    }))
+    .sort((a, b) => b.score - a.score);
+  const valueCount = Math.max(3, Math.ceil(valueScored.length * 0.25));
+  const valueIds = new Set(valueScored.slice(0, valueCount).map(({ entry }) => entry.item.id));
+
+  for (const entry of entries) {
+    map.set(entry.item.id, getRecommendationTags(entry, selectedEntry, { evFocusIds, valueIds }));
+  }
+  return map;
 }
 
 function matchesRecommendationFilter(tags: string[], filter: PickerRecommendationFilter): boolean {
@@ -376,8 +461,12 @@ function matchesRecommendationFilter(tags: string[], filter: PickerRecommendatio
       return tags.includes('序盤向け');
     case 'endgame':
       return tags.includes('終盤向け');
+    case 'ev-focus':
+      return tags.includes('期待値重視');
     case 'value':
       return tags.includes('コスパ');
+    case 'balanced':
+      return tags.includes('バランス型');
     case 'big-upgrade':
       return tags.includes('伸び幅大');
     default:
@@ -419,8 +508,12 @@ function formatRecommendationFilterLabel(filter: PickerRecommendationFilter): st
       return 'おすすめ: 序盤向け';
     case 'endgame':
       return 'おすすめ: 終盤向け';
+    case 'ev-focus':
+      return 'おすすめ: 期待値重視';
     case 'value':
       return 'おすすめ: コスパ';
+    case 'balanced':
+      return 'おすすめ: バランス型';
     case 'big-upgrade':
       return 'おすすめ: 伸び幅大';
     default:
@@ -445,6 +538,7 @@ function buildRecommendationHighlights(
   }
 
   const selectedEv = selectedEntry.expectedValuePerHour;
+  const recommendationTagMap = buildRecommendationTagMap(entries, selectedEntry);
   const unique = new Set<string>();
   const cards: Array<{
     id: string;
@@ -480,14 +574,34 @@ function buildRecommendationHighlights(
       `${formatEvDeltaPercent(selectedEv, entry.expectedValuePerHour)} / ${formatCurrency(entry.expectedValuePerHour)}`,
   );
 
+  const bestEvFocus = entries.find((entry) =>
+    (recommendationTagMap.get(entry.item.id) ?? []).includes('期待値重視'),
+  );
+  pushCard(
+    '期待値で見るなら',
+    bestEvFocus,
+    (entry) =>
+      `${formatCurrency(entry.expectedValuePerHour)} / ${formatEvDeltaPercent(selectedEv, entry.expectedValuePerHour)}`,
+  );
+
   const bestBudget = [...entries]
-    .filter((entry) => entry.item.price > 0 && entry.item.price <= 10000)
+    .filter((entry) => (recommendationTagMap.get(entry.item.id) ?? []).includes('コスパ'))
     .sort((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)[0];
   pushCard(
-    '安く試すなら',
+    'コスパで見るなら',
     bestBudget,
     (entry) =>
       `${entry.item.price.toLocaleString()}G / ${formatEvDeltaPercent(selectedEv, entry.expectedValuePerHour)}`,
+  );
+
+  const bestBalanced = entries.find((entry) =>
+    (recommendationTagMap.get(entry.item.id) ?? []).includes('バランス型'),
+  );
+  pushCard(
+    '偏らせたくないなら',
+    bestBalanced,
+    (entry) =>
+      `${formatEvDeltaPercent(selectedEv, entry.expectedValuePerHour)} / 複数ステータスが伸びます`,
   );
 
   const bestFree = [...entries]
@@ -1569,6 +1683,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         );
       })
     : rankedEntries;
+  const recommendationTagMap = buildRecommendationTagMap(filteredEntries, selectedEntry);
   const recommendationHighlights = buildRecommendationHighlights(
     filteredEntries,
     filteredEntries.find((entry) => entry.item.id === selectedId) ?? selectedEntry,
@@ -1607,7 +1722,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       if (priceMax !== null && entry.item.price > priceMax) {
         return false;
       }
-      const recommendationTags = getRecommendationTags(entry, selectedEntry);
+      const recommendationTags = recommendationTagMap.get(entry.item.id) ?? [];
       if (!matchesRecommendationFilters(recommendationTags, selectedRecommendationFilters)) {
         return false;
       }
@@ -1850,7 +1965,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         ) : null}
         <div className="mt-3 space-y-3">
           {recommendationHighlights.length > 0 ? (
-            <div className="grid gap-2 lg:grid-cols-3">
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               {recommendationHighlights.map((highlight) => (
                 <div
                   key={highlight.id}
@@ -2388,7 +2503,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                       {formatItemDetail(item)}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {getRecommendationTags(entry, selectedEntry).map((tag) => (
+                      {(recommendationTagMap.get(item.id) ?? []).map((tag) => (
                         <span
                           key={tag}
                           className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700"

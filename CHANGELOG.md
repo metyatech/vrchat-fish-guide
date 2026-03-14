@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.58] - 2026-03-14
+
+### Changed
+
+- **Step 1 recommendations now separate raw strength from balanced upgrades more clearly**: the candidate table adds `期待値重視` and `バランス型` tags, so you can quickly distinguish pure EV leaders from options that improve several stats without forcing a lopsided build.
+- **The recommendation cards now cover more realistic decision styles**: in addition to the first obvious pick and free pick, the picker now surfaces cards for `期待値で見るなら`, `コスパで見るなら`, and `偏らせたくないなら`, which makes the first screen more useful before you read every row delta by hand.
+
 ## [0.12.57] - 2026-03-14
 
 ### Changed
