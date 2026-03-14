@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.45] - 2026-03-14
+
+### Changed
+
+- **Step 1 now switches into a real comparison workspace while you edit a slot**: on desktop, opening Rod / Line / Bobber / Enchant keeps a compact current-loadout board on the left and uses the right side for the candidate list, so normal window widths no longer crush the current table just to make room for the picker.
+- **Visual regression now follows the comparison workspace instead of the old stretched table**: the desktop screenshot baseline and layout assertions were updated to match the new side-by-side editing flow at realistic widths.
+
 ## [0.12.44] - 2026-03-14
 
 ### Fixed

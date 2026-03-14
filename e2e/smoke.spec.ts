@@ -195,22 +195,20 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
   expect((loadoutBoardOverflow as { overflow: boolean }).overflow).toBe(false);
 });
 
-test('medium desktop widths keep the loadout visible and move the picker below instead of overlapping', async ({
-  page,
-}) => {
+test('desktop widths switch Step 1 into a side-by-side comparison workspace', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.goto('/calculator/');
 
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toContainText('Rod の候補');
-  const stackedShell = page.getByTestId('slot-picker-stacked-shell');
-  await expect(stackedShell).toBeVisible();
+  const workspaceShell = page.getByTestId('slot-picker-workspace-shell');
+  await expect(workspaceShell).toBeVisible();
   await expect(page.getByTestId('total-stats-section')).toBeVisible();
 
   const geometry = await page.evaluate(() => {
-    const stacked = document.querySelector(
-      '[data-testid="slot-picker-stacked-shell"]',
+    const workspace = document.querySelector(
+      '[data-testid="slot-picker-workspace-shell"]',
     ) as HTMLElement | null;
     const table = document.querySelector(
       '[data-testid="current-loadout-table"]',
@@ -218,50 +216,39 @@ test('medium desktop widths keep the loadout visible and move the picker below i
     const totals = document.querySelector(
       '[data-testid="total-stats-section"]',
     ) as HTMLElement | null;
-    if (!stacked || !table || !totals) {
+    if (!workspace || !table || !totals) {
       return { error: 'missing step 1 geometry' };
     }
-    const stackedRect = stacked.getBoundingClientRect();
+    const workspaceRect = workspace.getBoundingClientRect();
     const tableRect = table.getBoundingClientRect();
     const totalsRect = totals.getBoundingClientRect();
     return {
-      stackedBelowTable: stackedRect.top >= tableRect.bottom - 1,
-      stackedBelowTotals: stackedRect.top >= totalsRect.bottom - 1,
+      workspaceBesideTable: workspaceRect.left >= tableRect.right - 1,
+      workspaceAboveTotals: workspaceRect.top <= totalsRect.top + 8,
       tableVisibleWidth: tableRect.width,
-      stackedFitsViewport: stackedRect.right <= window.innerWidth - 8,
+      workspaceFitsViewport: workspaceRect.right <= window.innerWidth - 8,
     };
   });
 
   expect(geometry).not.toHaveProperty('error');
-  expect((geometry as { stackedBelowTable: boolean }).stackedBelowTable).toBe(true);
-  expect((geometry as { stackedBelowTotals: boolean }).stackedBelowTotals).toBe(true);
-  expect((geometry as { tableVisibleWidth: number }).tableVisibleWidth).toBeGreaterThan(900);
-  expect((geometry as { stackedFitsViewport: boolean }).stackedFitsViewport).toBe(true);
+  expect((geometry as { workspaceBesideTable: boolean }).workspaceBesideTable).toBe(true);
+  expect((geometry as { workspaceAboveTotals: boolean }).workspaceAboveTotals).toBe(true);
+  expect((geometry as { tableVisibleWidth: number }).tableVisibleWidth).toBeGreaterThan(320);
+  expect((geometry as { workspaceFitsViewport: boolean }).workspaceFitsViewport).toBe(true);
 });
 
-test('1920-width desktop still shows a picker instead of dropping it entirely', async ({
-  page,
-}) => {
+test('1920-width desktop keeps the picker in the side workspace', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/calculator/');
 
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
 
-  const overlayShell = page.getByTestId('slot-picker-shell');
-  const stackedShell = page.getByTestId('slot-picker-stacked-shell');
-
-  await expect(async () => {
-    const overlayCount = await overlayShell.count();
-    const stackedCount = await stackedShell.count();
-    expect(overlayCount + stackedCount).toBeGreaterThan(0);
-  }).toPass();
+  const workspaceShell = page.getByTestId('slot-picker-workspace-shell');
+  await expect(workspaceShell).toBeVisible();
 
   const geometry = await page.evaluate(() => {
-    const overlay = document.querySelector(
-      '[data-testid="slot-picker-shell"]',
-    ) as HTMLElement | null;
-    const stacked = document.querySelector(
-      '[data-testid="slot-picker-stacked-shell"]',
+    const workspace = document.querySelector(
+      '[data-testid="slot-picker-workspace-shell"]',
     ) as HTMLElement | null;
     const table = document.querySelector(
       '[data-testid="current-loadout-table"]',
@@ -273,26 +260,22 @@ test('1920-width desktop still shows a picker instead of dropping it entirely', 
       return { error: 'missing base step 1 sections' };
     }
     return {
-      hasOverlay: !!overlay,
-      hasStacked: !!stacked,
-      overlayInsideViewport: overlay
-        ? overlay.getBoundingClientRect().right <= window.innerWidth - 8
-        : true,
-      stackedBelowTotals: stacked
-        ? stacked.getBoundingClientRect().top >= totals.getBoundingClientRect().bottom - 1
-        : true,
+      hasWorkspace: !!workspace,
+      workspaceInsideViewport: workspace
+        ? workspace.getBoundingClientRect().right <= window.innerWidth - 8
+        : false,
+      workspaceBesideTable: workspace
+        ? workspace.getBoundingClientRect().left >= table.getBoundingClientRect().right - 1
+        : false,
       tableVisibleWidth: table.getBoundingClientRect().width,
     };
   });
 
   expect(geometry).not.toHaveProperty('error');
-  expect(
-    (geometry as { hasOverlay: boolean; hasStacked: boolean }).hasOverlay ||
-      (geometry as { hasOverlay: boolean; hasStacked: boolean }).hasStacked,
-  ).toBe(true);
-  expect((geometry as { overlayInsideViewport: boolean }).overlayInsideViewport).toBe(true);
-  expect((geometry as { stackedBelowTotals: boolean }).stackedBelowTotals).toBe(true);
-  expect((geometry as { tableVisibleWidth: number }).tableVisibleWidth).toBeGreaterThan(900);
+  expect((geometry as { hasWorkspace: boolean }).hasWorkspace).toBe(true);
+  expect((geometry as { workspaceInsideViewport: boolean }).workspaceInsideViewport).toBe(true);
+  expect((geometry as { workspaceBesideTable: boolean }).workspaceBesideTable).toBe(true);
+  expect((geometry as { tableVisibleWidth: number }).tableVisibleWidth).toBeGreaterThan(320);
 });
 
 test('calculator avoids horizontal scrolling on a narrow viewport', async ({ page }) => {
@@ -316,23 +299,23 @@ test('calculator avoids horizontal scrolling on a narrow viewport', async ({ pag
   expect((pageOverflow as { scrollX: number }).scrollX).toBe(0);
 });
 
-test('current loadout table visual appearance matches snapshot', async ({ page }) => {
+test('current loadout workspace visual appearance matches snapshot', async ({ page }) => {
   await page.setViewportSize({ width: 1720, height: 900 });
   await page.goto('/calculator/');
 
-  const loadoutTable = page.getByTestId('current-loadout-table');
-  await expect(loadoutTable).toBeVisible();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を編集中');
-  // Pin the table width near its desktop layout width so the screenshot stays stable.
-  await loadoutTable.evaluate((node) => {
-    (node as HTMLElement).style.width = '1080px';
+  const workspaceBoard = page.getByTestId('current-loadout-workspace-board');
+  await expect(workspaceBoard).toBeVisible();
+  // Pin the board width so the screenshot stays stable across desktop widths.
+  await workspaceBoard.evaluate((node) => {
+    (node as HTMLElement).style.width = '352px';
   });
   // Wait a tick for CSS animations to settle.
   await page.waitForTimeout(500);
 
-  // Visual regression: the loadout table must match the established baseline.
-  await expect(loadoutTable).toHaveScreenshot('loadout-table-rod-active.png', {
+  // Visual regression: the workspace board must match the established baseline.
+  await expect(workspaceBoard).toHaveScreenshot('loadout-workspace-rod-active.png', {
     // Cross-platform font rendering shifts this table more on Linux than on Windows,
     // while the structural regression checks below still guard the important layout cues.
     maxDiffPixelRatio: 0.06,

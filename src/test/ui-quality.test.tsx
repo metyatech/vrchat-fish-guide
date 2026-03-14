@@ -130,7 +130,8 @@ describe('UI quality – overflow and wrapping prevention', () => {
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     expect(pickerPanel).toHaveTextContent('Rod を編集中');
     expect(screen.getByTestId('active-slot-indicator')).toHaveTextContent('Rod を編集中');
-    expect(screen.getByTestId('slot-picker-anchor-fallback')).toBeInTheDocument();
+    expect(screen.getByTestId('slot-picker-workspace-shell')).toBeInTheDocument();
+    expect(screen.getByTestId('current-loadout-workspace-board')).toBeInTheDocument();
   });
 
   it('demotes calculation diagnostics into the notes panel', () => {

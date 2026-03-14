@@ -114,11 +114,14 @@ describe('Step 1 loadout UI quality', () => {
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
 
-    const rodRow = screen.getByRole('button', { name: 'Rod を選び直す' });
-    fireEvent.click(rodRow);
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
     expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Rod の候補');
 
-    fireEvent.click(rodRow);
+    const activeRodRow = screen
+      .getByTestId('current-loadout-table')
+      .querySelector('[data-slot="rod"]');
+    expect(activeRodRow).not.toBeNull();
+    fireEvent.click(activeRodRow as HTMLElement);
 
     expect(screen.queryByTestId('slot-picker-panel')).not.toBeInTheDocument();
   });
@@ -349,7 +352,7 @@ describe('ParameterForm', () => {
     const pickerPanel = screen.getByTestId('slot-picker-panel');
     expect(pickerPanel).toHaveTextContent('Rod の候補');
     expect(pickerPanel).toHaveTextContent('Rod を編集中');
-    expect(screen.getByTestId('slot-picker-anchor-fallback')).toBeInTheDocument();
+    expect(screen.getByTestId('slot-picker-workspace-shell')).toBeInTheDocument();
     const nowrapBadges = pickerPanel.querySelectorAll('span.whitespace-nowrap');
     expect(nowrapBadges.length).toBeGreaterThan(0);
   });
