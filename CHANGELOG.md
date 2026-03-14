@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.55] - 2026-03-14
+
+### Changed
+
+- **The Step 1 candidate picker now supports tighter filtering without forcing you to scan the whole list**: you can open `さらに絞る` and narrow candidates by free-form `Price` minimum/maximum values plus per-stat minimums for `Lk / Str / Exp / Atk / BigC / MaxWt`.
+- **Desktop and mobile comparison now share the same richer picker controls**: recommendation tags, stat-improvement chips, the stacked mobile current-loadout summary, and the new advanced filters are all covered by the same Step 1 picker flow instead of being limited to the desktop comparison case.
+
 ## [0.12.54] - 2026-03-14
 
 ### Changed

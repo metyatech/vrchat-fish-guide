@@ -184,10 +184,32 @@ type PickerPresetSortMode = 'default' | 'ev-desc' | 'delta-desc' | 'price-asc';
 type PickerColumnSortKey = 'name' | 'price' | StatThemeKey;
 type PickerColumnSortDirection = 'asc' | 'desc';
 type PickerPriceBand = 'all' | 'free' | 'budget' | 'mid' | 'premium';
+type PickerRecommendationFilter = 'all' | 'free' | 'early' | 'endgame' | 'value' | 'big-upgrade';
+type PickerStatFilterInputs = Record<StatThemeKey, string>;
 
 interface PickerColumnSort {
   key: PickerColumnSortKey;
   direction: PickerColumnSortDirection;
+}
+
+function createEmptyStatFilterInputs(): PickerStatFilterInputs {
+  return {
+    luck: '',
+    strength: '',
+    expertise: '',
+    attractionRate: '',
+    bigCatchRate: '',
+    maxWeight: '',
+  };
+}
+
+function parseOptionalFilterNumber(value: string): number | null {
+  if (value.trim() === '') {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function formatItemPrice(item: EquipmentItem | EnchantItem): string {
@@ -284,6 +306,26 @@ function matchesPriceBand(price: number, band: PickerPriceBand): boolean {
   }
 }
 
+function getSelectedLoadoutItems(
+  selectedIds: Record<LoadoutSlot, string> | CalculatorParams['loadout'],
+) {
+  const slotIds =
+    'rod' in selectedIds
+      ? selectedIds
+      : {
+          rod: selectedIds.rodId,
+          line: selectedIds.lineId,
+          bobber: selectedIds.bobberId,
+          enchant: selectedIds.enchantId,
+        };
+  return {
+    rod: RODS.find((item) => item.id === slotIds.rod) ?? RODS[0],
+    line: LINES.find((item) => item.id === slotIds.line) ?? LINES[0],
+    bobber: BOBBERS.find((item) => item.id === slotIds.bobber) ?? BOBBERS[0],
+    enchant: ENCHANTS.find((item) => item.id === slotIds.enchant) ?? ENCHANTS[0],
+  } satisfies Record<LoadoutSlot, EquipmentItem | EnchantItem>;
+}
+
 function getRecommendationTags(
   entry: SlotRankEntry,
   selectedEntry: SlotRankEntry | undefined,
@@ -310,6 +352,98 @@ function getRecommendationTags(
   }
 
   return tags.slice(0, 2);
+}
+
+function matchesRecommendationFilter(tags: string[], filter: PickerRecommendationFilter): boolean {
+  switch (filter) {
+    case 'free':
+      return tags.includes('無料');
+    case 'early':
+      return tags.includes('序盤向け');
+    case 'endgame':
+      return tags.includes('終盤向け');
+    case 'value':
+      return tags.includes('コスパ');
+    case 'big-upgrade':
+      return tags.includes('伸び幅大');
+    case 'all':
+    default:
+      return true;
+  }
+}
+
+function hasPositiveStatDelta(
+  item: EquipmentItem | EnchantItem,
+  baseItem: EquipmentItem | EnchantItem,
+  stat: StatThemeKey,
+): boolean {
+  return getItemStatValue(item, stat) > getItemStatValue(baseItem, stat) + 0.001;
+}
+
+function buildRecommendationHighlights(
+  entries: SlotRankEntry[],
+  selectedEntry: SlotRankEntry | undefined,
+): Array<{ id: string; title: string; item: EquipmentItem | EnchantItem; detail: string }> {
+  if (!selectedEntry) {
+    return [];
+  }
+
+  const selectedEv = selectedEntry.expectedValuePerHour;
+  const unique = new Set<string>();
+  const cards: Array<{
+    id: string;
+    title: string;
+    item: EquipmentItem | EnchantItem;
+    detail: string;
+  }> = [];
+
+  const pushCard = (
+    title: string,
+    entry: SlotRankEntry | undefined,
+    detailFactory: (candidate: SlotRankEntry) => string,
+  ) => {
+    if (!entry || unique.has(entry.item.id)) {
+      return;
+    }
+    unique.add(entry.item.id);
+    cards.push({
+      id: entry.item.id,
+      title,
+      item: entry.item,
+      detail: detailFactory(entry),
+    });
+  };
+
+  const bestGrowth = [...entries].sort(
+    (a, b) => b.expectedValuePerHour - a.expectedValuePerHour,
+  )[0];
+  pushCard(
+    'まず見る候補',
+    bestGrowth,
+    (entry) =>
+      `${formatEvDeltaPercent(selectedEv, entry.expectedValuePerHour)} / ${formatCurrency(entry.expectedValuePerHour)}`,
+  );
+
+  const bestBudget = [...entries]
+    .filter((entry) => entry.item.price > 0 && entry.item.price <= 10000)
+    .sort((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)[0];
+  pushCard(
+    '安く試すなら',
+    bestBudget,
+    (entry) =>
+      `${entry.item.price.toLocaleString()}G / ${formatEvDeltaPercent(selectedEv, entry.expectedValuePerHour)}`,
+  );
+
+  const bestFree = [...entries]
+    .filter((entry) => entry.item.price === 0)
+    .sort((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)[0];
+  pushCard(
+    '無料で触るなら',
+    bestFree,
+    (entry) => `${formatEvDeltaPercent(selectedEv, entry.expectedValuePerHour)} / 無料`,
+  );
+
+  return cards;
 }
 
 function compareSourceOrder(
@@ -681,12 +815,7 @@ function CurrentLoadoutTable({
     bobber: false,
     enchant: false,
   });
-  const selectedItems: Record<LoadoutSlot, EquipmentItem | EnchantItem> = {
-    rod: RODS.find((item) => item.id === selectedIds.rod) ?? RODS[0],
-    line: LINES.find((item) => item.id === selectedIds.line) ?? LINES[0],
-    bobber: BOBBERS.find((item) => item.id === selectedIds.bobber) ?? BOBBERS[0],
-    enchant: ENCHANTS.find((item) => item.id === selectedIds.enchant) ?? ENCHANTS[0],
-  };
+  const selectedItems = getSelectedLoadoutItems(selectedIds);
 
   const rowRefs = React.useRef<Record<LoadoutSlot, HTMLDivElement | null>>({
     rod: null,
@@ -1271,18 +1400,22 @@ function CurrentLoadoutTable({
 function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   slot,
   params,
+  model,
   items,
   selectedId,
   onSelect,
   onClose,
+  showMobileSummary = false,
   testId = 'slot-picker-panel',
 }: {
   slot: LoadoutSlot;
   params: CalculatorParams;
+  model: DerivedModelSummary;
   items: readonly T[];
   selectedId: string;
   onSelect: (id: string) => void;
   onClose: () => void;
+  showMobileSummary?: boolean;
   testId?: string;
 }) {
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -1291,9 +1424,48 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const [showOnlyImproved, setShowOnlyImproved] = React.useState(false);
   const [locationFilter, setLocationFilter] = React.useState('all');
   const [priceBand, setPriceBand] = React.useState<PickerPriceBand>('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
+  const [priceMinInput, setPriceMinInput] = React.useState('');
+  const [priceMaxInput, setPriceMaxInput] = React.useState('');
+  const [minimumStatInputs, setMinimumStatInputs] = React.useState<PickerStatFilterInputs>(
+    createEmptyStatFilterInputs,
+  );
+  const [recommendationFilter, setRecommendationFilter] =
+    React.useState<PickerRecommendationFilter>('all');
+  const [requiredImprovementStats, setRequiredImprovementStats] = React.useState<StatThemeKey[]>(
+    [],
+  );
   const rankedEntries = React.useMemo(() => rankSlot(params, slot), [params, slot]);
   const selectedEntry = rankedEntries.find((entry) => entry.item.id === selectedId);
   const selectedItem = selectedEntry?.item ?? items.find((item) => item.id === selectedId);
+  const selectedLoadoutItems = React.useMemo(
+    () => getSelectedLoadoutItems(params.loadout),
+    [params.loadout],
+  );
+  const minimumStatFilters = React.useMemo(
+    () =>
+      LOADOUT_STAT_COLUMN_ORDER.reduce(
+        (acc, stat) => {
+          acc[stat] = parseOptionalFilterNumber(minimumStatInputs[stat]);
+          return acc;
+        },
+        {} as Record<StatThemeKey, number | null>,
+      ),
+    [minimumStatInputs],
+  );
+  const priceMin = React.useMemo(() => parseOptionalFilterNumber(priceMinInput), [priceMinInput]);
+  const priceMax = React.useMemo(() => parseOptionalFilterNumber(priceMaxInput), [priceMaxInput]);
+  const activeAdvancedFilterCount = React.useMemo(() => {
+    let count = 0;
+    if (priceMin !== null) count += 1;
+    if (priceMax !== null) count += 1;
+    for (const stat of LOADOUT_STAT_COLUMN_ORDER) {
+      if (minimumStatFilters[stat] !== null) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [minimumStatFilters, priceMax, priceMin]);
   const sourceOrder = React.useMemo(
     () => new Map(items.map((item, index) => [item.id, index])),
     [items],
@@ -1316,6 +1488,10 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         );
       })
     : rankedEntries;
+  const recommendationHighlights = buildRecommendationHighlights(
+    filteredEntries,
+    filteredEntries.find((entry) => entry.item.id === selectedId) ?? selectedEntry,
+  );
   const candidateEntries = sortRankEntries(
     filteredEntries.filter((entry) => {
       if (entry.item.id === selectedId) {
@@ -1325,6 +1501,32 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         return false;
       }
       if (!matchesPriceBand(entry.item.price, priceBand)) {
+        return false;
+      }
+      if (priceMin !== null && entry.item.price < priceMin) {
+        return false;
+      }
+      if (priceMax !== null && entry.item.price > priceMax) {
+        return false;
+      }
+      const recommendationTags = getRecommendationTags(entry, selectedEntry);
+      if (!matchesRecommendationFilter(recommendationTags, recommendationFilter)) {
+        return false;
+      }
+      if (
+        LOADOUT_STAT_COLUMN_ORDER.some((stat) => {
+          const minimum = minimumStatFilters[stat];
+          return minimum !== null && getItemStatValue(entry.item, stat) < minimum;
+        })
+      ) {
+        return false;
+      }
+      if (
+        selectedItem &&
+        requiredImprovementStats.some(
+          (stat) => !hasPositiveStatDelta(entry.item, selectedItem, stat),
+        )
+      ) {
         return false;
       }
       if (!showOnlyImproved || !selectedEntry) {
@@ -1380,7 +1582,82 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
             <span className="whitespace-nowrap">閉じる</span>
           </button>
         </div>
+        {showMobileSummary ? (
+          <div
+            data-testid="mobile-current-loadout-summary"
+            className="mt-3 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+          >
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-ocean-500" aria-hidden="true" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-ocean-700">
+                いまの装備
+              </span>
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {LOADOUT_SLOT_ORDER.map((summarySlot) => {
+                const item = selectedLoadoutItems[summarySlot];
+                return (
+                  <div
+                    key={summarySlot}
+                    className={`rounded-xl border px-3 py-2 ${summarySlot === slot ? 'border-ocean-300 bg-ocean-50/70' : 'border-slate-200 bg-slate-50/75'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <SlotLabelChip slot={summarySlot} label={LOADOUT_SLOT_LABELS[summarySlot]} />
+                      {summarySlot === slot ? (
+                        <span className="text-[10px] font-semibold text-ocean-700">比較中</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-sm font-semibold text-slate-900">{item.nameEn}</div>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <CompactPriceCell item={item} />
+                      {getHighlightedStats(item).map((stat) => (
+                        <CompactWorkspaceStatCell
+                          key={`${summarySlot}-${stat}`}
+                          stat={stat}
+                          value={formatItemStatValue(item, stat)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                <span className="text-sm font-semibold text-slate-900">装備の合計</span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {LOADOUT_STAT_COLUMN_ORDER.map((stat) => (
+                  <div key={`mobile-total-${stat}`} data-total-stat={stat}>
+                    <StatBadge stat={stat} value={formatTotalStatValue(model, stat)} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
         <div className="mt-3 space-y-3">
+          {recommendationHighlights.length > 0 ? (
+            <div className="grid gap-2 lg:grid-cols-3">
+              {recommendationHighlights.map((highlight) => (
+                <div
+                  key={highlight.id}
+                  className="rounded-2xl border border-ocean-200 bg-white/90 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+                >
+                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-ocean-700">
+                    {highlight.title}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-900">
+                    {highlight.item.nameEn}
+                  </div>
+                  <div className="mt-1 text-xs leading-relaxed text-slate-600">
+                    {highlight.detail}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <input
             type="text"
             placeholder="名前・入手場所・効果で検索..."
@@ -1405,6 +1682,24 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 <option value="ev-desc">期待値/時間が高い順</option>
                 <option value="delta-desc">いまより伸びる順</option>
                 <option value="price-asc">安い順</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              おすすめタグ
+              <select
+                value={recommendationFilter}
+                onChange={(event) =>
+                  setRecommendationFilter(event.target.value as PickerRecommendationFilter)
+                }
+                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                aria-label="おすすめタグ"
+              >
+                <option value="all">すべて</option>
+                <option value="free">無料</option>
+                <option value="early">序盤向け</option>
+                <option value="endgame">終盤向け</option>
+                <option value="value">コスパ</option>
+                <option value="big-upgrade">伸び幅大</option>
               </select>
             </label>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
@@ -1450,7 +1745,129 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
               />
               いまより良い候補だけ
             </label>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedFilters((current) => !current)}
+              aria-expanded={showAdvancedFilters}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              <span>さらに絞る</span>
+              {activeAdvancedFilterCount > 0 ? (
+                <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">
+                  {activeAdvancedFilterCount}
+                </span>
+              ) : null}
+            </button>
           </div>
+          {showAdvancedFilters ? (
+            <div
+              data-testid="advanced-candidate-filters"
+              className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3"
+            >
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="space-y-1 text-xs font-semibold text-slate-600">
+                  <span>{PRICE_COLUMN_LABEL} 最低値</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={priceMinInput}
+                    onChange={(event) => setPriceMinInput(event.target.value)}
+                    placeholder="0"
+                    aria-label={`${PRICE_COLUMN_LABEL} 最低値`}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-semibold text-slate-600">
+                  <span>{PRICE_COLUMN_LABEL} 最高値</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={priceMaxInput}
+                    onChange={(event) => setPriceMaxInput(event.target.value)}
+                    placeholder="上限なし"
+                    aria-label={`${PRICE_COLUMN_LABEL} 最高値`}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                  />
+                </label>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
+                  const theme = STAT_THEME[stat];
+                  return (
+                    <label key={`minimum-${stat}`} className="space-y-1 text-xs font-semibold">
+                      <span style={{ color: theme.surfaceText }}>{theme.shortLabel} 最低値</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={minimumStatInputs[stat]}
+                        onChange={(event) =>
+                          setMinimumStatInputs((current) => ({
+                            ...current,
+                            [stat]: event.target.value,
+                          }))
+                        }
+                        placeholder="指定なし"
+                        aria-label={`${theme.shortLabel} 最低値`}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                      />
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs leading-relaxed text-slate-500">
+                  価格やステータスの最低値で、見たい候補だけに絞れます。
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPriceMinInput('');
+                    setPriceMaxInput('');
+                    setMinimumStatInputs(createEmptyStatFilterInputs());
+                  }}
+                  className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900"
+                >
+                  絞り込みをリセット
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {selectedItem ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-slate-600">この値が上がる候補だけ</span>
+              {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
+                const active = requiredImprovementStats.includes(stat);
+                const theme = STAT_THEME[stat];
+                return (
+                  <button
+                    key={stat}
+                    type="button"
+                    onClick={() =>
+                      setRequiredImprovementStats((current) =>
+                        current.includes(stat)
+                          ? current.filter((entry) => entry !== stat)
+                          : [...current, stat],
+                      )
+                    }
+                    aria-pressed={active}
+                    aria-label={`${theme.shortLabel} が上がる候補だけを表示`}
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+                      active ? 'shadow-sm' : 'bg-white'
+                    }`}
+                    style={{
+                      borderColor: active ? theme.cardBorder : 'rgba(148,163,184,0.35)',
+                      backgroundColor: active ? theme.cardBackground : 'rgba(255,255,255,0.92)',
+                      color: active ? theme.surfaceText : '#475569',
+                    }}
+                  >
+                    {theme.shortLabel}+
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1786,10 +2203,12 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
     <LoadoutPickerPanel
       slot={activeSlot}
       params={params}
+      model={model}
       items={loadoutItems[activeSlot]}
       selectedId={params.loadout[LOADOUT_SLOT_FIELDS[activeSlot]]}
       onSelect={(id) => handleLoadoutSelect(activeSlot, id)}
       onClose={() => setActiveSlot(null)}
+      showMobileSummary={!isDesktop}
       testId="slot-picker-panel"
     />
   ) : null;

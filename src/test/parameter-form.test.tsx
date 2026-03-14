@@ -176,6 +176,64 @@ describe('Step 1 loadout UI quality', () => {
     expect(candidateRows.some((row) => row.textContent?.includes('序盤向け'))).toBe(true);
   });
 
+  it('supports recommendation-tag filtering and stat-improvement chips', () => {
+    const params = {
+      ...getDefaultParams(),
+      loadout: {
+        ...getDefaultParams().loadout,
+        rodId: 'slim-rod',
+      },
+    };
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    const beforeCount = screen.getAllByTestId('picker-option-row').length;
+    fireEvent.change(screen.getByLabelText('おすすめタグ'), {
+      target: { value: 'endgame' },
+    });
+
+    let candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.length).toBeLessThan(beforeCount);
+    candidateRows.forEach((row) => {
+      expect(row.textContent).toContain('終盤向け');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lk が上がる候補だけを表示' }));
+    candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(false);
+    expect(candidateRows.some((row) => row.textContent?.includes('Alien Rod'))).toBe(true);
+  });
+
+  it('supports advanced price and minimum-stat filters', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+    fireEvent.click(screen.getByRole('button', { name: 'さらに絞る' }));
+
+    fireEvent.change(screen.getByLabelText('Price 最高値'), {
+      target: { value: '1000' },
+    });
+
+    let candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.some((row) => row.textContent?.includes('Toy Rod'))).toBe(true);
+    expect(candidateRows.some((row) => row.textContent?.includes('Sturdy Wooden Rod'))).toBe(false);
+
+    fireEvent.change(screen.getByLabelText('Price 最高値'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Str 最低値'), {
+      target: { value: '50' },
+    });
+
+    candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.some((row) => row.textContent?.includes('Metallic Rod'))).toBe(true);
+    expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(false);
+  });
+
   it('supports column-header sorting and can return to the initial item order', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
@@ -369,7 +427,12 @@ describe('ParameterForm', () => {
     render(<ParameterForm params={params} model={result.model} onChange={onChange} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
-    fireEvent.click(screen.getByText('Fortunate Rod'));
+    const pickerPanel = screen.getByTestId('slot-picker-panel');
+    const fortunateRow = within(pickerPanel)
+      .getAllByTestId('picker-option-row')
+      .find((row) => row.textContent?.includes('Fortunate Rod'));
+    expect(fortunateRow).toBeDefined();
+    fireEvent.click(fortunateRow as HTMLElement);
 
     expect(onChange).toHaveBeenCalledWith({
       ...params,
@@ -417,7 +480,12 @@ describe('ParameterForm', () => {
 
     expect(screen.getByTestId('slot-picker-panel')).toHaveTextContent('Line の候補');
 
-    fireEvent.click(screen.getByText('Lucky Line'));
+    const pickerPanel = screen.getByTestId('slot-picker-panel');
+    const luckyLineRow = within(pickerPanel)
+      .getAllByTestId('picker-option-row')
+      .find((row) => row.textContent?.includes('Lucky Line'));
+    expect(luckyLineRow).toBeDefined();
+    fireEvent.click(luckyLineRow as HTMLElement);
 
     expect(scrollIntoViewSpy).not.toHaveBeenCalled();
     expect(onChange).toHaveBeenCalledWith({
@@ -479,5 +547,35 @@ describe('ParameterForm', () => {
     expect(
       screen.getByTestId('total-stats-section').querySelector('[data-total-stat="luck"]'),
     ).not.toBeNull();
+  });
+
+  it('shows a compact current-loadout summary above the picker on mobile widths', () => {
+    const params = getDefaultParams();
+    const result = calculateDistribution(params);
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation(() => ({
+        matches: false,
+        media: '(min-width: 1280px)',
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
+
+    render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    const mobileSummary = screen.getByTestId('mobile-current-loadout-summary');
+    expect(mobileSummary).toHaveTextContent('いまの装備');
+    expect(mobileSummary).toHaveTextContent('Stick and String');
+    expect(mobileSummary).toHaveTextContent('Basic Line');
+    expect(mobileSummary).toHaveTextContent('装備の合計');
+
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: originalMatchMedia,
+    });
   });
 });

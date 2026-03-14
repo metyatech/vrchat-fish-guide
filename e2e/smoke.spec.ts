@@ -433,6 +433,60 @@ test('equipment picker search filters items by name, location, and special effec
   expect(clearedRowCount).toBe(initialRowCount);
 });
 
+test('candidate picker supports recommendation-tag filters and stat-improvement chips', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+  const pickerPanel = page.getByTestId('slot-picker-panel');
+
+  await page.getByLabel('おすすめタグ').selectOption('endgame');
+  const endgameRows = pickerPanel.locator('[data-testid="picker-option-row"]');
+  await expect(endgameRows.first()).toContainText('終盤向け');
+
+  await page.getByRole('button', { name: 'Lk が上がる候補だけを表示' }).click();
+  await expect(pickerPanel).not.toContainText('Sunleaf Rod');
+  await expect(pickerPanel).toContainText('Alien Rod');
+});
+
+test('candidate picker supports advanced price and stat minimum filters', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+  const pickerPanel = page.getByTestId('slot-picker-panel');
+
+  await page.getByRole('button', { name: 'さらに絞る' }).click();
+  const advancedFilters = page.getByTestId('advanced-candidate-filters');
+
+  await advancedFilters.getByLabel('Price 最高値').fill('1000');
+  await expect(pickerPanel).toContainText('Toy Rod');
+  await expect(pickerPanel).not.toContainText('Sturdy Wooden Rod');
+
+  await advancedFilters.getByLabel('Price 最高値').fill('');
+  await advancedFilters.getByLabel('Str 最低値').fill('50');
+  await expect(pickerPanel).toContainText('Metallic Rod');
+  await expect(pickerPanel).not.toContainText('Sunleaf Rod');
+});
+
+test('mobile widths keep a compact current-loadout summary above the stacked picker', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/calculator/');
+
+  await page.getByRole('button', { name: 'Rod を選び直す' }).click();
+
+  const mobileSummary = page.getByTestId('mobile-current-loadout-summary');
+  await expect(mobileSummary).toBeVisible();
+  await expect(mobileSummary).toContainText('いまの装備');
+  await expect(mobileSummary).toContainText('Stick and String');
+  await expect(mobileSummary).toContainText('Basic Line');
+  await expect(mobileSummary).toContainText('装備の合計');
+});
+
 test('candidate rows show per-stat deltas against the current equipment', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
