@@ -30,6 +30,9 @@ test('home page exposes primary navigation links', async ({ page }) => {
       .getByRole('link', { name: /出典・免責事項/ })
       .click(),
   ]);
+  await expect(page.getByRole('heading', { name: '📚 出典・免責事項' })).toBeVisible();
+  await expect(page.getByRole('main').getByText('最終確認:').first()).toBeVisible();
+  await expect(page.getByText('公開ソースとの差分確認')).toBeVisible();
 });
 
 test('calculator updates summary cards and fish list when loadout and filters change', async ({

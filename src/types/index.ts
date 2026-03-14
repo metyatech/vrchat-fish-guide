@@ -12,6 +12,55 @@ export interface DataSource {
   notes: string;
 }
 
+export interface SourceRevisionSnapshot {
+  id: string;
+  name: string;
+  url: string;
+  revid: number;
+  timestamp: string;
+  comment?: string;
+}
+
+export interface SourceAuditDiff {
+  category: 'fish' | 'rod' | 'line' | 'bobber' | 'enchant';
+  name: string;
+  field: string;
+  localValue: number | string;
+  sourceValue: number | string;
+}
+
+export interface PublicEntryGap {
+  name: string;
+  rarity?: string;
+  reason: string;
+}
+
+export interface FormulaEvidenceStatus {
+  id: string;
+  label: string;
+  status: 'published' | 'qualitative-only' | 'not-found';
+  note: string;
+  sourceIds: string[];
+}
+
+export interface SourceAuditSnapshot {
+  checkedAt: string;
+  summary: {
+    modeledFishCount: number;
+    publicFishCount: number;
+    inScopeButUnmodeledCount: number;
+    outsideCalculatorScopeCount: number;
+    modeledDiffCount: number;
+    equipmentDiffCount: number;
+  };
+  revisions: SourceRevisionSnapshot[];
+  inScopeButUnmodeled: PublicEntryGap[];
+  outsideCalculatorScope: PublicEntryGap[];
+  modeledDiffs: SourceAuditDiff[];
+  equipmentDiffs: SourceAuditDiff[];
+  formulaEvidence: FormulaEvidenceStatus[];
+}
+
 /** Catch tier shown in the Fish! minigame */
 export type Rarity =
   | 'trash'

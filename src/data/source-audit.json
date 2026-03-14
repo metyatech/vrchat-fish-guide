@@ -1,0 +1,98 @@
+{
+  "checkedAt": "2026-03-14T15:09:50.985Z",
+  "summary": {
+    "modeledFishCount": 101,
+    "publicFishCount": 95,
+    "inScopeButUnmodeledCount": 0,
+    "outsideCalculatorScopeCount": 4,
+    "modeledDiffCount": 0,
+    "equipmentDiffCount": 0
+  },
+  "revisions": [
+    {
+      "id": "fish-fandom-index",
+      "name": "Fandom Index",
+      "url": "https://fish-trickforge-studio.fandom.com/wiki/Index",
+      "revid": 905,
+      "timestamp": "2026-03-14T10:51:25Z",
+      "comment": "/* Open Sea */ Updated weight."
+    },
+    {
+      "id": "fish-fandom-rods",
+      "name": "Fandom Rods",
+      "url": "https://fish-trickforge-studio.fandom.com/wiki/Rods",
+      "revid": 889,
+      "timestamp": "2026-03-08T20:15:07Z",
+      "comment": ""
+    },
+    {
+      "id": "fish-fandom-rod-accessories",
+      "name": "Fandom Rod Accessories",
+      "url": "https://fish-trickforge-studio.fandom.com/wiki/Rod_Accessories",
+      "revid": 850,
+      "timestamp": "2026-03-04T21:53:21Z",
+      "comment": "Touched up"
+    },
+    {
+      "id": "fish-fandom-enchantments",
+      "name": "Fandom Enchantments",
+      "url": "https://fish-trickforge-studio.fandom.com/wiki/Enchantments",
+      "revid": 890,
+      "timestamp": "2026-03-09T04:36:54Z",
+      "comment": "/* Enchantment Statistics */"
+    }
+  ],
+  "inScopeButUnmodeled": [],
+  "outsideCalculatorScope": [
+    {
+      "name": "Catfish Emperor",
+      "rarity": "Ultimate Secret",
+      "reason": "Current calculator scope excludes Ultimate Secret entries or special/non-standard public rows."
+    },
+    {
+      "name": "Ragtime Frog",
+      "reason": "Public numeric source contains this entry, but the current calculator cannot classify it from published probability data."
+    },
+    {
+      "name": "Steve",
+      "rarity": "Secret",
+      "reason": "Current calculator scope excludes Secret entries or special/non-standard public rows."
+    },
+    {
+      "name": "Wabubu",
+      "reason": "Public numeric source contains this entry, but the current calculator cannot classify it from published probability data."
+    }
+  ],
+  "modeledDiffs": [],
+  "equipmentDiffs": [],
+  "formulaEvidence": [
+    {
+      "id": "luck",
+      "label": "Luck",
+      "status": "qualitative-only",
+      "note": "The public Index still says only that Luck increases rarity. No stronger published numeric formula was confirmed.",
+      "sourceIds": ["fish-fandom-index"]
+    },
+    {
+      "id": "attraction-strength-expertise",
+      "label": "Attraction Rate / Strength / Expertise",
+      "status": "qualitative-only",
+      "note": "The public Index describes what these stats influence, but not the exact timing or escape formulas used by the game.",
+      "sourceIds": ["fish-fandom-index"]
+    },
+    {
+      "id": "big-catch-weight-price",
+      "label": "Big Catch Rate / weight-to-price",
+      "status": "qualitative-only",
+      "note": "Public sources still say Big Catch Rate increases the chance of heavier fish, but no exact percentile or weight-to-price formula was confirmed.",
+      "sourceIds": ["fish-fandom-index", "community-datamine"]
+    },
+    {
+      "id": "special-rarity-probabilities",
+      "label": "Secret / Ultimate Secret / Relic probabilities",
+      "status": "qualitative-only",
+      "note": "The public Index now publishes Relic at 3.00%, but Secret and Ultimate Secret still lack enough published probability data for the current calculator model.",
+      "sourceIds": ["fish-fandom-index"]
+    }
+  ]
+}

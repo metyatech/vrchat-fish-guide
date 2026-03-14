@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.65] - 2026-03-14
+
+### Changed
+
+- **The sources page now shows freshness and public-source audit results instead of forcing you to trust a static disclaimer**: `/sources` displays the last audit time, the latest observed Fandom revisions, current diff counts, and which public rows are intentionally outside the calculator model.
+- **Source freshness is now repeatable instead of ad hoc**: `npm run sources:refresh` writes a checked-in `src/data/source-audit.json` snapshot from the latest Fandom revisions plus the Snerx workbook, and `npm run sources:check` verifies that snapshot without failing just because the current clock time changed.
+- **Source-audit parsing is now regression-tested**: the new unit coverage guards the generated snapshot against malformed names and placeholder rows such as spreadsheet section headers, so the published gap list stays readable instead of leaking parser artifacts.
+
 ## [0.12.64] - 2026-03-14
 
 ### Fixed

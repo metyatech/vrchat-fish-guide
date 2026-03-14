@@ -1,8 +1,10 @@
 import React from 'react';
-import { DataSource } from '@/types';
+import { DataSource, SourceRevisionSnapshot } from '@/types';
 
 interface SourceCardProps {
   source: DataSource;
+  revision?: SourceRevisionSnapshot;
+  checkedAtLabel?: string;
 }
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
@@ -17,7 +19,13 @@ const REUSE_BADGE: Record<string, { label: string; className: string }> = {
   unsupported: { label: '計算に未使用', className: 'bg-red-100 text-red-700' },
 };
 
-export function SourceCard({ source }: SourceCardProps) {
+const revisionFormatter = new Intl.DateTimeFormat('ja-JP', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Asia/Tokyo',
+});
+
+export function SourceCard({ source, revision, checkedAtLabel }: SourceCardProps) {
   const statusBadge = STATUS_BADGE[source.sourceStatus] ?? STATUS_BADGE['unclear'];
   const reuseBadge = REUSE_BADGE[source.reuseMode] ?? REUSE_BADGE['fact-only'];
 
@@ -45,6 +53,21 @@ export function SourceCard({ source }: SourceCardProps) {
         </a>
       )}
       <p className="text-xs text-gray-500 mb-2 leading-relaxed">{source.notes}</p>
+      {revision && (
+        <div className="mb-2 rounded-md border border-sky-100 bg-sky-50 px-3 py-2 text-xs text-sky-800">
+          <div className="font-medium">
+            最終 revision: {revisionFormatter.format(new Date(revision.timestamp))}
+          </div>
+          {revision.comment ? (
+            <div className="mt-1 text-sky-700">更新メモ: {revision.comment}</div>
+          ) : null}
+        </div>
+      )}
+      {checkedAtLabel && !revision && (
+        <div className="mb-2 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+          最終確認: {checkedAtLabel}
+        </div>
+      )}
       <div className="text-xs">
         <span className="text-gray-400">ライセンス: </span>
         <span className="text-gray-600">{source.licenseStatus}</span>

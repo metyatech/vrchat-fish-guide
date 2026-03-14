@@ -3,6 +3,7 @@ import React from 'react';
 import { SourceCard } from '@/components/Sources/SourceCard';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { FISH_DATA, FISHING_AREAS } from '@/data/fish';
+import { SOURCE_AUDIT } from '@/data/sourceAudit';
 import { SOURCES } from '@/data/sources';
 import { SITE_NAME, SITE_URL } from '@/lib/site';
 
@@ -15,7 +16,28 @@ export const metadata: Metadata = {
   },
 };
 
+const dateTimeFormatter = new Intl.DateTimeFormat('ja-JP', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Asia/Tokyo',
+});
+
+const formulaStatusBadge: Record<
+  'published' | 'qualitative-only' | 'not-found',
+  { label: string; className: string }
+> = {
+  published: { label: '公開数値あり', className: 'border-green-200 bg-green-50 text-green-700' },
+  'qualitative-only': {
+    label: '説明のみ',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+  },
+  'not-found': { label: '未確認', className: 'border-gray-200 bg-gray-50 text-gray-600' },
+};
+
 export default function SourcesPage() {
+  const checkedAtLabel = dateTimeFormatter.format(new Date(SOURCE_AUDIT.checkedAt));
+  const revisionMap = new Map(SOURCE_AUDIT.revisions.map((revision) => [revision.id, revision]));
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="mb-8">
@@ -24,6 +46,59 @@ export default function SourcesPage() {
           このサイトで使っているデータの出どころと、どこまで正確に計算できているかをまとめています。
         </p>
       </div>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold text-gray-800">最新の確認状況</h2>
+        <div className="space-y-4 rounded-xl border border-sky-200 bg-sky-50 p-6 text-sm leading-relaxed text-sky-900">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">
+              最終確認: {checkedAtLabel}
+            </span>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">
+              魚データ差分: {SOURCE_AUDIT.summary.modeledDiffCount} 件
+            </span>
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">
+              装備データ差分: {SOURCE_AUDIT.summary.equipmentDiffCount} 件
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border border-sky-200 bg-white p-3">
+              <div className="mb-1 font-semibold text-sky-800">計算機に入っている魚</div>
+              <div className="text-2xl font-bold text-sky-900">
+                {SOURCE_AUDIT.summary.modeledFishCount}
+              </div>
+              <div className="text-sky-700">現在の Fish データ</div>
+            </div>
+            <div className="rounded-lg border border-sky-200 bg-white p-3">
+              <div className="mb-1 font-semibold text-sky-800">公開ソースで確認できた魚</div>
+              <div className="text-2xl font-bold text-sky-900">
+                {SOURCE_AUDIT.summary.publicFishCount}
+              </div>
+              <div className="text-sky-700">Fandom + Snerx の数値行</div>
+            </div>
+            <div className="rounded-lg border border-sky-200 bg-white p-3">
+              <div className="mb-1 font-semibold text-sky-800">未追加の通常魚</div>
+              <div className="text-2xl font-bold text-sky-900">
+                {SOURCE_AUDIT.summary.inScopeButUnmodeledCount}
+              </div>
+              <div className="text-sky-700">今の計算機範囲で不足している行</div>
+            </div>
+            <div className="rounded-lg border border-sky-200 bg-white p-3">
+              <div className="mb-1 font-semibold text-sky-800">モデル外の公開行</div>
+              <div className="text-2xl font-bold text-sky-900">
+                {SOURCE_AUDIT.summary.outsideCalculatorScopeCount}
+              </div>
+              <div className="text-sky-700">Secret など現在の対象外</div>
+            </div>
+          </div>
+
+          <p className="text-xs text-sky-700">
+            この確認は `npm run sources:refresh` で更新し、公開ソースの最終 revision とローカルの
+            fact-only データ差分をまとめています。
+          </p>
+        </div>
+      </section>
 
       <section className="mb-8">
         <h2 className="mb-4 text-lg font-semibold text-gray-800">このサイトのデータの扱い方</h2>
@@ -64,8 +139,123 @@ export default function SourcesPage() {
         <h2 className="mb-4 text-lg font-semibold text-gray-800">データソース一覧</h2>
         <div className="space-y-4">
           {SOURCES.map((source) => (
-            <SourceCard key={source.id} source={source} />
+            <SourceCard
+              key={source.id}
+              source={source}
+              revision={revisionMap.get(source.id)}
+              checkedAtLabel={checkedAtLabel}
+            />
           ))}
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold text-gray-800">公開ソースとの差分確認</h2>
+        <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-6 text-sm leading-relaxed text-gray-700">
+          {SOURCE_AUDIT.summary.modeledDiffCount === 0 &&
+          SOURCE_AUDIT.summary.equipmentDiffCount === 0 ? (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+              現在の fact-only データでは、公開ソースとの差分は見つかっていません。
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {SOURCE_AUDIT.modeledDiffs.length > 0 && (
+                <div>
+                  <div className="mb-2 font-semibold text-gray-900">魚データ差分</div>
+                  <ul className="space-y-2 text-xs">
+                    {SOURCE_AUDIT.modeledDiffs.map((diff) => (
+                      <li
+                        key={`${diff.category}-${diff.name}-${diff.field}`}
+                        className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800"
+                      >
+                        <strong>{diff.name}</strong>: {diff.field} が {String(diff.localValue)} →{' '}
+                        {String(diff.sourceValue)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {SOURCE_AUDIT.equipmentDiffs.length > 0 && (
+                <div>
+                  <div className="mb-2 font-semibold text-gray-900">装備データ差分</div>
+                  <ul className="space-y-2 text-xs">
+                    {SOURCE_AUDIT.equipmentDiffs.map((diff) => (
+                      <li
+                        key={`${diff.category}-${diff.name}-${diff.field}`}
+                        className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-800"
+                      >
+                        <strong>{diff.name}</strong>: {diff.field} が {String(diff.localValue)} →{' '}
+                        {String(diff.sourceValue)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="mb-2 font-semibold text-gray-900">今の計算機に入っていない通常魚</div>
+              {SOURCE_AUDIT.inScopeButUnmodeled.length === 0 ? (
+                <p className="text-xs text-gray-600">現時点では見つかっていません。</p>
+              ) : (
+                <ul className="space-y-2 text-xs text-gray-700">
+                  {SOURCE_AUDIT.inScopeButUnmodeled.map((gap) => (
+                    <li
+                      key={gap.name}
+                      className="rounded-md border border-amber-200 bg-amber-50 p-3"
+                    >
+                      <strong>{gap.name}</strong>
+                      {gap.rarity ? ` (${gap.rarity})` : ''}
+                      <div className="mt-1 text-amber-700">{gap.reason}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="mb-2 font-semibold text-gray-900">公開されているが現在のモデル外</div>
+              {SOURCE_AUDIT.outsideCalculatorScope.length === 0 ? (
+                <p className="text-xs text-gray-600">現時点では見つかっていません。</p>
+              ) : (
+                <ul className="space-y-2 text-xs text-gray-700">
+                  {SOURCE_AUDIT.outsideCalculatorScope.map((gap) => (
+                    <li key={gap.name} className="rounded-md border border-slate-200 bg-white p-3">
+                      <strong>{gap.name}</strong>
+                      {gap.rarity ? ` (${gap.rarity})` : ''}
+                      <div className="mt-1 text-gray-600">{gap.reason}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold text-gray-800">
+          公開ソースでどこまで裏付けられているか
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {SOURCE_AUDIT.formulaEvidence.map((item) => {
+            const badge = formulaStatusBadge[item.status];
+            return (
+              <div key={item.id} className="rounded-xl border border-gray-200 bg-white p-5">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h3 className="font-semibold text-gray-900">{item.label}</h3>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${badge.className}`}
+                  >
+                    {badge.label}
+                  </span>
+                </div>
+                <p className="text-sm leading-relaxed text-gray-700">{item.note}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -180,8 +370,8 @@ export default function SourcesPage() {
               現在は、重さを上に寄せる近似で計算しています。
             </li>
             <li>
-              • <strong>Secret / Ultimate Secret / Relic</strong>:
-              公開ソースで十分な確率根拠を確保できていません。
+              • <strong>Secret / Ultimate Secret / Relic などの特殊行</strong>:
+              公開ソースに名前や一部確率が出ている行はありますが、今の計算機では通常魚の最適化に集中するためモデル外にしています。
             </li>
           </ul>
         </div>
