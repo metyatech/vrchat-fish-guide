@@ -190,9 +190,7 @@ describe('Step 1 loadout UI quality', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
 
     const beforeCount = screen.getAllByTestId('picker-option-row').length;
-    fireEvent.change(screen.getByLabelText('おすすめタグ'), {
-      target: { value: 'endgame' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'おすすめタグ: 終盤向け' }));
 
     let candidateRows = screen.getAllByTestId('picker-option-row');
     expect(candidateRows.length).toBeLessThan(beforeCount);
@@ -200,13 +198,16 @@ describe('Step 1 loadout UI quality', () => {
       expect(row.textContent).toContain('終盤向け');
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'おすすめタグ: コスパ' }));
+    expect(screen.getByTestId('active-filter-chips')).toHaveTextContent('おすすめ: 終盤向け');
+    expect(screen.getByTestId('active-filter-chips')).toHaveTextContent('おすすめ: コスパ');
+
     fireEvent.click(screen.getByRole('button', { name: 'Lk が上がる候補だけを表示' }));
     candidateRows = screen.getAllByTestId('picker-option-row');
-    expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(false);
     expect(candidateRows.some((row) => row.textContent?.includes('Alien Rod'))).toBe(true);
   });
 
-  it('supports advanced price and minimum-stat filters', () => {
+  it('supports advanced price and stat range filters', () => {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
     render(<ParameterForm params={params} model={result.model} onChange={vi.fn()} />);
@@ -231,6 +232,17 @@ describe('Step 1 loadout UI quality', () => {
 
     candidateRows = screen.getAllByTestId('picker-option-row');
     expect(candidateRows.some((row) => row.textContent?.includes('Metallic Rod'))).toBe(true);
+    expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(false);
+
+    fireEvent.change(screen.getByLabelText('Str 最低値'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Lk 最高値'), {
+      target: { value: '0' },
+    });
+
+    candidateRows = screen.getAllByTestId('picker-option-row');
+    expect(candidateRows.some((row) => row.textContent?.includes('Toy Rod'))).toBe(true);
     expect(candidateRows.some((row) => row.textContent?.includes('Sunleaf Rod'))).toBe(false);
   });
 

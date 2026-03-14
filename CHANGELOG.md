@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.57] - 2026-03-14
+
+### Changed
+
+- **おすすめタグを 1 つずつ切り替える必要がなくなりました**: the Step 1 candidate picker now lets you keep multiple recommendation tags active at once, so you can narrow the list to gear that matches any of the tags you care about instead of flipping the picker back and forth.
+- **Advanced stat filters now support upper bounds as well as minimums**: `さらに絞る` can cap `Lk / Str / Exp / Atk / BigC / MaxWt` in addition to setting minimum values, which makes it much easier to exclude over-budget or off-build candidates without losing the rest of the comparison workspace.
+
 ## [0.12.56] - 2026-03-14
 
 ### Changed

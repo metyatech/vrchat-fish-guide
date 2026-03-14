@@ -184,7 +184,7 @@ type PickerPresetSortMode = 'default' | 'ev-desc' | 'delta-desc' | 'price-asc';
 type PickerColumnSortKey = 'name' | 'price' | StatThemeKey;
 type PickerColumnSortDirection = 'asc' | 'desc';
 type PickerPriceBand = 'all' | 'free' | 'budget' | 'mid' | 'premium';
-type PickerRecommendationFilter = 'all' | 'free' | 'early' | 'endgame' | 'value' | 'big-upgrade';
+type PickerRecommendationFilter = 'free' | 'early' | 'endgame' | 'value' | 'big-upgrade';
 type PickerStatFilterInputs = Record<StatThemeKey, string>;
 type PickerActiveFilterChip = {
   id: string;
@@ -193,6 +193,13 @@ type PickerActiveFilterChip = {
 };
 
 const MULTIPLE_LOCATIONS_VALUE = '__multiple__';
+const PICKER_RECOMMENDATION_FILTERS: PickerRecommendationFilter[] = [
+  'free',
+  'early',
+  'endgame',
+  'value',
+  'big-upgrade',
+];
 
 interface PickerColumnSort {
   key: PickerColumnSortKey;
@@ -373,10 +380,19 @@ function matchesRecommendationFilter(tags: string[], filter: PickerRecommendatio
       return tags.includes('コスパ');
     case 'big-upgrade':
       return tags.includes('伸び幅大');
-    case 'all':
     default:
-      return true;
+      return false;
   }
+}
+
+function matchesRecommendationFilters(
+  tags: string[],
+  filters: PickerRecommendationFilter[],
+): boolean {
+  if (filters.length === 0) {
+    return true;
+  }
+  return filters.some((filter) => matchesRecommendationFilter(tags, filter));
 }
 
 function formatPriceBandLabel(band: PickerPriceBand): string {
@@ -407,9 +423,8 @@ function formatRecommendationFilterLabel(filter: PickerRecommendationFilter): st
       return 'おすすめ: コスパ';
     case 'big-upgrade':
       return 'おすすめ: 伸び幅大';
-    case 'all':
     default:
-      return 'おすすめ: すべて';
+      return 'おすすめ';
   }
 }
 
@@ -1471,8 +1486,12 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const [minimumStatInputs, setMinimumStatInputs] = React.useState<PickerStatFilterInputs>(
     createEmptyStatFilterInputs,
   );
-  const [recommendationFilter, setRecommendationFilter] =
-    React.useState<PickerRecommendationFilter>('all');
+  const [maximumStatInputs, setMaximumStatInputs] = React.useState<PickerStatFilterInputs>(
+    createEmptyStatFilterInputs,
+  );
+  const [selectedRecommendationFilters, setSelectedRecommendationFilters] = React.useState<
+    PickerRecommendationFilter[]
+  >([]);
   const [requiredImprovementStats, setRequiredImprovementStats] = React.useState<StatThemeKey[]>(
     [],
   );
@@ -1494,6 +1513,17 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       ),
     [minimumStatInputs],
   );
+  const maximumStatFilters = React.useMemo(
+    () =>
+      LOADOUT_STAT_COLUMN_ORDER.reduce(
+        (acc, stat) => {
+          acc[stat] = parseOptionalFilterNumber(maximumStatInputs[stat]);
+          return acc;
+        },
+        {} as Record<StatThemeKey, number | null>,
+      ),
+    [maximumStatInputs],
+  );
   const priceMin = React.useMemo(() => parseOptionalFilterNumber(priceMinInput), [priceMinInput]);
   const priceMax = React.useMemo(() => parseOptionalFilterNumber(priceMaxInput), [priceMaxInput]);
   const activeAdvancedFilterCount = React.useMemo(() => {
@@ -1505,9 +1535,12 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
       if (minimumStatFilters[stat] !== null) {
         count += 1;
       }
+      if (maximumStatFilters[stat] !== null) {
+        count += 1;
+      }
     }
     return count;
-  }, [minimumStatFilters, priceMax, priceMin, selectedLocations.length]);
+  }, [maximumStatFilters, minimumStatFilters, priceMax, priceMin, selectedLocations.length]);
   const sourceOrder = React.useMemo(
     () => new Map(items.map((item, index) => [item.id, index])),
     [items],
@@ -1547,6 +1580,16 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         : [...current, location].sort((a, b) => a.localeCompare(b, 'en')),
     );
   };
+  const toggleRecommendationFilterSelection = (filter: PickerRecommendationFilter) => {
+    setSelectedRecommendationFilters((current) =>
+      current.includes(filter)
+        ? current.filter((entry) => entry !== filter)
+        : [...current, filter].sort(
+            (a, b) =>
+              PICKER_RECOMMENDATION_FILTERS.indexOf(a) - PICKER_RECOMMENDATION_FILTERS.indexOf(b),
+          ),
+    );
+  };
   const candidateEntries = sortRankEntries(
     filteredEntries.filter((entry) => {
       if (entry.item.id === selectedId) {
@@ -1565,13 +1608,21 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         return false;
       }
       const recommendationTags = getRecommendationTags(entry, selectedEntry);
-      if (!matchesRecommendationFilter(recommendationTags, recommendationFilter)) {
+      if (!matchesRecommendationFilters(recommendationTags, selectedRecommendationFilters)) {
         return false;
       }
       if (
         LOADOUT_STAT_COLUMN_ORDER.some((stat) => {
           const minimum = minimumStatFilters[stat];
           return minimum !== null && getItemStatValue(entry.item, stat) < minimum;
+        })
+      ) {
+        return false;
+      }
+      if (
+        LOADOUT_STAT_COLUMN_ORDER.some((stat) => {
+          const maximum = maximumStatFilters[stat];
+          return maximum !== null && getItemStatValue(entry.item, stat) > maximum;
         })
       ) {
         return false;
@@ -1597,11 +1648,14 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const activeFilterChips = React.useMemo<PickerActiveFilterChip[]>(() => {
     const chips: PickerActiveFilterChip[] = [];
 
-    if (recommendationFilter !== 'all') {
+    for (const recommendationFilter of selectedRecommendationFilters) {
       chips.push({
         id: `recommendation-${recommendationFilter}`,
         label: formatRecommendationFilterLabel(recommendationFilter),
-        onRemove: () => setRecommendationFilter('all'),
+        onRemove: () =>
+          setSelectedRecommendationFilters((current) =>
+            current.filter((entry) => entry !== recommendationFilter),
+          ),
       });
     }
 
@@ -1649,13 +1703,26 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     for (const stat of LOADOUT_STAT_COLUMN_ORDER) {
       const minimum = minimumStatFilters[stat];
       if (minimum === null) {
+      } else {
+        chips.push({
+          id: `minimum-${stat}`,
+          label: `${STAT_THEME[stat].shortLabel} 最低値 ${minimum}`,
+          onRemove: () =>
+            setMinimumStatInputs((current) => ({
+              ...current,
+              [stat]: '',
+            })),
+        });
+      }
+      const maximum = maximumStatFilters[stat];
+      if (maximum === null) {
         continue;
       }
       chips.push({
-        id: `minimum-${stat}`,
-        label: `${STAT_THEME[stat].shortLabel} 最低値 ${minimum}`,
+        id: `maximum-${stat}`,
+        label: `${STAT_THEME[stat].shortLabel} 最高値 ${maximum}`,
         onRemove: () =>
-          setMinimumStatInputs((current) => ({
+          setMaximumStatInputs((current) => ({
             ...current,
             [stat]: '',
           })),
@@ -1674,10 +1741,11 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
     return chips;
   }, [
     minimumStatFilters,
+    maximumStatFilters,
     priceBand,
     priceMax,
     priceMin,
-    recommendationFilter,
+    selectedRecommendationFilters,
     requiredImprovementStats,
     selectedLocations,
     showOnlyImproved,
@@ -1827,24 +1895,29 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 <option value="price-asc">安い順</option>
               </select>
             </label>
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-              おすすめタグ
-              <select
-                value={recommendationFilter}
-                onChange={(event) =>
-                  setRecommendationFilter(event.target.value as PickerRecommendationFilter)
-                }
-                className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
-                aria-label="おすすめタグ"
-              >
-                <option value="all">すべて</option>
-                <option value="free">無料</option>
-                <option value="early">序盤向け</option>
-                <option value="endgame">終盤向け</option>
-                <option value="value">コスパ</option>
-                <option value="big-upgrade">伸び幅大</option>
-              </select>
-            </label>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+              <span>おすすめ</span>
+              {PICKER_RECOMMENDATION_FILTERS.map((filter) => {
+                const active = selectedRecommendationFilters.includes(filter);
+                const label = formatRecommendationFilterLabel(filter).replace('おすすめ: ', '');
+                return (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => toggleRecommendationFilterSelection(filter)}
+                    aria-pressed={active}
+                    aria-label={`おすすめタグ: ${label}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      active
+                        ? 'border-ocean-300 bg-ocean-100 text-ocean-800'
+                        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
               入手場所
               <select
@@ -1929,13 +2002,14 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
               <button
                 type="button"
                 onClick={() => {
-                  setRecommendationFilter('all');
+                  setSelectedRecommendationFilters([]);
                   setSelectedLocations([]);
                   setPriceBand('all');
                   setShowOnlyImproved(false);
                   setPriceMinInput('');
                   setPriceMaxInput('');
                   setMinimumStatInputs(createEmptyStatFilterInputs());
+                  setMaximumStatInputs(createEmptyStatFilterInputs());
                   setRequiredImprovementStats([]);
                 }}
                 className="ml-auto rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900"
@@ -1949,6 +2023,33 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
               data-testid="advanced-candidate-filters"
               className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3"
             >
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-600">おすすめタグを複数選ぶ</div>
+                <div className="flex flex-wrap gap-2">
+                  {PICKER_RECOMMENDATION_FILTERS.map((filter) => {
+                    const active = selectedRecommendationFilters.includes(filter);
+                    const label = formatRecommendationFilterLabel(filter).replace('おすすめ: ', '');
+                    return (
+                      <button
+                        key={`recommendation-toggle-${filter}`}
+                        type="button"
+                        onClick={() => toggleRecommendationFilterSelection(filter)}
+                        aria-pressed={active}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                          active
+                            ? 'border-ocean-300 bg-ocean-100 text-ocean-800'
+                            : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  複数選ぶと、そのどれかに当てはまる候補を残します。
+                </p>
+              </div>
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-slate-600">入手場所を複数選ぶ</div>
                 <div className="flex flex-wrap gap-2">
@@ -2007,37 +2108,66 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 {LOADOUT_STAT_COLUMN_ORDER.map((stat) => {
                   const theme = STAT_THEME[stat];
                   return (
-                    <label key={`minimum-${stat}`} className="space-y-1 text-xs font-semibold">
-                      <span style={{ color: theme.surfaceText }}>{theme.shortLabel} 最低値</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        value={minimumStatInputs[stat]}
-                        onChange={(event) =>
-                          setMinimumStatInputs((current) => ({
-                            ...current,
-                            [stat]: event.target.value,
-                          }))
-                        }
-                        placeholder="指定なし"
-                        aria-label={`${theme.shortLabel} 最低値`}
-                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
-                      />
-                    </label>
+                    <div
+                      key={`range-${stat}`}
+                      className="space-y-2 rounded-2xl border border-slate-200 bg-white px-3 py-3"
+                    >
+                      <div className="text-xs font-semibold" style={{ color: theme.surfaceText }}>
+                        {theme.shortLabel}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="space-y-1 text-[11px] font-semibold text-slate-500">
+                          <span>最低値</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={minimumStatInputs[stat]}
+                            onChange={(event) =>
+                              setMinimumStatInputs((current) => ({
+                                ...current,
+                                [stat]: event.target.value,
+                              }))
+                            }
+                            placeholder="なし"
+                            aria-label={`${theme.shortLabel} 最低値`}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                          />
+                        </label>
+                        <label className="space-y-1 text-[11px] font-semibold text-slate-500">
+                          <span>最高値</span>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={maximumStatInputs[stat]}
+                            onChange={(event) =>
+                              setMaximumStatInputs((current) => ({
+                                ...current,
+                                [stat]: event.target.value,
+                              }))
+                            }
+                            placeholder="なし"
+                            aria-label={`${theme.shortLabel} 最高値`}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 placeholder-slate-400 focus:border-ocean-500 focus:outline-none focus:ring-2 focus:ring-ocean-500/25"
+                          />
+                        </label>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs leading-relaxed text-slate-500">
-                  価格やステータスの最低値で、見たい候補だけに絞れます。
+                  価格やステータスの上下限で、見たい候補だけに絞れます。
                 </p>
                 <button
                   type="button"
                   onClick={() => {
+                    setSelectedRecommendationFilters([]);
                     setSelectedLocations([]);
                     setPriceMinInput('');
                     setPriceMaxInput('');
                     setMinimumStatInputs(createEmptyStatFilterInputs());
+                    setMaximumStatInputs(createEmptyStatFilterInputs());
                   }}
                   className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900"
                 >

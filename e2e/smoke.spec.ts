@@ -442,16 +442,20 @@ test('candidate picker supports recommendation-tag filters and stat-improvement 
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
-  await page.getByLabel('おすすめタグ').selectOption('endgame');
+  await page.getByRole('button', { name: 'おすすめタグ: 終盤向け' }).click();
   const endgameRows = pickerPanel.locator('[data-testid="picker-option-row"]');
   await expect(endgameRows.first()).toContainText('終盤向け');
+  await page.getByRole('button', { name: 'おすすめタグ: コスパ' }).click();
+  await expect(page.getByTestId('active-filter-chips')).toContainText('おすすめ: 終盤向け');
+  await expect(page.getByTestId('active-filter-chips')).toContainText('おすすめ: コスパ');
+  await expect(pickerPanel).toContainText('Sunleaf Rod');
 
   await page.getByRole('button', { name: 'Lk が上がる候補だけを表示' }).click();
-  await expect(pickerPanel).not.toContainText('Sunleaf Rod');
+  await expect(pickerPanel).toContainText('Sunleaf Rod');
   await expect(pickerPanel).toContainText('Alien Rod');
 });
 
-test('candidate picker supports advanced price and stat minimum filters', async ({ page }) => {
+test('candidate picker supports advanced price and stat range filters', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
@@ -468,6 +472,11 @@ test('candidate picker supports advanced price and stat minimum filters', async 
   await advancedFilters.getByLabel('Price 最高値').fill('');
   await advancedFilters.getByLabel('Str 最低値').fill('50');
   await expect(pickerPanel).toContainText('Metallic Rod');
+  await expect(pickerPanel).not.toContainText('Sunleaf Rod');
+
+  await advancedFilters.getByLabel('Str 最低値').fill('');
+  await advancedFilters.getByLabel('Lk 最高値').fill('0');
+  await expect(pickerPanel).toContainText('Toy Rod');
   await expect(pickerPanel).not.toContainText('Sunleaf Rod');
 });
 
