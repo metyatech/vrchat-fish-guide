@@ -140,8 +140,6 @@ describe('gear model helpers', () => {
         bobberId: 'lucky-bobber',
         enchantId: 'money-maker',
       },
-      observedAvgCatchTimeSec: 60,
-      observedMissRate: 0.1,
     });
 
     expect(model.totalStats.luck).toBe(170);
@@ -150,10 +148,9 @@ describe('gear model helpers', () => {
     expect(model.directCatchMultiplier).toBeCloseTo(1, 5);
   });
 
-  it('derives estimated time and miss rate from Attraction + Strength + Expertise', () => {
+  it('derives timing and miss rate from Attraction + Strength + Expertise', () => {
     const model = deriveModelSummary({
       ...getDefaultParams('coconut-bay'),
-      timeModelMode: 'estimated',
       loadout: {
         rodId: 'metallic-rod',
         lineId: 'diamond-line',
@@ -225,18 +222,14 @@ describe('calculateDistribution', () => {
     expect(result.totalFishProbability).toBeCloseTo(1 - result.model.effectiveMissRate, 5);
   });
 
-  it('normalizes observed and baseline params', () => {
+  it('normalizes baseline params', () => {
     const result = calculateDistribution({
       ...defaultParams,
-      observedAvgCatchTimeSec: -10,
-      observedMissRate: 99,
       baseBiteTimeSec: -1,
       baseMinigameTimeSec: 999,
       baseMissRate: 99,
     });
 
-    expect(result.params.observedAvgCatchTimeSec).toBe(1);
-    expect(result.params.observedMissRate).toBe(0.95);
     expect(result.params.baseBiteTimeSec).toBe(1);
     expect(result.params.baseMinigameTimeSec).toBe(300);
     expect(result.params.baseMissRate).toBe(0.95);
@@ -327,7 +320,6 @@ describe('calculateDistribution', () => {
 
     const result = calculateDistribution({
       ...defaultParams,
-      observedMissRate: 0,
       customRarityWeights: { [presentTier!]: 0 },
     });
 
@@ -627,9 +619,6 @@ describe('getDefaultParams', () => {
   it('returns sane defaults', () => {
     const params = getDefaultParams();
 
-    expect(params.observedAvgCatchTimeSec).toBeGreaterThan(0);
-    expect(params.observedMissRate).toBeGreaterThanOrEqual(0);
-    expect(params.observedMissRate).toBeLessThan(1);
     expect(params.baseBiteTimeSec).toBeGreaterThan(0);
     expect(params.baseMinigameTimeSec).toBeGreaterThan(0);
     expect(params.baseMissRate).toBeGreaterThanOrEqual(0);
@@ -638,5 +627,176 @@ describe('getDefaultParams', () => {
     expect(params.hookReactionTimeSec).toBeGreaterThanOrEqual(0);
     expect(params.playerMistakeRate).toBeGreaterThanOrEqual(0);
     expect(params.loadout.rodId).toBeTruthy();
+  });
+});
+
+describe('auto-area and auto-averaging semantics', () => {
+  it('best-area selects the area with highest EV/hour', () => {
+    const fixedParams = { timeOfDay: 'day' as const, weatherType: 'clear' as const };
+
+    const areaResults = FISHING_AREAS.map((area) => ({
+      areaId: area.id,
+      result: calculateDistribution({ ...getDefaultParams(area.id), ...fixedParams }),
+    }));
+    const bestAreaResult = calculateDistribution({
+      ...getDefaultParams('best-area'),
+      ...fixedParams,
+    });
+    const manualBest = areaResults.reduce((best, current) =>
+      current.result.expectedValuePerHour > best.result.expectedValuePerHour ? current : best,
+    );
+
+    expect(bestAreaResult.expectedValuePerHour).toBeCloseTo(
+      manualBest.result.expectedValuePerHour,
+      5,
+    );
+    expect(bestAreaResult.model.autoSelectedAreaId).toBe(manualBest.areaId);
+  });
+
+  it('any time/weather uses equal weights across all 20 time×weather scenarios', () => {
+    const specificArea = 'coconut-bay';
+    const anyResult = calculateDistribution({
+      ...getDefaultParams(specificArea),
+      timeOfDay: 'any',
+      weatherType: 'any',
+    });
+
+    const times = ['morning', 'day', 'evening', 'night'] as const;
+    const weathers = ['clear', 'rainy', 'moonrain', 'stormy', 'foggy'] as const;
+    let totalEv = 0;
+    for (const t of times) {
+      for (const w of weathers) {
+        const r = calculateDistribution({
+          ...getDefaultParams(specificArea),
+          timeOfDay: t,
+          weatherType: w,
+        });
+        totalEv += r.expectedValuePerHour;
+      }
+    }
+    const manualAvg = totalEv / 20;
+    expect(anyResult.expectedValuePerHour).toBeCloseTo(manualAvg, 1);
+  });
+
+  it('any time-of-day uses equal weight across 4 time states', () => {
+    const result = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      timeOfDay: 'any',
+      weatherType: 'clear',
+    });
+    const times = ['morning', 'day', 'evening', 'night'] as const;
+    let totalEv = 0;
+    for (const t of times) {
+      const r = calculateDistribution({
+        ...getDefaultParams('coconut-bay'),
+        timeOfDay: t,
+        weatherType: 'clear',
+      });
+      totalEv += r.expectedValuePerHour;
+    }
+    expect(result.expectedValuePerHour).toBeCloseTo(totalEv / 4, 1);
+  });
+
+  it('any weather uses equal weight across 5 weather states', () => {
+    const result = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      timeOfDay: 'day',
+      weatherType: 'any',
+    });
+    const weathers = ['clear', 'rainy', 'moonrain', 'stormy', 'foggy'] as const;
+    let totalEv = 0;
+    for (const w of weathers) {
+      const r = calculateDistribution({
+        ...getDefaultParams('coconut-bay'),
+        timeOfDay: 'day',
+        weatherType: w,
+      });
+      totalEv += r.expectedValuePerHour;
+    }
+    expect(result.expectedValuePerHour).toBeCloseTo(totalEv / 5, 1);
+  });
+
+  it('best-area warns when its auto-selection is based on lower-bound 0G placeholders', () => {
+    const timeStates = ['any', 'morning', 'day', 'evening', 'night'] as const;
+    const weatherStates = ['any', 'clear', 'rainy', 'moonrain', 'stormy', 'foggy'] as const;
+
+    let scenarioWithMissingPrices: ReturnType<typeof calculateDistribution> | undefined;
+
+    for (const timeOfDay of timeStates) {
+      for (const weatherType of weatherStates) {
+        const candidate = calculateDistribution({
+          ...getDefaultParams('best-area'),
+          timeOfDay,
+          weatherType,
+        });
+        if (candidate.missingPriceFish.length > 0) {
+          scenarioWithMissingPrices = candidate;
+          break;
+        }
+      }
+      if (scenarioWithMissingPrices) break;
+    }
+
+    expect(scenarioWithMissingPrices).toBeDefined();
+    expect(
+      scenarioWithMissingPrices!.warnings.some((warning) =>
+        warning.includes('価格不明の魚を 0G として扱った順位'),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('Attraction Rate effect on EV/hour', () => {
+  it('higher Attraction Rate reduces effective bite wait time', () => {
+    const baseModel = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      loadout: {
+        rodId: 'stick-and-string',
+        lineId: 'basic-line',
+        bobberId: 'basic-bobber',
+        enchantId: 'no-enchant',
+      },
+    });
+    const attractModel = deriveModelSummary({
+      ...getDefaultParams('coconut-bay'),
+      loadout: {
+        rodId: 'speedy-rod',
+        lineId: 'aquamarine-line',
+        bobberId: 'paulie-s-bobber',
+        enchantId: 'messenger-of-the-heavens',
+      },
+    });
+    if ((attractModel.totalStats.attractionPct ?? 0) > (baseModel.totalStats.attractionPct ?? 0)) {
+      expect(attractModel.effectiveBiteTimeSec).toBeDefined();
+      expect(baseModel.effectiveBiteTimeSec).toBeDefined();
+      expect(attractModel.effectiveBiteTimeSec!).toBeLessThan(baseModel.effectiveBiteTimeSec!);
+    }
+  });
+
+  it('EV/hour uses the derived catch cycle time, not only EV/catch', () => {
+    const result = calculateDistribution({
+      ...getDefaultParams('coconut-bay'),
+      timeOfDay: 'day',
+      weatherType: 'clear',
+      baseBiteTimeSec: 30,
+      loadout: {
+        rodId: 'speedy-rod',
+        lineId: 'aquamarine-line',
+        bobberId: 'paulie-s-bobber',
+        enchantId: 'messenger-of-the-heavens',
+      },
+    });
+    const catchesPerHour = 3600 / result.model.effectiveAvgCatchTimeSec;
+
+    expect(result.expectedValuePerCatch).toBeGreaterThan(0);
+    expect(result.expectedValuePerHour).toBeCloseTo(
+      result.expectedValuePerCatch * catchesPerHour,
+      5,
+    );
+  });
+
+  it('experimentalNotes mentions EV/hour effect for Attraction Rate', () => {
+    const model = deriveModelSummary(getDefaultParams('coconut-bay'));
+    expect(model.experimentalNotes.some((note) => note.includes('時間あたり期待値'))).toBe(true);
   });
 });

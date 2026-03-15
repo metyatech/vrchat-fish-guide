@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { getDefaultParams } from '@/lib/calculator';
-import { optimizeFullBuild, rankAllSlots, rankSlot } from '@/lib/ranking';
+import { optimizeFullBuild, optimizeFullBuildAsync, rankAllSlots, rankSlot } from '@/lib/ranking';
 
 describe('rankSlot', () => {
   const baseParams = {
@@ -175,4 +175,62 @@ describe('optimizeFullBuild', () => {
     // But all combinations were still searched
     expect(result.searchedCount).toBe(result.totalCombinationSpace);
   });
+
+  it('topNResults=0 returns no builds but still evaluates the full search space', () => {
+    const result = optimizeFullBuild(baseParams, 0);
+    expect(result.topBuilds).toEqual([]);
+    expect(result.searchedCount).toBe(result.totalCombinationSpace);
+  });
+});
+
+describe('optimizeFullBuildAsync', () => {
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
+
+  it('returns the same top builds as the sync version', async () => {
+    const syncResult = optimizeFullBuild(baseParams, 5);
+    const asyncResult = await optimizeFullBuildAsync(baseParams, 5);
+    expect(asyncResult).not.toBeNull();
+    expect(asyncResult!.topBuilds).toHaveLength(syncResult.topBuilds.length);
+    for (let i = 0; i < syncResult.topBuilds.length; i++) {
+      expect(asyncResult!.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        syncResult.topBuilds[i].expectedValuePerHour,
+        5,
+      );
+      expect(asyncResult!.topBuilds[i].loadout).toEqual(syncResult.topBuilds[i].loadout);
+    }
+  }, 30000);
+
+  it('returns null when aborted before starting', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const result = await optimizeFullBuildAsync(baseParams, 5, controller.signal);
+    expect(result).toBeNull();
+  });
+
+  it('returns null or a valid result when aborted mid-flight (no error thrown)', async () => {
+    const controller = new AbortController();
+    const promise = optimizeFullBuildAsync(baseParams, 5, controller.signal);
+    setTimeout(() => controller.abort(), 0);
+    const result = await promise;
+    expect(result === null || typeof result === 'object').toBe(true);
+  }, 30000);
+
+  it('searchedCount and totalCombinationSpace match sync version', async () => {
+    const syncResult = optimizeFullBuild(baseParams, 5);
+    const asyncResult = await optimizeFullBuildAsync(baseParams, 5);
+    expect(asyncResult).not.toBeNull();
+    expect(asyncResult!.searchedCount).toBe(syncResult.searchedCount);
+    expect(asyncResult!.totalCombinationSpace).toBe(syncResult.totalCombinationSpace);
+  }, 30000);
+
+  it('returns no builds when topNResults=0', async () => {
+    const result = await optimizeFullBuildAsync(baseParams, 0);
+    expect(result).not.toBeNull();
+    expect(result!.topBuilds).toEqual([]);
+    expect(result!.searchedCount).toBe(result!.totalCombinationSpace);
+  }, 30000);
 });
