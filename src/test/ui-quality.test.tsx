@@ -245,15 +245,15 @@ describe('UI quality – overflow and wrapping prevention', () => {
     const enchantButton = within(selector).getByTestId('compare-slot-button-enchant');
 
     expect(rodButton).toHaveAttribute('aria-pressed', 'true');
-    expect(rodButton).toHaveTextContent('選択中');
     expect(rodButton).toHaveAttribute('data-state', 'selected');
+    expect(rodButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
     expect(lineButton).toHaveAttribute('aria-pressed', 'false');
-    expect(lineButton).toHaveTextContent('未選択');
     expect(lineButton).toHaveAttribute('data-state', 'idle');
+    expect(lineButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
     expect(bobberButton).toHaveAttribute('aria-pressed', 'false');
-    expect(bobberButton).toHaveTextContent('未選択');
+    expect(bobberButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
     expect(enchantButton).toHaveAttribute('aria-pressed', 'false');
-    expect(enchantButton).toHaveTextContent('未選択');
+    expect(enchantButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
     expect(
       screen.queryByRole('button', { name: '全部まとめて入れ替える' }),
     ).not.toBeInTheDocument();
@@ -271,12 +271,24 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(
       screen.getByText('Rod + Line を変え、残りのスロットは現在の装備で固定します。'),
     ).toBeInTheDocument();
-    expect(within(selector).getByTestId('compare-slot-button-line')).toHaveTextContent('選択中');
-    expect(within(selector).getByTestId('compare-slot-button-rod')).toHaveTextContent('選択中');
+    expect(
+      within(selector)
+        .getByTestId('compare-slot-button-line')
+        .querySelector('[data-slot-indicator="selected"]'),
+    ).not.toBeNull();
+    expect(
+      within(selector)
+        .getByTestId('compare-slot-button-rod')
+        .querySelector('[data-slot-indicator="selected"]'),
+    ).not.toBeNull();
 
     fireEvent.click(within(selector).getByTestId('compare-slot-button-rod'));
 
     expect(screen.getByText('Line の候補一覧')).toBeInTheDocument();
-    expect(within(selector).getByTestId('compare-slot-button-rod')).toHaveTextContent('未選択');
+    expect(
+      within(selector)
+        .getByTestId('compare-slot-button-rod')
+        .querySelector('[data-slot-indicator="idle"]'),
+    ).not.toBeNull();
   });
 });

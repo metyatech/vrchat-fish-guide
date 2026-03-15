@@ -50,8 +50,11 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /詳細設定/ })).toBeVisible();
   await expect(page.getByTestId('compare-slot-button-rod')).toBeVisible();
-  await expect(page.getByTestId('compare-slot-button-rod')).toContainText('選択中');
-  await expect(page.getByTestId('compare-slot-button-line')).toContainText('未選択');
+  await expect(page.getByTestId('compare-slot-button-rod')).toHaveAttribute(
+    'data-state',
+    'selected',
+  );
+  await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute('data-state', 'idle');
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
   const totalStatsSection = page.getByTestId('total-stats-section');

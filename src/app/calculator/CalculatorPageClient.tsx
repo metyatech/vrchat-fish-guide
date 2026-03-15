@@ -410,13 +410,29 @@ export function CalculatorPageClient() {
                     <span>{SLOT_LABELS[slot]}</span>
                   </span>
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-[0.16em] ${
+                    aria-hidden="true"
+                    data-slot-indicator={isSelected ? 'selected' : 'idle'}
+                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${
                       isSelected
-                        ? 'border-white/35 bg-white/15 text-white'
-                        : 'border-slate-200 bg-slate-100 text-slate-500'
+                        ? 'border-white/35 bg-white/15 text-white shadow-inner'
+                        : 'border-slate-300 bg-slate-50 text-slate-300'
                     }`}
                   >
-                    {isSelected ? '選択中' : '未選択'}
+                    {isSelected ? (
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        className="h-3.5 w-3.5"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M4.5 10.5 8.2 14 15.5 6.5" />
+                      </svg>
+                    ) : (
+                      <span className="h-2.5 w-2.5 rounded-full border-2 border-current" />
+                    )}
                   </span>
                 </button>
               );
