@@ -113,6 +113,8 @@ const RARITY_ESCAPE_FACTOR: Partial<Record<Rarity, number>> = {
   exotic: 2.25,
 };
 
+type CalculatorRarity = (typeof CALCULATOR_RARITIES)[number];
+
 /**
  * Base weight percentile when Big Catch stat is zero.
  *
@@ -367,23 +369,34 @@ export function applyLuckScaling(
   return result;
 }
 
-export function getEffectiveRarityWeights(
-  fishPool: FishEntry[],
+function buildBaseRarityWeights(
+  availableRarities: readonly CalculatorRarity[],
   customRarityWeights?: Partial<Record<Rarity, number>>,
-  luckMultiplier = 1,
 ): Partial<Record<Rarity, number>> {
   const weights: Partial<Record<Rarity, number>> = {};
 
-  for (const rarity of CALCULATOR_RARITIES) {
-    const hasFishInTier = fishPool.some((fish) => fish.rarity === rarity);
-    if (!hasFishInTier) continue;
+  for (const rarity of availableRarities) {
     weights[rarity] = Math.max(
       0,
       customRarityWeights?.[rarity] ?? DEFAULT_RARITY_WEIGHTS[rarity] ?? 0,
     );
   }
 
-  return applyLuckScaling(weights, luckMultiplier);
+  return weights;
+}
+
+export function getEffectiveRarityWeights(
+  fishPool: FishEntry[],
+  customRarityWeights?: Partial<Record<Rarity, number>>,
+  luckMultiplier = 1,
+): Partial<Record<Rarity, number>> {
+  const availableRarities = CALCULATOR_RARITIES.filter((rarity) =>
+    fishPool.some((fish) => fish.rarity === rarity),
+  );
+  return applyLuckScaling(
+    buildBaseRarityWeights(availableRarities, customRarityWeights),
+    luckMultiplier,
+  );
 }
 
 function getDirectMultipliers(enchant?: EnchantItem) {
@@ -411,6 +424,27 @@ function getDirectMultipliers(enchant?: EnchantItem) {
   }
 
   return { directValueMultiplier, directCatchMultiplier, supportedNotes, unsupportedNotes };
+}
+
+function getDirectMultiplierValues(enchant?: EnchantItem) {
+  let directValueMultiplier = 1;
+  let directCatchMultiplier = 1;
+
+  if (!enchant) {
+    return { directValueMultiplier, directCatchMultiplier };
+  }
+
+  for (const effect of enchant.effects) {
+    if (effect.type === 'value-multiplier') {
+      directValueMultiplier *= effect.value ?? 1;
+      continue;
+    }
+    if (effect.type === 'extra-catch-multiplier') {
+      directCatchMultiplier *= effect.value ?? 1;
+    }
+  }
+
+  return { directValueMultiplier, directCatchMultiplier };
 }
 
 interface ConditionScenario {
@@ -441,6 +475,45 @@ function getAreaCandidateIds(areaId: string): string[] {
     return FISHING_AREAS.map((area) => area.id);
   }
   return [areaId];
+}
+
+interface ScenarioStaticPool {
+  groups: Array<{
+    rarity: CalculatorRarity;
+    fish: FishEntry[];
+  }>;
+  availableRarities: CalculatorRarity[];
+}
+
+const SCENARIO_STATIC_POOL_CACHE = new Map<string, ScenarioStaticPool>();
+
+function getScenarioStaticPool(
+  areaId: string,
+  timeOfDay: Exclude<TimeOfDay, 'any'>,
+  weatherType: Exclude<WeatherType, 'any'>,
+): ScenarioStaticPool {
+  const cacheKey = `${areaId}|${timeOfDay}|${weatherType}`;
+  const cached = SCENARIO_STATIC_POOL_CACHE.get(cacheKey);
+  if (cached) return cached;
+
+  const fishByRarity = new Map<CalculatorRarity, FishEntry[]>();
+  for (const fish of getEligibleFish(areaId, timeOfDay, weatherType)) {
+    if (!isCalculatorRarity(fish.rarity)) continue;
+    const group = fishByRarity.get(fish.rarity) ?? [];
+    group.push(fish);
+    fishByRarity.set(fish.rarity, group);
+  }
+
+  const groups = CALCULATOR_RARITIES.flatMap((rarity) => {
+    const fish = fishByRarity.get(rarity);
+    return fish ? [{ rarity, fish }] : [];
+  });
+  const pool = {
+    groups,
+    availableRarities: groups.map((group) => group.rarity),
+  };
+  SCENARIO_STATIC_POOL_CACHE.set(cacheKey, pool);
+  return pool;
 }
 
 function getScenarioEnchantState(
@@ -548,6 +621,69 @@ function deriveScenarioModel(
     supportedNotes,
     experimentalNotes,
     unsupportedNotes,
+  };
+}
+
+interface OptimizerScenarioModel {
+  totalStats: StatBlock;
+  effectiveLuckMultiplier: number;
+  effectiveMissRate: number;
+  effectiveBiteTimeSec: number;
+  effectiveMinigameTimeSec: number;
+  effectiveCastTimeSec: number;
+  effectiveHookReactionTimeSec: number;
+  weightPercentile: number;
+  directValueMultiplier: number;
+  directCatchMultiplier: number;
+  modifierEvFactor: number;
+}
+
+function deriveOptimizerScenarioModel(
+  normalizedParams: CalculatorParams,
+  selectedLoadout: ReturnType<typeof getSelectedLoadout>,
+  modifierEvFactor: number,
+  timeOfDay: Exclude<TimeOfDay, 'any'>,
+  weatherType: Exclude<WeatherType, 'any'>,
+): OptimizerScenarioModel {
+  const { rod, line, bobber, enchant } = selectedLoadout;
+  const enchantActivity = resolveEnchantActivity(enchant, timeOfDay, weatherType);
+
+  let totalStats = { ...EMPTY_STATS };
+  totalStats = addStats(totalStats, rod);
+  totalStats = addStats(totalStats, line);
+  totalStats = addStats(totalStats, bobber);
+  if (enchantActivity.active) {
+    totalStats = addStats(totalStats, enchant);
+  }
+
+  const direct = getDirectMultiplierValues(enchantActivity.active ? enchant : undefined);
+  const effectiveLuckMultiplier = clamp(1 + totalStats.luck / 100, 0.1, 5);
+  const weightPercentile = clamp(
+    BASE_WEIGHT_PERCENTILE + totalStats.bigCatch / BIG_CATCH_SENSITIVITY,
+    0.05,
+    0.99,
+  );
+  const biteScale = scaleFromScore(totalStats.attractionPct, 100, 0.2, 4);
+  const controlScore = totalStats.strength + totalStats.expertise;
+  const minigameScale = scaleFromScore(controlScore, 200, 0.3, 3);
+  const missScale = scaleFromScore(controlScore, 250, 0.1, 3);
+
+  return {
+    totalStats,
+    effectiveLuckMultiplier,
+    effectiveMissRate: clamp(
+      normalizedParams.baseMissRate * missScale + normalizedParams.playerMistakeRate,
+      0,
+      0.95,
+    ),
+    effectiveBiteTimeSec: normalizedParams.baseBiteTimeSec * biteScale,
+    effectiveMinigameTimeSec: normalizedParams.baseMinigameTimeSec * minigameScale,
+    effectiveCastTimeSec: normalizedParams.castTimeSec,
+    effectiveHookReactionTimeSec: normalizedParams.hookReactionTimeSec,
+    weightPercentile,
+    directValueMultiplier: direct.directValueMultiplier,
+    directCatchMultiplier: direct.directCatchMultiplier,
+    modifierEvFactor,
   };
 }
 
@@ -721,6 +857,37 @@ function getModeledPrice(fish: FishEntry, model: DerivedModelSummary): number | 
   return basePrice * model.directValueMultiplier;
 }
 
+function getOptimizerBasePrice(
+  fish: FishEntry,
+  weightPercentile: number,
+  maxWeightKg: number,
+): number {
+  const midPrice = getMidPrice(fish);
+  if (midPrice === undefined) return 0;
+
+  if (
+    fish.priceFloor === undefined ||
+    fish.priceCeiling === undefined ||
+    fish.minWeightKg === undefined ||
+    fish.maxWeightKg === undefined ||
+    fish.maxWeightKg <= fish.minWeightKg
+  ) {
+    return midPrice;
+  }
+
+  const effectiveMaxWeight = Math.max(
+    fish.minWeightKg,
+    Math.min(fish.maxWeightKg, maxWeightKg || fish.maxWeightKg),
+  );
+  const capPercentile = clamp(
+    (effectiveMaxWeight - fish.minWeightKg) / (fish.maxWeightKg - fish.minWeightKg),
+    0,
+    1,
+  );
+  const effectivePercentile = Math.min(weightPercentile, capPercentile);
+  return fish.priceFloor + (fish.priceCeiling - fish.priceFloor) * effectivePercentile;
+}
+
 interface AreaConditionDistribution {
   areaId: string;
   timeOfDay: Exclude<TimeOfDay, 'any'>;
@@ -733,6 +900,104 @@ interface AreaConditionDistribution {
   missingPriceFish: FishEntry[];
   effectiveRarityWeights: Partial<Record<Rarity, number>>;
   warnings: string[];
+}
+
+export interface OptimizerMetrics {
+  expectedValuePerCatch: number;
+  expectedValuePerHour: number;
+  totalFishProbability: number;
+}
+
+interface AreaConditionOptimizerMetrics extends OptimizerMetrics {
+  hasFish: boolean;
+}
+
+function calculateAreaConditionOptimizerMetrics(
+  customRarityWeights: CalculatorParams['customRarityWeights'],
+  model: OptimizerScenarioModel,
+  areaId: string,
+  timeOfDay: Exclude<TimeOfDay, 'any'>,
+  weatherType: Exclude<WeatherType, 'any'>,
+): AreaConditionOptimizerMetrics {
+  const pool = getScenarioStaticPool(areaId, timeOfDay, weatherType);
+  if (pool.groups.length === 0) {
+    return {
+      expectedValuePerCatch: 0,
+      expectedValuePerHour: 0,
+      totalFishProbability: 0,
+      hasFish: false,
+    };
+  }
+
+  const effectiveRarityWeights = applyLuckScaling(
+    buildBaseRarityWeights(pool.availableRarities, customRarityWeights),
+    model.effectiveLuckMultiplier,
+  );
+  const totalRarityWeight = Object.values(effectiveRarityWeights).reduce(
+    (sum, weight) => sum + (weight ?? 0),
+    0,
+  );
+
+  if (totalRarityWeight <= 0) {
+    return {
+      expectedValuePerCatch: 0,
+      expectedValuePerHour: 0,
+      totalFishProbability: 0,
+      hasFish: true,
+    };
+  }
+
+  const effectiveCastTimeSec = model.effectiveCastTimeSec;
+  const effectiveBiteTimeSec = model.effectiveBiteTimeSec;
+  const effectiveHookReactionTimeSec = model.effectiveHookReactionTimeSec;
+  const valueMultiplier =
+    model.directValueMultiplier * model.directCatchMultiplier * model.modifierEvFactor;
+
+  let expectedValuePerCatch = 0;
+  let expectedMinigameTimeSec = 0;
+  let totalFishProbability = 0;
+
+  for (const group of pool.groups) {
+    const tierWeight = effectiveRarityWeights[group.rarity] ?? 0;
+    if (tierWeight <= 0) continue;
+
+    const tierEncounterProbability = tierWeight / totalRarityWeight;
+    const rarityEscapeFactor = RARITY_ESCAPE_FACTOR[group.rarity] ?? 1;
+    const rarityMinigameFactor = RARITY_MINIGAME_FACTOR[group.rarity] ?? 1;
+    const successRate = clamp(1 - model.effectiveMissRate * rarityEscapeFactor, 0.02, 1);
+
+    expectedMinigameTimeSec +=
+      tierEncounterProbability * (model.effectiveMinigameTimeSec ?? 0) * rarityMinigameFactor;
+    totalFishProbability += tierEncounterProbability * successRate;
+
+    const perFishEncounterProbability = tierEncounterProbability / group.fish.length;
+    let totalBasePrice = 0;
+
+    for (const fish of group.fish) {
+      totalBasePrice += getOptimizerBasePrice(
+        fish,
+        model.weightPercentile,
+        model.totalStats.maxWeightKg,
+      );
+    }
+
+    expectedValuePerCatch +=
+      perFishEncounterProbability * successRate * totalBasePrice * valueMultiplier;
+  }
+
+  const expectedAttemptTimeSec =
+    effectiveCastTimeSec +
+    effectiveBiteTimeSec +
+    effectiveHookReactionTimeSec +
+    expectedMinigameTimeSec;
+  const catchesPerHour = 3600 / Math.max(1, expectedAttemptTimeSec);
+
+  return {
+    expectedValuePerCatch,
+    expectedValuePerHour: expectedValuePerCatch * catchesPerHour,
+    totalFishProbability,
+    hasFish: true,
+  };
 }
 
 function calculateAreaConditionDistribution(
@@ -1048,6 +1313,82 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
     effectiveRarityWeights: bestAreaResult.effectiveRarityWeights,
     warnings: Array.from(new Set(warnings)),
   };
+}
+
+export function calculateOptimizerMetrics(params: CalculatorParams): OptimizerMetrics {
+  const normalizedParams = normalizeParams(params);
+  const selectedLoadout = getSelectedLoadout(normalizedParams.loadout);
+  const modifierEvFactor = normalizedParams.modifierAssumptions.includeModifiers
+    ? computeModifierEvFactor(normalizedParams.modifierAssumptions.assumeCursedToBlessed)
+    : 1.0;
+  const areaCandidates = getAreaCandidateIds(normalizedParams.areaId);
+  const conditionScenarios = getConditionScenarios(
+    normalizedParams.timeOfDay,
+    normalizedParams.weatherType,
+  );
+  const areaMetricsMap = new Map<
+    string,
+    OptimizerMetrics & {
+      hasFish: boolean;
+    }
+  >(
+    areaCandidates.map((areaId) => [
+      areaId,
+      {
+        expectedValuePerCatch: 0,
+        expectedValuePerHour: 0,
+        totalFishProbability: 0,
+        hasFish: false,
+      },
+    ]),
+  );
+
+  for (const scenario of conditionScenarios) {
+    const scenarioModel = deriveOptimizerScenarioModel(
+      normalizedParams,
+      selectedLoadout,
+      modifierEvFactor,
+      scenario.timeOfDay,
+      scenario.weatherType,
+    );
+
+    for (const areaId of areaCandidates) {
+      const metrics = calculateAreaConditionOptimizerMetrics(
+        normalizedParams.customRarityWeights,
+        scenarioModel,
+        areaId,
+        scenario.timeOfDay,
+        scenario.weatherType,
+      );
+      const areaMetrics = areaMetricsMap.get(areaId);
+      if (!areaMetrics) continue;
+
+      areaMetrics.hasFish = areaMetrics.hasFish || metrics.hasFish;
+      areaMetrics.expectedValuePerCatch += metrics.expectedValuePerCatch * scenario.weight;
+      areaMetrics.expectedValuePerHour += metrics.expectedValuePerHour * scenario.weight;
+      areaMetrics.totalFishProbability += metrics.totalFishProbability * scenario.weight;
+    }
+  }
+
+  let bestAreaMetrics: OptimizerMetrics | null = null;
+  for (const metrics of areaMetricsMap.values()) {
+    if (!metrics.hasFish) continue;
+    if (!bestAreaMetrics || metrics.expectedValuePerHour > bestAreaMetrics.expectedValuePerHour) {
+      bestAreaMetrics = {
+        expectedValuePerCatch: metrics.expectedValuePerCatch,
+        expectedValuePerHour: metrics.expectedValuePerHour,
+        totalFishProbability: metrics.totalFishProbability,
+      };
+    }
+  }
+
+  return (
+    bestAreaMetrics ?? {
+      expectedValuePerCatch: 0,
+      expectedValuePerHour: 0,
+      totalFishProbability: 0,
+    }
+  );
 }
 
 export function formatCurrency(value: number): string {

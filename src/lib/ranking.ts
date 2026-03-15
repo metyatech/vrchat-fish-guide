@@ -4,18 +4,20 @@
  * Per-slot: sweep all available items in a single equipment slot while keeping
  * other slots fixed. Returns items ranked by expectedValuePerHour descending.
  *
- * Full-build optimizer: exact exhaustive search over the full equipment space.
- *   Evaluates all rod × line × bobber × enchant combinations
- *   (15 × 8 × 8 × 43 = 41,280) and returns the top-N builds by EV/hour.
- *   Benchmarked at ~194 ms in Node.
+ * Full-build optimizer: exact top-N search over the full equipment space.
+ *   Before evaluating, the optimizer drops rods / lines / bobbers that are
+ *   strictly dominated on every numeric stat, which cannot change the EV/hour
+ *   ranking because those items can never outperform their dominator.
+ *   The remaining search still returns the exact top-N builds by EV/hour.
  *
- *   optimizeFullBuildAsync: same exhaustive semantics, non-blocking — yields to
- *   the main thread once per rod iteration so the browser stays responsive.
+ *   optimizeFullBuildAsync: same exact semantics, non-blocking — yields to
+ *   the main thread between partial chunks so the browser stays responsive
+ *   while provisional top builds stream into the UI.
  */
 
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { CalculatorParams, EnchantItem, EquipmentItem, EquipmentLoadout } from '@/types';
-import { calculateDistribution } from '@/lib/calculator';
+import { calculateDistribution, calculateOptimizerMetrics } from '@/lib/calculator';
 
 export type RankSlot = 'rod' | 'line' | 'bobber' | 'enchant';
 
@@ -33,6 +35,34 @@ const SLOT_DATA: Record<RankSlot, (EquipmentItem | EnchantItem)[]> = {
   bobber: BOBBERS,
   enchant: ENCHANTS,
 };
+
+const DOMINANCE_KEYS = [
+  'luck',
+  'strength',
+  'expertise',
+  'attractionPct',
+  'bigCatch',
+  'maxWeightKg',
+] as const;
+
+function dominates(a: EquipmentItem, b: EquipmentItem): boolean {
+  return (
+    DOMINANCE_KEYS.every((key) => a[key] >= b[key]) && DOMINANCE_KEYS.some((key) => a[key] > b[key])
+  );
+}
+
+function pruneDominatedEquipment(items: readonly EquipmentItem[]): EquipmentItem[] {
+  return items.filter(
+    (candidate) => !items.some((other) => other.id !== candidate.id && dominates(other, candidate)),
+  );
+}
+
+const OPTIMIZER_RODS = pruneDominatedEquipment(RODS);
+const OPTIMIZER_LINES = pruneDominatedEquipment(LINES);
+const OPTIMIZER_BOBBERS = pruneDominatedEquipment(BOBBERS);
+const TOTAL_COMBINATION_SPACE =
+  OPTIMIZER_RODS.length * OPTIMIZER_LINES.length * OPTIMIZER_BOBBERS.length * ENCHANTS.length;
+export const FULL_BUILD_SEARCH_SPACE = TOTAL_COMBINATION_SPACE;
 
 /**
  * Compute EV/hour for every item in a single slot, holding all other slots at
@@ -193,17 +223,14 @@ export interface FullBuildEntry {
 export interface FullBuildOptimizerResult {
   /** Top-ranked full equipment+enchant combinations. */
   topBuilds: FullBuildEntry[];
-  /** Number of full builds evaluated in the search (equals totalCombinationSpace for exhaustive search). */
+  /** Number of full builds evaluated in the search (equals totalCombinationSpace). */
   searchedCount: number;
-  /**
-   * Total equipment combination space (rod × line × bobber × enchant).
-   * All combinations are evaluated in the exhaustive search.
-   */
+  /** Total exact search space after removing strictly dominated gear candidates. */
   totalCombinationSpace: number;
 }
 
 /**
- * Progress event emitted by optimizeFullBuildAsync after each rod-level chunk.
+ * Progress event emitted by optimizeFullBuildAsync after each partial chunk.
  * Used to stream provisional top builds to the UI before the full search completes.
  */
 export interface OptimizerProgressEvent {
@@ -211,18 +238,45 @@ export interface OptimizerProgressEvent {
   topBuilds: FullBuildEntry[];
   /** Number of combinations evaluated so far. */
   searchedCount: number;
-  /** Total combination space (rod × line × bobber × enchant). */
+  /** Total exact search space after removing strictly dominated gear candidates. */
   totalCombinationSpace: number;
   /** True only on the final event, after all combinations have been evaluated. */
   isComplete: boolean;
 }
 
+function createFullBuildEntry(
+  baseParams: CalculatorParams,
+  loadout: EquipmentLoadout,
+  items: FullBuildEntry['items'],
+): FullBuildEntry {
+  const result = calculateOptimizerMetrics({ ...baseParams, loadout });
+  return {
+    loadout,
+    items,
+    expectedValuePerHour: result.expectedValuePerHour,
+    expectedValuePerCatch: result.expectedValuePerCatch,
+    totalFishProbability: result.totalFishProbability,
+  };
+}
+
+function emitProgressEvent(
+  heap: TopNHeap,
+  searchedCount: number,
+  onProgress?: (event: OptimizerProgressEvent) => void,
+  isComplete = false,
+): void {
+  if (!onProgress) return;
+  onProgress({
+    topBuilds: heap.toSortedDesc(),
+    searchedCount,
+    totalCombinationSpace: TOTAL_COMBINATION_SPACE,
+    isComplete,
+  });
+}
+
 /**
  * Find the top full-build (rod+line+bobber+enchant) combinations for the given
- * base params using exact exhaustive search over the full equipment space.
- *
- * Evaluates all rod × line × bobber × enchant combinations
- * (15 × 8 × 8 × 43 = 41,280). Benchmarked at ~194 ms in Node.
+ * base params using the exact safe-pruned search space.
  *
  * Uses a TopNHeap to avoid full-array materialisation and sort — O(log N) per
  * entry vs O(totalSpace log totalSpace) for a naive sort-then-slice approach.
@@ -234,13 +288,12 @@ export function optimizeFullBuild(
   baseParams: CalculatorParams,
   topNResults = 10,
 ): FullBuildOptimizerResult {
-  const totalCombinationSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
   const heap = new TopNHeap(normalizeTopNResults(topNResults));
   let searchedCount = 0;
 
-  for (const rod of RODS) {
-    for (const line of LINES) {
-      for (const bobber of BOBBERS) {
+  for (const rod of OPTIMIZER_RODS) {
+    for (const line of OPTIMIZER_LINES) {
+      for (const bobber of OPTIMIZER_BOBBERS) {
         for (const enchant of ENCHANTS) {
           const loadout: EquipmentLoadout = {
             rodId: rod.id,
@@ -248,15 +301,8 @@ export function optimizeFullBuild(
             bobberId: bobber.id,
             enchantId: enchant.id,
           };
-          const result = calculateDistribution({ ...baseParams, loadout });
           heap.consider(
-            {
-              loadout,
-              items: { rod, line, bobber, enchant },
-              expectedValuePerHour: result.expectedValuePerHour,
-              expectedValuePerCatch: result.expectedValuePerCatch,
-              totalFishProbability: result.totalFishProbability,
-            },
+            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
             searchedCount,
           );
           searchedCount++;
@@ -268,22 +314,22 @@ export function optimizeFullBuild(
   return {
     topBuilds: heap.toSortedDesc(),
     searchedCount,
-    totalCombinationSpace,
+    totalCombinationSpace: TOTAL_COMBINATION_SPACE,
   };
 }
 
 /**
- * Async, non-blocking variant of optimizeFullBuild with identical exhaustive
- * search semantics.  Yields to the main thread between rod iterations (15
- * yields) so the browser stays responsive during the ~194 ms computation.
+ * Async, non-blocking variant of optimizeFullBuild with identical exact
+ * search semantics. Yields to the main thread after each line-level chunk so
+ * the browser stays responsive while the ranking streams in.
  *
  * Uses the same TopNHeap optimisation as the sync variant.
  *
  * Accepts a signal to cancel mid-flight; resolves with null when cancelled.
  *
- * onProgress is called after each rod-level chunk (isComplete=false) and once
+ * onProgress is called after each line-level chunk (isComplete=false) and once
  * at the end (isComplete=true), allowing the UI to stream provisional top builds
- * before the full exhaustive search completes.
+ * before the exact search completes.
  */
 export async function optimizeFullBuildAsync(
   baseParams: CalculatorParams,
@@ -291,17 +337,14 @@ export async function optimizeFullBuildAsync(
   signal?: AbortSignal,
   onProgress?: (event: OptimizerProgressEvent) => void,
 ): Promise<FullBuildOptimizerResult | null> {
-  const totalCombinationSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
+  if (signal?.aborted) return null;
+
   const heap = new TopNHeap(normalizeTopNResults(topNResults));
   let searchedCount = 0;
 
-  for (const rod of RODS) {
-    // Yield once per rod so the browser can process frames/events between chunks.
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    if (signal?.aborted) return null;
-
-    for (const line of LINES) {
-      for (const bobber of BOBBERS) {
+  for (const rod of OPTIMIZER_RODS) {
+    for (const line of OPTIMIZER_LINES) {
+      for (const bobber of OPTIMIZER_BOBBERS) {
         for (const enchant of ENCHANTS) {
           const loadout: EquipmentLoadout = {
             rodId: rod.id,
@@ -309,39 +352,28 @@ export async function optimizeFullBuildAsync(
             bobberId: bobber.id,
             enchantId: enchant.id,
           };
-          const result = calculateDistribution({ ...baseParams, loadout });
           heap.consider(
-            {
-              loadout,
-              items: { rod, line, bobber, enchant },
-              expectedValuePerHour: result.expectedValuePerHour,
-              expectedValuePerCatch: result.expectedValuePerCatch,
-              totalFishProbability: result.totalFishProbability,
-            },
+            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
             searchedCount,
           );
           searchedCount++;
         }
       }
-    }
 
-    // Emit a provisional progress update after each rod's chunk.
-    onProgress?.({
-      topBuilds: heap.toSortedDesc(),
-      searchedCount,
-      totalCombinationSpace,
-      isComplete: false,
-    });
+      emitProgressEvent(heap, searchedCount, onProgress);
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (signal?.aborted) return null;
+    }
   }
 
   if (signal?.aborted) return null;
 
   const finalBuilds = heap.toSortedDesc();
-  onProgress?.({ topBuilds: finalBuilds, searchedCount, totalCombinationSpace, isComplete: true });
+  emitProgressEvent(heap, searchedCount, onProgress, true);
 
   return {
     topBuilds: finalBuilds,
     searchedCount,
-    totalCombinationSpace,
+    totalCombinationSpace: TOTAL_COMBINATION_SPACE,
   };
 }

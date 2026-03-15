@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
-import { getDefaultParams } from '@/lib/calculator';
+import {
+  calculateDistribution,
+  calculateOptimizerMetrics,
+  getDefaultParams,
+} from '@/lib/calculator';
 import {
   optimizeFullBuild,
   optimizeFullBuildAsync,
@@ -127,22 +131,15 @@ describe('optimizeFullBuild', () => {
     expect(result.topBuilds.length).toBeLessThanOrEqual(10);
   });
 
-  it('searchedCount equals the full equipment combination space', () => {
-    const result = optimizeFullBuild(baseParams);
-    const fullSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
-    expect(result.searchedCount).toBe(fullSpace);
-  });
-
-  it('searchedCount equals totalCombinationSpace (exhaustive search covers everything)', () => {
+  it('searchedCount equals totalCombinationSpace', () => {
     const result = optimizeFullBuild(baseParams);
     expect(result.searchedCount).toBe(result.totalCombinationSpace);
   });
 
-  it('totalCombinationSpace equals full equipment product', () => {
+  it('totalCombinationSpace is smaller than the raw full product because dominated gear is pruned', () => {
     const result = optimizeFullBuild(baseParams);
-    expect(result.totalCombinationSpace).toBe(
-      RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length,
-    );
+    const fullSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
+    expect(result.totalCombinationSpace).toBeLessThan(fullSpace);
   });
 
   it('all topBuild entries have non-negative EV/hour', () => {
@@ -182,10 +179,94 @@ describe('optimizeFullBuild', () => {
     expect(result.searchedCount).toBe(result.totalCombinationSpace);
   });
 
-  it('topNResults=0 returns no builds but still evaluates the full search space', () => {
+  it('topNResults=0 returns no builds but still evaluates the exact search space', () => {
     const result = optimizeFullBuild(baseParams, 0);
     expect(result.topBuilds).toEqual([]);
     expect(result.searchedCount).toBe(result.totalCombinationSpace);
+  });
+
+  it('matches brute-force raw full-space search despite dominated-gear pruning', () => {
+    const bruteForce = [];
+
+    for (const rod of RODS) {
+      for (const line of LINES) {
+        for (const bobber of BOBBERS) {
+          for (const enchant of ENCHANTS) {
+            const loadout = {
+              rodId: rod.id,
+              lineId: line.id,
+              bobberId: bobber.id,
+              enchantId: enchant.id,
+            };
+            const metrics = calculateOptimizerMetrics({ ...baseParams, loadout });
+            bruteForce.push({
+              loadout,
+              expectedValuePerHour: metrics.expectedValuePerHour,
+            });
+          }
+        }
+      }
+    }
+
+    const expectedTopFive = bruteForce
+      .toSorted((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)
+      .slice(0, 5);
+    const actual = optimizeFullBuild(baseParams, 5);
+
+    expect(actual.topBuilds.map((entry) => entry.loadout)).toEqual(
+      expectedTopFive.map((entry) => entry.loadout),
+    );
+    for (let i = 0; i < expectedTopFive.length; i++) {
+      expect(actual.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        expectedTopFive[i].expectedValuePerHour,
+        8,
+      );
+    }
+  }, 30000);
+});
+
+describe('calculateOptimizerMetrics', () => {
+  it.each([
+    {
+      name: 'fixed daytime area',
+      params: {
+        ...getDefaultParams('coconut-bay'),
+        timeOfDay: 'day' as const,
+        weatherType: 'clear' as const,
+      },
+    },
+    {
+      name: 'best-area averaged conditions with a conditional enchant',
+      params: {
+        ...getDefaultParams(),
+        loadout: {
+          ...getDefaultParams().loadout,
+          enchantId: 'day-walker',
+        },
+      },
+    },
+    {
+      name: 'direct value multiplier enchant',
+      params: {
+        ...getDefaultParams('open-sea'),
+        timeOfDay: 'night' as const,
+        weatherType: 'rainy' as const,
+        loadout: {
+          ...getDefaultParams('open-sea').loadout,
+          enchantId: 'money-maker',
+        },
+      },
+    },
+  ])('matches calculateDistribution for $name', ({ params }) => {
+    const distribution = calculateDistribution(params);
+    const optimizerMetrics = calculateOptimizerMetrics(params);
+
+    expect(optimizerMetrics.expectedValuePerHour).toBeCloseTo(distribution.expectedValuePerHour, 8);
+    expect(optimizerMetrics.expectedValuePerCatch).toBeCloseTo(
+      distribution.expectedValuePerCatch,
+      8,
+    );
+    expect(optimizerMetrics.totalFishProbability).toBeCloseTo(distribution.totalFishProbability, 8);
   });
 });
 
@@ -275,7 +356,7 @@ describe('optimizeFullBuildAsync onProgress callback', () => {
     expect(finalEvent).not.toBeNull();
     expect(finalEvent!.searchedCount).toBe(finalEvent!.totalCombinationSpace);
     const fullSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
-    expect(finalEvent!.searchedCount).toBe(fullSpace);
+    expect(finalEvent!.totalCombinationSpace).toBeLessThan(fullSpace);
   }, 30000);
 
   it('all but the last intermediate progress event have searchedCount < totalCombinationSpace', async () => {
@@ -303,7 +384,7 @@ describe('optimizeFullBuildAsync onProgress callback', () => {
     expect(callCount.n).toBe(0);
   });
 
-  it('top 1 from buffer-100 matches top 1 from buffer-1 (exhaustive semantics preserved)', async () => {
+  it('top 1 from buffer-100 matches top 1 from buffer-1 (exact semantics preserved)', async () => {
     const [r1, r100] = await Promise.all([
       optimizeFullBuildAsync(baseParams, 1),
       optimizeFullBuildAsync(baseParams, 100),

@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { CalculatorParams, EnchantItem } from '@/types';
-import { optimizeFullBuildAsync, FullBuildEntry, FullBuildOptimizerResult } from '@/lib/ranking';
+import {
+  FULL_BUILD_SEARCH_SPACE,
+  FullBuildEntry,
+  FullBuildOptimizerResult,
+  optimizeFullBuildAsync,
+} from '@/lib/ranking';
 import { formatCurrency } from '@/lib/calculator';
-
-// Derived once from the actual equipment arrays — stays in sync automatically.
-const TOTAL_COMBINATIONS = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
 
 /** Buffer size for the optimizer heap. Larger than the initial display count so
  *  "もっと見る" can reveal additional builds without re-running the search. */
@@ -241,7 +242,7 @@ export function OptimizerView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible, paramsKey]);
 
-  const totalCombinations = provisionalResult?.totalCombinationSpace ?? TOTAL_COMBINATIONS;
+  const totalCombinations = provisionalResult?.totalCombinationSpace ?? FULL_BUILD_SEARCH_SPACE;
   const searchedSoFar = provisionalResult?.searchedCount ?? 0;
   const progressPct =
     isLoading && totalCombinations > 0 ? (searchedSoFar / totalCombinations) * 100 : 0;
@@ -256,8 +257,9 @@ export function OptimizerView({
         <div>
           <h2 className="text-base font-semibold text-gray-800">全部入れ替えて一気に探す</h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            Rod / Line / Bobber / Enchant の全組み合わせ {totalCombinations.toLocaleString()}{' '}
-            通りをすべて調べて、伸びやすい順に並べます。1欄ずつではなく、全部まとめて入れ替えたいときだけ使ってください。
+            Rod / Line / Bobber / Enchant の候補から、能力的に完全に劣る装備を先に外した{' '}
+            {totalCombinations.toLocaleString()}{' '}
+            通りを厳密に調べて、伸びやすい順に並べます。1欄ずつではなく、全部まとめて入れ替えたいときだけ使ってください。
           </p>
         </div>
         {!alwaysOpen ? (
@@ -291,8 +293,7 @@ export function OptimizerView({
                   など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。
                 </li>
                 <li>
-                  全 <strong>{totalCombinations.toLocaleString()}</strong>{' '}
-                  通りをすべて評価しています。装備の除外はありません。
+                  完全に劣る Rod / Line / Bobber は先に外していますが、順位の結果は変わりません。
                 </li>
                 <li>
                   1欄だけの比較とは結果が変わることがあります。ここでは全部まとめて入れ替えた場合を見ています。
