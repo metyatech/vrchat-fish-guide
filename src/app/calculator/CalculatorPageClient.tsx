@@ -39,6 +39,15 @@ const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
   'full-build': '全部まとめて',
 };
 
+const SLOT_LABELS: Record<RankSlot, string> = {
+  rod: 'Rod',
+  line: 'Line',
+  bobber: 'Bobber',
+  enchant: 'Enchant',
+};
+
+const ALL_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+
 function formatSelectedTimeLabel(value: CalculatorParams['timeOfDay']): string {
   return value === 'any' ? '平均で見る' : TIME_OF_DAY_LABELS[value];
 }
@@ -77,6 +86,7 @@ export function CalculatorPageClient() {
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
   const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
   const [compareTarget, setCompareTarget] = useState<CompareTarget>('rod');
+  const [varyingSlots, setVaryingSlots] = useState<RankSlot[]>(ALL_SLOTS);
   const [notesOpen, setNotesOpen] = useState(false);
 
   // Sync URL hash whenever builds/activeId change
@@ -112,6 +122,7 @@ export function CalculatorPageClient() {
   // ── Build operations ───────────────────────────────────────────────────────
 
   const activeBuild = builds.find((b) => b.id === activeId) ?? builds[0];
+  const orderedVaryingSlots = ALL_SLOTS.filter((slot) => varyingSlots.includes(slot));
 
   const handleParamsChange = useCallback(
     (params: CalculatorParams) => {
@@ -216,7 +227,13 @@ export function CalculatorPageClient() {
     ) => {
       if (!activeBuild) return;
       const nextBuild = createBuildFrom(activeBuild, builds.length);
-      nextBuild.name = rank === 0 ? '全部比較のおすすめ' : `全部比較 ${rank + 1}`;
+      const varyingLabel =
+        orderedVaryingSlots.length === ALL_SLOTS.length
+          ? '全部比較'
+          : orderedVaryingSlots
+              .map((s) => COMPARE_TARGET_LABELS[s as keyof typeof COMPARE_TARGET_LABELS])
+              .join('+');
+      nextBuild.name = rank === 0 ? `${varyingLabel}のおすすめ` : `${varyingLabel} ${rank + 1}`;
       nextBuild.params = {
         ...nextBuild.params,
         loadout: {
@@ -228,7 +245,7 @@ export function CalculatorPageClient() {
       setBuilds((prev) => [...prev, nextBuild]);
       setActiveId(nextBuild.id);
     },
-    [activeBuild, builds.length],
+    [activeBuild, builds.length, orderedVaryingSlots],
   );
 
   // ── Calculations ───────────────────────────────────────────────────────────
@@ -284,7 +301,9 @@ export function CalculatorPageClient() {
   const compareTargetTheme = SLOT_THEME[compareTarget];
   const compareTargetActionLabel =
     compareTarget === 'full-build'
-      ? '全部まとめて入れ替える'
+      ? orderedVaryingSlots.length === ALL_SLOTS.length
+        ? '全部まとめて入れ替える'
+        : `${orderedVaryingSlots.map((s) => SLOT_LABELS[s]).join(' + ')} を組み合わせて探す`
       : `${COMPARE_TARGET_LABELS[compareTarget]} を変える`;
 
   const hasComparisons = builds.length > 1;
@@ -376,6 +395,47 @@ export function CalculatorPageClient() {
             ))}
           </div>
 
+          {compareTarget === 'full-build' && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+              <p className="mb-2 text-xs font-medium text-emerald-800">
+                組み合わせるスロットを選ぶ（最低 1 つ）:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ALL_SLOTS.map((slot) => {
+                  const isSelected = varyingSlots.includes(slot);
+                  const theme = SLOT_THEME[slot];
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() =>
+                        setVaryingSlots((prev) => {
+                          const next = isSelected
+                            ? prev.length > 1
+                              ? prev.filter((s) => s !== slot)
+                              : prev
+                            : [...prev, slot];
+                          return ALL_SLOTS.filter((candidate) => next.includes(candidate));
+                        })
+                      }
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
+                        isSelected ? theme.buttonActiveClassName : theme.buttonIdleClassName
+                      }`}
+                      aria-pressed={isSelected}
+                    >
+                      {SLOT_LABELS[slot]}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[11px] text-emerald-700">
+                {orderedVaryingSlots.length === ALL_SLOTS.length
+                  ? '全スロットを組み合わせて最適ビルドを探します。'
+                  : `${orderedVaryingSlots.map((s) => SLOT_LABELS[s]).join(' + ')} を変え、残りのスロットは現在の装備で固定します。`}
+              </p>
+            </div>
+          )}
+
           <div
             className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
           >
@@ -437,22 +497,23 @@ export function CalculatorPageClient() {
             </div>
           ) : null}
 
-          {compareTarget !== 'full-build' ? (
-            <RankingView
-              key={`ranking-${compareTarget}`}
-              baseParams={activeBuild.params}
-              focusSlot={compareTarget}
-              initialExpanded={true}
-              alwaysOpen={true}
-              onPickItem={handleCreateSlotComparison}
-            />
-          ) : (
+          {compareTarget === 'full-build' ? (
             <OptimizerView
-              key="optimizer-full-build"
+              key={`optimizer-${orderedVaryingSlots.join('-')}`}
               baseParams={activeBuild.params}
+              varyingSlots={orderedVaryingSlots}
               initialExpanded={true}
               alwaysOpen={true}
               onPickBuild={handleCreateOptimizedBuild}
+            />
+          ) : (
+            <RankingView
+              key={`ranking-${compareTarget}`}
+              baseParams={activeBuild.params}
+              focusSlot={compareTarget as RankSlot}
+              initialExpanded={true}
+              alwaysOpen={true}
+              onPickItem={handleCreateSlotComparison}
             />
           )}
         </section>

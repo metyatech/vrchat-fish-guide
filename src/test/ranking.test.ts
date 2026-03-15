@@ -6,11 +6,16 @@ import {
   getDefaultParams,
 } from '@/lib/calculator';
 import {
+  computeSubsetSearchSpace,
   optimizeFullBuild,
   optimizeFullBuildAsync,
+  optimizeSubsetBuild,
+  optimizeSubsetBuildAsync,
   rankAllSlots,
   rankSlot,
   OptimizerProgressEvent,
+  RankSlot,
+  SubsetOptimizerProgressEvent,
 } from '@/lib/ranking';
 
 describe('rankSlot', () => {
@@ -404,4 +409,473 @@ describe('optimizeFullBuildAsync onProgress callback', () => {
     expect(result!.topBuilds.length).toBe(100);
     expect(result!.searchedCount).toBe(result!.totalCombinationSpace);
   }, 30000);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// computeSubsetSearchSpace
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('computeSubsetSearchSpace', () => {
+  it('{rod} space equals pruned OPTIMIZER_RODS length', () => {
+    const space = computeSubsetSearchSpace(['rod']);
+    // Must be ≤ RODS.length (pruning removes dominated items)
+    expect(space).toBeGreaterThan(0);
+    expect(space).toBeLessThanOrEqual(RODS.length);
+  });
+
+  it('{rod, line} space equals pruned rod × pruned line counts', () => {
+    const rodSpace = computeSubsetSearchSpace(['rod']);
+    const lineSpace = computeSubsetSearchSpace(['line']);
+    expect(computeSubsetSearchSpace(['rod', 'line'])).toBe(rodSpace * lineSpace);
+  });
+
+  it('{rod, line, bobber, enchant} matches full-build search space', () => {
+    const subsetSpace = computeSubsetSearchSpace(['rod', 'line', 'bobber', 'enchant']);
+    const fullResult = optimizeFullBuild(
+      { ...getDefaultParams('coconut-bay'), timeOfDay: 'day', weatherType: 'clear' },
+      1,
+    );
+    expect(subsetSpace).toBe(fullResult.totalCombinationSpace);
+  });
+
+  it('empty subset returns 1 (single implicit combination)', () => {
+    expect(computeSubsetSearchSpace([])).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// optimizeSubsetBuild
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('optimizeSubsetBuild', () => {
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
+
+  it('varyingSlots is preserved in result', () => {
+    const slots: RankSlot[] = ['rod', 'bobber'];
+    const result = optimizeSubsetBuild(baseParams, slots, 5);
+    expect(result.varyingSlots).toEqual(slots);
+  });
+
+  it('searchedCount equals totalCombinationSpace', () => {
+    const result = optimizeSubsetBuild(baseParams, ['rod', 'line'], 5);
+    expect(result.searchedCount).toBe(result.totalCombinationSpace);
+  });
+
+  it('totalCombinationSpace matches computeSubsetSearchSpace for {rod, line}', () => {
+    const result = optimizeSubsetBuild(baseParams, ['rod', 'line'], 5);
+    expect(result.totalCombinationSpace).toBe(computeSubsetSearchSpace(['rod', 'line']));
+  });
+
+  it('non-varying slots are fixed at baseParams.loadout values', () => {
+    const result = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 10);
+    result.topBuilds.forEach((entry) => {
+      expect(entry.loadout.lineId).toBe(baseParams.loadout.lineId);
+      expect(entry.loadout.bobberId).toBe(baseParams.loadout.bobberId);
+    });
+  });
+
+  it('non-varying rod/line slots are fixed', () => {
+    const result = optimizeSubsetBuild(baseParams, ['bobber', 'enchant'], 10);
+    result.topBuilds.forEach((entry) => {
+      expect(entry.loadout.rodId).toBe(baseParams.loadout.rodId);
+      expect(entry.loadout.lineId).toBe(baseParams.loadout.lineId);
+    });
+  });
+
+  it('topBuilds sorted descending by EV/hour', () => {
+    const result = optimizeSubsetBuild(baseParams, ['rod', 'line'], 10);
+    for (let i = 1; i < result.topBuilds.length; i++) {
+      expect(result.topBuilds[i - 1].expectedValuePerHour).toBeGreaterThanOrEqual(
+        result.topBuilds[i].expectedValuePerHour,
+      );
+    }
+  });
+
+  it('all-4-slots subset top-5 matches optimizeFullBuild top-5', () => {
+    const fullResult = optimizeFullBuild(baseParams, 5);
+    const subsetResult = optimizeSubsetBuild(baseParams, ['rod', 'line', 'bobber', 'enchant'], 5);
+    expect(subsetResult.topBuilds.map((e) => e.loadout)).toEqual(
+      fullResult.topBuilds.map((e) => e.loadout),
+    );
+    for (let i = 0; i < fullResult.topBuilds.length; i++) {
+      expect(subsetResult.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        fullResult.topBuilds[i].expectedValuePerHour,
+        8,
+      );
+    }
+  });
+
+  it('matches brute-force raw search for {rod, enchant} subset', () => {
+    const bruteForce: Array<{
+      loadout: (typeof baseParams)['loadout'];
+      expectedValuePerHour: number;
+    }> = [];
+
+    for (const rod of RODS) {
+      for (const enchant of ENCHANTS) {
+        const loadout = {
+          rodId: rod.id,
+          lineId: baseParams.loadout.lineId,
+          bobberId: baseParams.loadout.bobberId,
+          enchantId: enchant.id,
+        };
+        const metrics = calculateOptimizerMetrics({ ...baseParams, loadout });
+        bruteForce.push({ loadout, expectedValuePerHour: metrics.expectedValuePerHour });
+      }
+    }
+
+    const expectedTop5 = bruteForce
+      .toSorted((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)
+      .slice(0, 5);
+    const actual = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 5);
+
+    expect(actual.topBuilds.map((e) => e.loadout)).toEqual(expectedTop5.map((e) => e.loadout));
+    for (let i = 0; i < expectedTop5.length; i++) {
+      expect(actual.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        expectedTop5[i].expectedValuePerHour,
+        8,
+      );
+    }
+  }, 10000);
+
+  it('matches brute-force raw search for {rod, line} subset', () => {
+    const bruteForce: Array<{
+      loadout: (typeof baseParams)['loadout'];
+      expectedValuePerHour: number;
+    }> = [];
+
+    for (const rod of RODS) {
+      for (const line of LINES) {
+        const loadout = {
+          rodId: rod.id,
+          lineId: line.id,
+          bobberId: baseParams.loadout.bobberId,
+          enchantId: baseParams.loadout.enchantId,
+        };
+        const metrics = calculateOptimizerMetrics({ ...baseParams, loadout });
+        bruteForce.push({ loadout, expectedValuePerHour: metrics.expectedValuePerHour });
+      }
+    }
+
+    const expectedTop5 = bruteForce
+      .toSorted((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)
+      .slice(0, 5);
+    const actual = optimizeSubsetBuild(baseParams, ['rod', 'line'], 5);
+
+    expect(actual.topBuilds.map((e) => e.loadout)).toEqual(expectedTop5.map((e) => e.loadout));
+    for (let i = 0; i < expectedTop5.length; i++) {
+      expect(actual.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        expectedTop5[i].expectedValuePerHour,
+        8,
+      );
+    }
+  }, 10000);
+
+  it('works for open-sea area with {line, bobber} subset', () => {
+    const result = optimizeSubsetBuild(
+      { ...getDefaultParams('open-sea'), timeOfDay: 'day', weatherType: 'clear' },
+      ['line', 'bobber'],
+      5,
+    );
+    expect(result.topBuilds.length).toBeGreaterThan(0);
+  });
+
+  it('topNResults=0 returns no builds but still evaluates the full subset space', () => {
+    const result = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 0);
+    expect(result.topBuilds).toEqual([]);
+    expect(result.searchedCount).toBe(result.totalCombinationSpace);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// optimizeSubsetBuildAsync
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('optimizeSubsetBuildAsync', () => {
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
+
+  it('returns same results as sync for {rod, line} subset', async () => {
+    const syncResult = optimizeSubsetBuild(baseParams, ['rod', 'line'], 5);
+    const asyncResult = await optimizeSubsetBuildAsync(baseParams, ['rod', 'line'], 5);
+    expect(asyncResult).not.toBeNull();
+    expect(asyncResult!.topBuilds).toHaveLength(syncResult.topBuilds.length);
+    for (let i = 0; i < syncResult.topBuilds.length; i++) {
+      expect(asyncResult!.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        syncResult.topBuilds[i].expectedValuePerHour,
+        5,
+      );
+      expect(asyncResult!.topBuilds[i].loadout).toEqual(syncResult.topBuilds[i].loadout);
+    }
+  }, 10000);
+
+  it('returns same results as sync for {rod, enchant} subset', async () => {
+    const syncResult = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 5);
+    const asyncResult = await optimizeSubsetBuildAsync(baseParams, ['rod', 'enchant'], 5);
+    expect(asyncResult).not.toBeNull();
+    for (let i = 0; i < syncResult.topBuilds.length; i++) {
+      expect(asyncResult!.topBuilds[i].loadout).toEqual(syncResult.topBuilds[i].loadout);
+    }
+  }, 10000);
+
+  it('all-4-slots async matches optimizeFullBuildAsync top-5', async () => {
+    const [subsetResult, fullResult] = await Promise.all([
+      optimizeSubsetBuildAsync(baseParams, ['rod', 'line', 'bobber', 'enchant'], 5),
+      optimizeFullBuildAsync(baseParams, 5),
+    ]);
+    expect(subsetResult).not.toBeNull();
+    expect(fullResult).not.toBeNull();
+    expect(subsetResult!.topBuilds.map((e) => e.loadout)).toEqual(
+      fullResult!.topBuilds.map((e) => e.loadout),
+    );
+  }, 60000);
+
+  it('returns null when aborted before starting', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const result = await optimizeSubsetBuildAsync(
+      baseParams,
+      ['rod', 'line'],
+      5,
+      controller.signal,
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null or valid result when aborted mid-flight (no error thrown)', async () => {
+    const controller = new AbortController();
+    const promise = optimizeSubsetBuildAsync(baseParams, ['rod', 'line'], 5, controller.signal);
+    setTimeout(() => controller.abort(), 0);
+    const result = await promise;
+    expect(result === null || typeof result === 'object').toBe(true);
+  }, 10000);
+
+  it('varyingSlots is preserved in result', async () => {
+    const slots: RankSlot[] = ['rod', 'bobber'];
+    const result = await optimizeSubsetBuildAsync(baseParams, slots, 5);
+    expect(result).not.toBeNull();
+    expect(Array.from(result!.varyingSlots)).toEqual(slots);
+  }, 10000);
+
+  it('searchedCount and totalCombinationSpace match sync for {rod, enchant}', async () => {
+    const syncResult = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 5);
+    const asyncResult = await optimizeSubsetBuildAsync(baseParams, ['rod', 'enchant'], 5);
+    expect(asyncResult).not.toBeNull();
+    expect(asyncResult!.searchedCount).toBe(syncResult.searchedCount);
+    expect(asyncResult!.totalCombinationSpace).toBe(syncResult.totalCombinationSpace);
+  }, 10000);
+
+  it('progress events are non-decreasing in searchedCount for {rod, line}', async () => {
+    const counts: number[] = [];
+    await optimizeSubsetBuildAsync(baseParams, ['rod', 'line'], 5, undefined, (e) =>
+      counts.push(e.searchedCount),
+    );
+    for (let i = 1; i < counts.length; i++) {
+      expect(counts[i]).toBeGreaterThanOrEqual(counts[i - 1]);
+    }
+  }, 10000);
+
+  it('final progress event has isComplete=true and searchedCount equals totalCombinationSpace', async () => {
+    let finalEvent: SubsetOptimizerProgressEvent | null = null;
+    await optimizeSubsetBuildAsync(baseParams, ['rod', 'line'], 5, undefined, (e) => {
+      if (e.isComplete) finalEvent = e;
+    });
+    expect(finalEvent).not.toBeNull();
+    expect(finalEvent!.searchedCount).toBe(finalEvent!.totalCombinationSpace);
+  }, 10000);
+
+  it('does not call onProgress when aborted before the first yield', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    let callCount = 0;
+    const result = await optimizeSubsetBuildAsync(
+      baseParams,
+      ['rod', 'line'],
+      5,
+      controller.signal,
+      () => {
+        callCount++;
+      },
+    );
+    expect(result).toBeNull();
+    expect(callCount).toBe(0);
+  });
+
+  it('non-varying slots are fixed in async results', async () => {
+    const result = await optimizeSubsetBuildAsync(baseParams, ['rod', 'enchant'], 10);
+    expect(result).not.toBeNull();
+    result!.topBuilds.forEach((entry) => {
+      expect(entry.loadout.lineId).toBe(baseParams.loadout.lineId);
+      expect(entry.loadout.bobberId).toBe(baseParams.loadout.bobberId);
+    });
+  }, 10000);
+});
+
+describe('optimizeSubsetBuild (additional)', () => {
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
+
+  it('subset {rod} top-5 matches raw brute-force over all rods', () => {
+    const bruteForce = RODS.map((rod) => {
+      const loadout = {
+        ...baseParams.loadout,
+        rodId: rod.id,
+      };
+      const metrics = calculateOptimizerMetrics({ ...baseParams, loadout });
+      return { loadout, expectedValuePerHour: metrics.expectedValuePerHour };
+    })
+      .toSorted((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)
+      .slice(0, 5);
+
+    const result = optimizeSubsetBuild(baseParams, ['rod'], 5);
+    expect(result.varyingSlots).toEqual(['rod']);
+    expect(result.topBuilds).toHaveLength(5);
+    // Only compare EV/hour values (not exact rod IDs) because ties in EV/hour
+    // can produce different but equally valid orderings between the two methods.
+    const resultEvs = result.topBuilds.map((b) => b.expectedValuePerHour).toSorted((a, b) => b - a);
+    const bruteForceEvs = bruteForce.map((b) => b.expectedValuePerHour).toSorted((a, b) => b - a);
+    for (let i = 0; i < 5; i++) {
+      expect(resultEvs[i]).toBeCloseTo(bruteForceEvs[i], 8);
+    }
+  });
+
+  it('subset {rod, enchant} top-5 matches raw brute-force', () => {
+    const bruteForce: { loadout: typeof baseParams.loadout; expectedValuePerHour: number }[] = [];
+    for (const rod of RODS) {
+      for (const enchant of ENCHANTS) {
+        const loadout = {
+          ...baseParams.loadout,
+          rodId: rod.id,
+          enchantId: enchant.id,
+        };
+        const metrics = calculateOptimizerMetrics({ ...baseParams, loadout });
+        bruteForce.push({ loadout, expectedValuePerHour: metrics.expectedValuePerHour });
+      }
+    }
+    const expectedTop5 = bruteForce
+      .toSorted((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)
+      .slice(0, 5);
+
+    const result = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 5);
+    expect(result.varyingSlots).toEqual(['rod', 'enchant']);
+    expect(result.totalCombinationSpace).toBeLessThanOrEqual(RODS.length * ENCHANTS.length);
+    for (let i = 0; i < 5; i++) {
+      expect(result.topBuilds[i].loadout.rodId).toBe(expectedTop5[i].loadout.rodId);
+      expect(result.topBuilds[i].loadout.enchantId).toBe(expectedTop5[i].loadout.enchantId);
+      expect(result.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        expectedTop5[i].expectedValuePerHour,
+        8,
+      );
+    }
+  }, 30000);
+
+  it('subset {line, bobber, enchant} top-5 matches raw brute-force', () => {
+    const bruteForce: { loadout: typeof baseParams.loadout; expectedValuePerHour: number }[] = [];
+    for (const line of LINES) {
+      for (const bobber of BOBBERS) {
+        for (const enchant of ENCHANTS) {
+          const loadout = {
+            ...baseParams.loadout,
+            lineId: line.id,
+            bobberId: bobber.id,
+            enchantId: enchant.id,
+          };
+          const metrics = calculateOptimizerMetrics({ ...baseParams, loadout });
+          bruteForce.push({ loadout, expectedValuePerHour: metrics.expectedValuePerHour });
+        }
+      }
+    }
+    const expectedTop5 = bruteForce
+      .toSorted((a, b) => b.expectedValuePerHour - a.expectedValuePerHour)
+      .slice(0, 5);
+
+    const result = optimizeSubsetBuild(baseParams, ['line', 'bobber', 'enchant'], 5);
+    expect(result.varyingSlots).toEqual(['line', 'bobber', 'enchant']);
+    for (let i = 0; i < 5; i++) {
+      expect(result.topBuilds[i].loadout.lineId).toBe(expectedTop5[i].loadout.lineId);
+      expect(result.topBuilds[i].loadout.bobberId).toBe(expectedTop5[i].loadout.bobberId);
+      expect(result.topBuilds[i].loadout.enchantId).toBe(expectedTop5[i].loadout.enchantId);
+      expect(result.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        expectedTop5[i].expectedValuePerHour,
+        8,
+      );
+    }
+  }, 30000);
+
+  it('all-4-slot subset top builds match optimizeFullBuild', () => {
+    const fullResult = optimizeFullBuild(baseParams, 5);
+    const subsetResult = optimizeSubsetBuild(baseParams, ['rod', 'line', 'bobber', 'enchant'], 5);
+    expect(subsetResult.topBuilds).toHaveLength(fullResult.topBuilds.length);
+    for (let i = 0; i < fullResult.topBuilds.length; i++) {
+      expect(subsetResult.topBuilds[i].loadout).toEqual(fullResult.topBuilds[i].loadout);
+      expect(subsetResult.topBuilds[i].expectedValuePerHour).toBeCloseTo(
+        fullResult.topBuilds[i].expectedValuePerHour,
+        8,
+      );
+    }
+  }, 30000);
+
+  it('fixed slots use the baseParams loadout values', () => {
+    const result = optimizeSubsetBuild(baseParams, ['enchant'], 5);
+    result.topBuilds.forEach((entry) => {
+      expect(entry.loadout.rodId).toBe(baseParams.loadout.rodId);
+      expect(entry.loadout.lineId).toBe(baseParams.loadout.lineId);
+      expect(entry.loadout.bobberId).toBe(baseParams.loadout.bobberId);
+    });
+  });
+
+  it('searchedCount equals totalCombinationSpace', () => {
+    const result = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 5);
+    expect(result.searchedCount).toBe(result.totalCombinationSpace);
+  });
+
+  it('single-slot {enchant} totalCombinationSpace equals ENCHANTS.length', () => {
+    const result = optimizeSubsetBuild(baseParams, ['enchant'], 10);
+    expect(result.totalCombinationSpace).toBe(ENCHANTS.length);
+    expect(result.searchedCount).toBe(ENCHANTS.length);
+  });
+});
+
+describe('rankSlot ascending/descending order', () => {
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
+
+  it('rankSlot returns descending by default', () => {
+    const entries = rankSlot(baseParams, 'rod');
+    for (let i = 1; i < entries.length; i++) {
+      expect(entries[i - 1].expectedValuePerHour).toBeGreaterThanOrEqual(
+        entries[i].expectedValuePerHour,
+      );
+    }
+  });
+
+  it('reversed rankSlot entries are ascending by EV/hour', () => {
+    const entries = rankSlot(baseParams, 'enchant');
+    const ascending = [...entries].reverse();
+    for (let i = 1; i < ascending.length; i++) {
+      expect(ascending[i - 1].expectedValuePerHour).toBeLessThanOrEqual(
+        ascending[i].expectedValuePerHour,
+      );
+    }
+  });
+
+  it('first and last entries are most/least EV respectively', () => {
+    const entries = rankSlot(baseParams, 'rod');
+    const best = entries[0];
+    const worst = entries[entries.length - 1];
+    expect(best.expectedValuePerHour).toBeGreaterThanOrEqual(worst.expectedValuePerHour);
+  });
 });

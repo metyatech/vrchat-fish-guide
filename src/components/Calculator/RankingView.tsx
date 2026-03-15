@@ -9,7 +9,7 @@ import { SLOT_THEME } from '@/components/Calculator/slotTheme';
 interface RankingViewProps {
   /** Base params to rank against (area, conditions, time model, etc.) */
   baseParams: CalculatorParams;
-  /** Top-N entries to show per slot (default: 5) */
+  /** Top-N entries to show per slot initially (default: 5) */
   topN?: number;
   /** Slot to emphasize first in the UI */
   focusSlot?: RankSlot;
@@ -29,6 +29,11 @@ const SLOT_LABELS: Record<RankSlot, string> = {
 };
 
 const SLOT_ORDER: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+const LOAD_MORE_INCREMENT = 5;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 function isEnchantItem(item: EquipmentItem | EnchantItem): item is EnchantItem {
   return item.category === 'enchant';
@@ -47,12 +52,128 @@ function SlotTable({
   activeItemId: string;
   onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
 }) {
-  const shown = entries.slice(0, topN);
-  const best = shown[0]?.expectedValuePerHour ?? 0;
+  const [displayOrder, setDisplayOrder] = useState<'desc' | 'asc'>('desc');
+  const [rangeStart, setRangeStart] = useState(1);
+  const [rangeEnd, setRangeEnd] = useState(Math.min(topN, entries.length));
+  const [prevEntries, setPrevEntries] = useState(entries);
+  const [prevTopN, setPrevTopN] = useState(topN);
+
+  if (prevEntries !== entries || prevTopN !== topN) {
+    setPrevEntries(entries);
+    setPrevTopN(topN);
+    setDisplayOrder('desc');
+    setRangeStart(1);
+    setRangeEnd(Math.min(topN, entries.length));
+  }
+
+  const totalEntries = entries.length;
+  const normalizedStart =
+    totalEntries > 0 ? clamp(Math.min(rangeStart, rangeEnd), 1, totalEntries) : 1;
+  const normalizedEnd =
+    totalEntries > 0 ? clamp(Math.max(rangeStart, rangeEnd), normalizedStart, totalEntries) : 0;
+  const rankWindow = totalEntries > 0 ? entries.slice(normalizedStart - 1, normalizedEnd) : [];
+  const displayedEntries = displayOrder === 'desc' ? rankWindow : [...rankWindow].reverse();
+  const hasMore = normalizedEnd < totalEntries;
+  const best = entries[0]?.expectedValuePerHour ?? 0;
+  const rankById = useMemo(
+    () => new Map(entries.map((entry, index) => [entry.item.id, index + 1])),
+    [entries],
+  );
+  const rangeLabel =
+    totalEntries > 0
+      ? `第${normalizedStart}〜${normalizedEnd}位 / 全${totalEntries}件`
+      : '候補なし';
+
+  const handleTopWindow = () => {
+    if (totalEntries === 0) return;
+    setDisplayOrder('desc');
+    setRangeStart(1);
+    setRangeEnd(Math.min(topN, totalEntries));
+  };
+
+  const handleBottomWindow = () => {
+    if (totalEntries === 0) return;
+    const size = Math.min(topN, totalEntries);
+    setDisplayOrder('asc');
+    setRangeStart(totalEntries - size + 1);
+    setRangeEnd(totalEntries);
+  };
+
+  const handleRangeChange = (
+    setter: React.Dispatch<React.SetStateAction<number>>,
+    rawValue: string,
+  ) => {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed) || totalEntries === 0) return;
+    setter(clamp(Math.floor(parsed), 1, totalEntries));
+  };
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-gray-800">{SLOT_LABELS[slot]}</h3>
+      <div className="mb-3 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-gray-800">{SLOT_LABELS[slot]}</h3>
+          <span className="text-[10px] text-gray-400">{rangeLabel}</span>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-100 bg-gray-50/80 p-2.5">
+          <button
+            type="button"
+            onClick={() => setDisplayOrder((order) => (order === 'desc' ? 'asc' : 'desc'))}
+            className="rounded border border-gray-200 bg-white px-2.5 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+            aria-label={`${SLOT_LABELS[slot]} 表示順: ${
+              displayOrder === 'desc' ? 'ベスト→ワースト' : 'ワースト→ベスト'
+            }`}
+          >
+            表示順: {displayOrder === 'desc' ? 'ベスト→ワースト' : 'ワースト→ベスト'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleTopWindow}
+            className="rounded border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+            aria-label={`${SLOT_LABELS[slot]} の上位${topN}件を表示`}
+          >
+            上位{topN}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleBottomWindow}
+            className="rounded border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+            aria-label={`${SLOT_LABELS[slot]} の下位${topN}件を表示`}
+          >
+            下位{topN}
+          </button>
+
+          <label className="flex items-center gap-1 text-[11px] text-gray-500">
+            開始
+            <input
+              type="number"
+              min={1}
+              max={Math.max(totalEntries, 1)}
+              value={totalEntries > 0 ? normalizedStart : 1}
+              onChange={(event) => handleRangeChange(setRangeStart, event.target.value)}
+              aria-label={`${SLOT_LABELS[slot]} の開始順位`}
+              className="w-16 rounded border border-gray-200 bg-white px-2 py-1 text-right text-xs text-gray-700"
+            />
+          </label>
+
+          <label className="flex items-center gap-1 text-[11px] text-gray-500">
+            終了
+            <input
+              type="number"
+              min={1}
+              max={Math.max(totalEntries, 1)}
+              value={totalEntries > 0 ? normalizedEnd : 1}
+              onChange={(event) => handleRangeChange(setRangeEnd, event.target.value)}
+              aria-label={`${SLOT_LABELS[slot]} の終了順位`}
+              className="w-16 rounded border border-gray-200 bg-white px-2 py-1 text-right text-xs text-gray-700"
+            />
+          </label>
+        </div>
+      </div>
+
       <table className="w-full table-fixed text-xs">
         <thead>
           <tr className="border-b border-gray-100">
@@ -63,8 +184,9 @@ function SlotTable({
           </tr>
         </thead>
         <tbody>
-          {shown.map((entry, rank) => {
-            const isBest = rank === 0;
+          {displayedEntries.map((entry) => {
+            const rank = rankById.get(entry.item.id) ?? 1;
+            const isBest = rank === 1;
             const isActive = entry.item.id === activeItemId;
             const deltaVsTop = best > 0 ? ((entry.expectedValuePerHour - best) / best) * 100 : 0;
 
@@ -81,7 +203,7 @@ function SlotTable({
                       isBest ? 'text-green-700' : isActive ? 'text-ocean-700' : 'text-gray-700'
                     }`}
                   >
-                    {rank + 1}. {entry.item.nameEn}
+                    {rank}. {entry.item.nameEn}
                   </span>
                   {isActive && (
                     <span className="ml-1.5 rounded bg-ocean-100 px-1 py-0.5 text-xs text-ocean-700">
@@ -101,7 +223,7 @@ function SlotTable({
                   <span className={`font-semibold ${isBest ? 'text-green-700' : 'text-gray-700'}`}>
                     {formatCurrency(entry.expectedValuePerHour)}
                   </span>
-                  {rank > 0 && best > 0 && (
+                  {rank > 1 && best > 0 && (
                     <span className="ml-1 text-gray-400">({deltaVsTop.toFixed(1)}%)</span>
                   )}
                 </td>
@@ -122,6 +244,18 @@ function SlotTable({
           })}
         </tbody>
       </table>
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() =>
+            setRangeEnd((current) => Math.min(current + LOAD_MORE_INCREMENT, totalEntries))
+          }
+          className="mt-2 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+        >
+          もっと見る（残り {totalEntries - normalizedEnd} 件）
+        </button>
+      )}
     </div>
   );
 }
@@ -151,12 +285,12 @@ export function RankingView({
           </h2>
           <p className="mt-0.5 text-xs text-gray-500">
             いまの装備のまま <strong>{SLOT_LABELS[focusSlot]}</strong>{' '}
-            だけを変えたときに、伸びやすい順で並べています。迷ったら、上から 1 つ選べば大丈夫です。
+            だけを変えたときに、伸びやすい順で並べています。表示順の切り替え、順位範囲の指定、「もっと見る」で気になる帯域だけを追えます。
           </p>
         </div>
         {!alwaysOpen ? (
           <button
-            onClick={() => setIsExpanded((v) => !v)}
+            onClick={() => setIsExpanded((value) => !value)}
             className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
           >
             {isExpanded ? '閉じる ▲' : '表示 ▼'}
@@ -168,7 +302,7 @@ export function RankingView({
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
             <strong>見方:</strong>{' '}
-            上にあるほど、今の条件では伸びやすい候補です。1つ押すと、その候補が比較一覧に追加されます。
+            上にあるほど、今の条件では伸びやすい候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで見たい帯だけを確認できます。1つ押すと、その候補が比較一覧に追加されます。
           </div>
 
           <div className="grid grid-cols-1 gap-4">

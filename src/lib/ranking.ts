@@ -13,6 +13,12 @@
  *   optimizeFullBuildAsync: same exact semantics, non-blocking — yields to
  *   the main thread between partial chunks so the browser stays responsive
  *   while provisional top builds stream into the UI.
+ *
+ * Subset-build optimizer: arbitrary subset of {rod, line, bobber, enchant}.
+ *   Non-varying slots are fixed at baseParams.loadout values.
+ *   optimizeSubsetBuild / optimizeSubsetBuildAsync are the public API.
+ *   When varyingSlots contains all four slots, results are identical to
+ *   optimizeFullBuild / optimizeFullBuildAsync.
  */
 
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
@@ -375,5 +381,233 @@ export async function optimizeFullBuildAsync(
     topBuilds: finalBuilds,
     searchedCount,
     totalCombinationSpace: TOTAL_COMBINATION_SPACE,
+  };
+}
+
+// ── Subset-build optimizer ────────────────────────────────────────────────────
+
+/** Resolve the current loadout item for a given slot from baseParams. */
+function getFixedItemForSlot(
+  slot: RankSlot,
+  baseParams: CalculatorParams,
+): EquipmentItem | EnchantItem {
+  const itemId =
+    slot === 'rod'
+      ? baseParams.loadout.rodId
+      : slot === 'line'
+        ? baseParams.loadout.lineId
+        : slot === 'bobber'
+          ? baseParams.loadout.bobberId
+          : baseParams.loadout.enchantId;
+  return (
+    (SLOT_DATA[slot] as (EquipmentItem | EnchantItem)[]).find((i) => i.id === itemId) ??
+    SLOT_DATA[slot][0]
+  );
+}
+
+// Dominance pruning is only safe when ALL four slots are searched together.
+// When any slot is fixed the pruned superset rod/line/bobber may outperform in
+// that specific fixed context, so we must use the full arrays for subset builds.
+const FULL_BUILD_SLOTS = new Set<RankSlot>(['rod', 'line', 'bobber', 'enchant']);
+function isFullBuildSearch(varyingSlots: readonly RankSlot[]): boolean {
+  return (
+    varyingSlots.length === 4 &&
+    FULL_BUILD_SLOTS.size === 4 &&
+    varyingSlots.every((s) => FULL_BUILD_SLOTS.has(s))
+  );
+}
+
+/**
+ * Compute the total search space for a given varyingSlots subset.
+ * Non-varying slots contribute a factor of 1.
+ * Dominance pruning is applied to rod/line/bobber only when all four slots vary.
+ */
+export function computeSubsetSearchSpace(varyingSlots: readonly RankSlot[]): number {
+  const full = isFullBuildSearch(varyingSlots);
+  const rodCount = varyingSlots.includes('rod') ? (full ? OPTIMIZER_RODS.length : RODS.length) : 1;
+  const lineCount = varyingSlots.includes('line')
+    ? full
+      ? OPTIMIZER_LINES.length
+      : LINES.length
+    : 1;
+  const bobberCount = varyingSlots.includes('bobber')
+    ? full
+      ? OPTIMIZER_BOBBERS.length
+      : BOBBERS.length
+    : 1;
+  const enchantCount = varyingSlots.includes('enchant') ? ENCHANTS.length : 1;
+  return rodCount * lineCount * bobberCount * enchantCount;
+}
+
+/** Result returned by the subset-build optimizer. */
+export interface SubsetBuildOptimizerResult extends FullBuildOptimizerResult {
+  /** The slots that were varied. Non-varying slots retain their baseParams.loadout values. */
+  varyingSlots: readonly RankSlot[];
+}
+
+/** Progress event emitted by optimizeSubsetBuildAsync. */
+export interface SubsetOptimizerProgressEvent extends OptimizerProgressEvent {
+  /** The slots being varied. */
+  varyingSlots: readonly RankSlot[];
+}
+
+/**
+ * Find the top combinations for the given varyingSlots subset.
+ * Non-varying slots are held fixed at baseParams.loadout values.
+ * Dominance pruning is applied to varying rod/line/bobber candidates.
+ *
+ * When varyingSlots contains all four slots the results are identical to
+ * optimizeFullBuild.
+ */
+export function optimizeSubsetBuild(
+  baseParams: CalculatorParams,
+  varyingSlots: readonly RankSlot[],
+  topNResults = 10,
+): SubsetBuildOptimizerResult {
+  const heap = new TopNHeap(normalizeTopNResults(topNResults));
+  let searchedCount = 0;
+
+  const full = isFullBuildSearch(varyingSlots);
+  const rodCandidates: EquipmentItem[] = varyingSlots.includes('rod')
+    ? full
+      ? OPTIMIZER_RODS
+      : RODS
+    : [getFixedItemForSlot('rod', baseParams) as EquipmentItem];
+  const lineCandidates: EquipmentItem[] = varyingSlots.includes('line')
+    ? full
+      ? OPTIMIZER_LINES
+      : LINES
+    : [getFixedItemForSlot('line', baseParams) as EquipmentItem];
+  const bobberCandidates: EquipmentItem[] = varyingSlots.includes('bobber')
+    ? full
+      ? OPTIMIZER_BOBBERS
+      : BOBBERS
+    : [getFixedItemForSlot('bobber', baseParams) as EquipmentItem];
+  const enchantCandidates: (EquipmentItem | EnchantItem)[] = varyingSlots.includes('enchant')
+    ? ENCHANTS
+    : [getFixedItemForSlot('enchant', baseParams)];
+
+  const totalSpace = computeSubsetSearchSpace(varyingSlots);
+
+  for (const rod of rodCandidates) {
+    for (const line of lineCandidates) {
+      for (const bobber of bobberCandidates) {
+        for (const enchant of enchantCandidates) {
+          const loadout: EquipmentLoadout = {
+            rodId: rod.id,
+            lineId: line.id,
+            bobberId: bobber.id,
+            enchantId: enchant.id,
+          };
+          heap.consider(
+            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
+            searchedCount,
+          );
+          searchedCount++;
+        }
+      }
+    }
+  }
+
+  return {
+    topBuilds: heap.toSortedDesc(),
+    searchedCount,
+    totalCombinationSpace: totalSpace,
+    varyingSlots,
+  };
+}
+
+/**
+ * Async, non-blocking variant of optimizeSubsetBuild with identical exact
+ * search semantics. Yields to the main thread after each line-level chunk so
+ * the browser stays responsive while provisional top builds stream into the UI.
+ *
+ * When varyingSlots contains all four slots, results are identical to
+ * optimizeFullBuildAsync.
+ */
+export async function optimizeSubsetBuildAsync(
+  baseParams: CalculatorParams,
+  varyingSlots: readonly RankSlot[],
+  topNResults = 10,
+  signal?: AbortSignal,
+  onProgress?: (event: SubsetOptimizerProgressEvent) => void,
+): Promise<SubsetBuildOptimizerResult | null> {
+  if (signal?.aborted) return null;
+
+  const heap = new TopNHeap(normalizeTopNResults(topNResults));
+  let searchedCount = 0;
+
+  const full = isFullBuildSearch(varyingSlots);
+  const rodCandidates: EquipmentItem[] = varyingSlots.includes('rod')
+    ? full
+      ? OPTIMIZER_RODS
+      : RODS
+    : [getFixedItemForSlot('rod', baseParams) as EquipmentItem];
+  const lineCandidates: EquipmentItem[] = varyingSlots.includes('line')
+    ? full
+      ? OPTIMIZER_LINES
+      : LINES
+    : [getFixedItemForSlot('line', baseParams) as EquipmentItem];
+  const bobberCandidates: EquipmentItem[] = varyingSlots.includes('bobber')
+    ? full
+      ? OPTIMIZER_BOBBERS
+      : BOBBERS
+    : [getFixedItemForSlot('bobber', baseParams) as EquipmentItem];
+  const enchantCandidates: (EquipmentItem | EnchantItem)[] = varyingSlots.includes('enchant')
+    ? ENCHANTS
+    : [getFixedItemForSlot('enchant', baseParams)];
+
+  const totalSpace = computeSubsetSearchSpace(varyingSlots);
+
+  for (const rod of rodCandidates) {
+    for (const line of lineCandidates) {
+      for (const bobber of bobberCandidates) {
+        for (const enchant of enchantCandidates) {
+          const loadout: EquipmentLoadout = {
+            rodId: rod.id,
+            lineId: line.id,
+            bobberId: bobber.id,
+            enchantId: enchant.id,
+          };
+          heap.consider(
+            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
+            searchedCount,
+          );
+          searchedCount++;
+        }
+      }
+
+      if (onProgress) {
+        onProgress({
+          topBuilds: heap.toSortedDesc(),
+          searchedCount,
+          totalCombinationSpace: totalSpace,
+          isComplete: false,
+          varyingSlots,
+        });
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      if (signal?.aborted) return null;
+    }
+  }
+
+  if (signal?.aborted) return null;
+
+  const finalBuilds = heap.toSortedDesc();
+  if (onProgress) {
+    onProgress({
+      topBuilds: finalBuilds,
+      searchedCount,
+      totalCombinationSpace: totalSpace,
+      isComplete: true,
+      varyingSlots,
+    });
+  }
+
+  return {
+    topBuilds: finalBuilds,
+    searchedCount,
+    totalCombinationSpace: totalSpace,
+    varyingSlots,
   };
 }

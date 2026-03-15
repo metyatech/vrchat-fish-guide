@@ -6,10 +6,14 @@ import { OptimizerView } from '@/components/Calculator/OptimizerView';
 import { STAT_THEME } from '@/components/Calculator/statTheme';
 import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
 import { RODS, LINES, BOBBERS, ENCHANTS } from '@/data/equipment';
-import type { FullBuildEntry, FullBuildOptimizerResult } from '@/lib/ranking';
+import type {
+  FullBuildEntry,
+  FullBuildOptimizerResult,
+  SubsetBuildOptimizerResult,
+} from '@/lib/ranking';
 import * as rankingModule from '@/lib/ranking';
 
-// Replace optimizeFullBuildAsync with a vi.fn() at module load time so that
+// Replace optimizeSubsetBuildAsync with a vi.fn() at module load time so that
 // the component's static import binding points to the same mock instance.
 // vi.mock is hoisted before all imports by Vitest, so this intercepts the
 // binding before OptimizerView ever touches it.
@@ -17,6 +21,8 @@ vi.mock('@/lib/ranking', async () => {
   const actual = await vi.importActual<typeof import('@/lib/ranking')>('@/lib/ranking');
   return {
     ...actual,
+    optimizeSubsetBuildAsync: vi.fn(),
+    // keep the deprecated one in case anything still references it:
     optimizeFullBuildAsync: vi.fn(),
   };
 });
@@ -45,11 +51,12 @@ function makeFakeBuilds(n: number): FullBuildEntry[] {
   }));
 }
 
-function makeFakeOptimizerResult(n: number): FullBuildOptimizerResult {
+function makeFakeOptimizerResult(n: number): SubsetBuildOptimizerResult {
   return {
     topBuilds: makeFakeBuilds(n),
     searchedCount: 41280,
     totalCombinationSpace: 41280,
+    varyingSlots: ['rod', 'line', 'bobber', 'enchant'],
   };
 }
 
@@ -735,7 +742,7 @@ describe('OptimizerView progressive loading UI', () => {
   it('shows a progress bar immediately when the optimizer is visible', async () => {
     // Resolve immediately — the component does not use the return value; isLoading
     // stays true because no onProgress(isComplete=true) is fired.
-    vi.mocked(rankingModule.optimizeFullBuildAsync).mockResolvedValue(null);
+    vi.mocked(rankingModule.optimizeSubsetBuildAsync).mockResolvedValue(null);
     render(<OptimizerView baseParams={getDefaultParams()} alwaysOpen />);
     await waitFor(() => {
       expect(screen.getByRole('progressbar')).toBeInTheDocument();
@@ -744,14 +751,15 @@ describe('OptimizerView progressive loading UI', () => {
 
   it('shows provisional results and speed-report label via onProgress before completion', async () => {
     const fakeResult = makeFakeOptimizerResult(10);
-    vi.mocked(rankingModule.optimizeFullBuildAsync).mockImplementation(
-      (_params, _n, _signal, onProgress) => {
+    vi.mocked(rankingModule.optimizeSubsetBuildAsync).mockImplementation(
+      (_params, _varyingSlots, _n, _signal, onProgress) => {
         // Emit one intermediate event (isComplete=false keeps isLoading=true).
         onProgress?.({
           topBuilds: fakeResult.topBuilds,
           searchedCount: 2752,
           totalCombinationSpace: 41280,
           isComplete: false,
+          varyingSlots: ['rod', 'line', 'bobber', 'enchant'],
         });
         // Resolve immediately — the component ignores the return value.
         return Promise.resolve(null);
@@ -768,13 +776,14 @@ describe('OptimizerView progressive loading UI', () => {
 
   it('hides the progress bar and shows もっと見る after search completes with a large buffer', async () => {
     const fakeResult = makeFakeOptimizerResult(20);
-    vi.mocked(rankingModule.optimizeFullBuildAsync).mockImplementation(
-      (_params, _n, _signal, onProgress) => {
+    vi.mocked(rankingModule.optimizeSubsetBuildAsync).mockImplementation(
+      (_params, _varyingSlots, _n, _signal, onProgress) => {
         onProgress?.({
           topBuilds: fakeResult.topBuilds,
           searchedCount: 41280,
           totalCombinationSpace: 41280,
           isComplete: true,
+          varyingSlots: ['rod', 'line', 'bobber', 'enchant'],
         });
         return Promise.resolve(fakeResult);
       },
@@ -788,13 +797,14 @@ describe('OptimizerView progressive loading UI', () => {
 
   it('does not show もっと見る when buffer has 10 or fewer builds', async () => {
     const fakeResult = makeFakeOptimizerResult(10);
-    vi.mocked(rankingModule.optimizeFullBuildAsync).mockImplementation(
-      (_params, _n, _signal, onProgress) => {
+    vi.mocked(rankingModule.optimizeSubsetBuildAsync).mockImplementation(
+      (_params, _varyingSlots, _n, _signal, onProgress) => {
         onProgress?.({
           topBuilds: fakeResult.topBuilds,
           searchedCount: 41280,
           totalCombinationSpace: 41280,
           isComplete: true,
+          varyingSlots: ['rod', 'line', 'bobber', 'enchant'],
         });
         return Promise.resolve(fakeResult);
       },
@@ -804,5 +814,55 @@ describe('OptimizerView progressive loading UI', () => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
     expect(screen.queryByText(/もっと見る/)).not.toBeInTheDocument();
+  });
+
+  it('supports changing the displayed rank range and reversing the order after completion', async () => {
+    const fakeResult = makeFakeOptimizerResult(20);
+    vi.mocked(rankingModule.optimizeSubsetBuildAsync).mockImplementation(
+      (_params, _varyingSlots, _n, _signal, onProgress) => {
+        onProgress?.({
+          topBuilds: fakeResult.topBuilds,
+          searchedCount: 41280,
+          totalCombinationSpace: 41280,
+          isComplete: true,
+          varyingSlots: ['rod', 'line', 'bobber', 'enchant'],
+        });
+        return Promise.resolve(fakeResult);
+      },
+    );
+
+    render(<OptimizerView baseParams={getDefaultParams()} alwaysOpen />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('組み合わせ開始順位'), {
+      target: { value: '11' },
+    });
+    fireEvent.change(screen.getByLabelText('組み合わせ終了順位'), {
+      target: { value: '15' },
+    });
+
+    expect(
+      screen.queryByText(fakeResult.topBuilds[0].items.enchant.nameEn),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText(fakeResult.topBuilds[10].items.enchant.nameEn).length,
+    ).toBeGreaterThan(0);
+
+    const table = screen.getByRole('table');
+    let rows = within(table).getAllByRole('row');
+    expect(rows[1]).toHaveTextContent('11');
+
+    fireEvent.click(screen.getByRole('button', { name: '組み合わせ表示順: ベスト→ワースト' }));
+
+    rows = within(table).getAllByRole('row');
+    expect(rows[1]).toHaveTextContent('15');
+
+    fireEvent.click(screen.getByRole('button', { name: '下位10を表示' }));
+
+    rows = within(table).getAllByRole('row');
+    expect(rows[1]).toHaveTextContent('20');
   });
 });
