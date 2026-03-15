@@ -74,11 +74,11 @@ export function GoalModePicker({ value, onChange }: GoalModePickerProps) {
     >
       <div className="mb-4">
         <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
-          2. 見たいものを選ぶ
+          1. 何をしたいか決める
         </div>
         <h2 className="text-lg font-semibold text-gray-900">何を見たい？</h2>
         <p className="mt-1 text-sm text-gray-500">
-          1つ選ぶと、その目的に必要な情報だけを下に出します。
+          最初に 1 つ選ぶと、その目的に必要な設定と結果だけを下に出します。
         </p>
       </div>
 

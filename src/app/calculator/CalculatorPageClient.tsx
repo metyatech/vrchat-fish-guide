@@ -53,6 +53,29 @@ const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
   fish: '上の条件に合う魚を見て、どの魚が収益を支えているかを確認します。',
 };
 
+const SETUP_SECTION_COPY: Record<CalculatorGoal, { title: string; description: string }> = {
+  ranking: {
+    title: '2. ランキングの条件と基準装備を決める',
+    description: 'どの条件で順位を見るかを、装備・釣り場・時間帯・天気から決めます。',
+  },
+  upgrade: {
+    title: '2. 今の装備と比較条件を決める',
+    description: 'いま使っている装備と条件を入れると、次に試す候補をその下に出します。',
+  },
+  compare: {
+    title: '2. 保存した候補を比べる条件を決める',
+    description: '比較一覧にある候補を、同じ釣り場と同じ前提で比べられるように整えます。',
+  },
+  summary: {
+    title: '2. 時給を見る条件と基準装備を決める',
+    description: 'この装備でどれくらい稼げるかを見るための条件を、先にここで決めます。',
+  },
+  fish: {
+    title: '2. 魚の内訳を見る条件と基準装備を決める',
+    description: 'どの魚が期待値を支えているかを見るために、先に装備と条件をそろえます。',
+  },
+};
+
 const RESULT_SECTION_COPY: Record<
   Exclude<CalculatorGoal, 'ranking' | 'upgrade'>,
   { title: string; description: string }
@@ -374,6 +397,7 @@ export function CalculatorPageClient() {
     : '1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。';
   const rankingResultsStepLabel = isRankingGoal ? '4. ランキングを見る' : '4. 候補を見る';
   const goalContextEyebrow = showSelectionTools ? 'この条件で見ています' : '3. 結果を見る';
+  const setupSectionCopy = SETUP_SECTION_COPY[goalView];
 
   // ── Share URL ──────────────────────────────────────────────────────────────
 
@@ -519,20 +543,20 @@ export function CalculatorPageClient() {
         <div className="overflow-hidden rounded-[30px] bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.34),_rgba(37,120,232,0.98)_36%,_rgba(12,74,153,1)_100%)] px-6 py-6 text-white shadow-[0_28px_90px_rgba(37,120,232,0.28)] ring-1 ring-white/20">
           <h1 className="text-2xl font-bold tracking-tight">📊 装備込みの期待値比較</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ocean-100">
-            まず条件を入れて、次に見たいものを 1 つ選ぶと、その目的に必要な情報だけを表示します。
+            まず何をしたいかを選び、その目的で使う条件だけを上から順に入れていけます。
           </p>
         </div>
       </div>
 
       <div className="space-y-6">
+        <GoalModePicker value={goalView} onChange={setGoalView} />
+
         <section className="rounded-[30px] border border-white/80 bg-white/84 p-5 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
-            1. 条件を入れる
+            {setupSectionCopy.title}
           </div>
           <h2 className="mt-2 text-lg font-semibold text-gray-900">条件と基準装備を決める</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            ここで入れた装備、釣り場、時間帯、天気をもとに、下のランキングや結果をそろえて表示します。
-          </p>
+          <p className="mt-1 text-sm text-gray-500">{setupSectionCopy.description}</p>
         </section>
 
         <ParameterForm
@@ -540,8 +564,6 @@ export function CalculatorPageClient() {
           model={activeResult.model}
           onChange={handleParamsChange}
         />
-
-        <GoalModePicker value={goalView} onChange={setGoalView} />
 
         {showSelectionTools ? (
           <>

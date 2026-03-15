@@ -41,7 +41,9 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.goto('/calculator/');
 
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
+  await expect(page.getByText('1. 何をしたいか決める')).toBeVisible();
   await expect(page.getByRole('heading', { name: '何を見たい？' })).toBeVisible();
+  await expect(page.getByText('2. ランキングの条件と基準装備を決める')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '3. ランキング対象を決める' })).toBeVisible();
   await expect(page.getByText('4. ランキングを見る')).toBeVisible();
@@ -64,8 +66,14 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   const selectionBox = await page
     .getByRole('heading', { name: '3. ランキング対象を決める' })
     .boundingBox();
+  const goalBox = await page.getByRole('heading', { name: '何を見たい？' }).boundingBox();
+  const setupBox = await page
+    .getByRole('heading', { name: '条件と基準装備を決める' })
+    .boundingBox();
   const contextBox = await page.getByTestId('current-goal-context').boundingBox();
   const rankingBox = await page.getByRole('heading', { name: 'Rod のランキング' }).boundingBox();
+  expect(goalBox?.y).toBeLessThan(setupBox?.y ?? Number.POSITIVE_INFINITY);
+  expect(setupBox?.y).toBeLessThan(selectionBox?.y ?? Number.POSITIVE_INFINITY);
   expect(selectionBox?.y).toBeLessThan(contextBox?.y ?? Number.POSITIVE_INFINITY);
   expect(contextBox?.y).toBeLessThan(rankingBox?.y ?? Number.POSITIVE_INFINITY);
   const totalStatsSection = page.getByTestId('total-stats-section');

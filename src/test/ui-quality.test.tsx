@@ -298,16 +298,26 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('keeps the ranking flow in a top-to-bottom order', () => {
     render(<CalculatorPageClient />);
 
+    const goalHeading = screen.getByRole('heading', { name: '何を見たい？' });
+    const setupHeading = screen.getByRole('heading', { name: '条件と基準装備を決める' });
     const selectionHeading = screen.getByRole('heading', { name: '3. ランキング対象を決める' });
     const context = screen.getByTestId('current-goal-context');
     const rankingHeading = screen.getByRole('heading', { name: 'Rod のランキング' });
 
+    expect(
+      goalHeading.compareDocumentPosition(setupHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      setupHeading.compareDocumentPosition(selectionHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       selectionHeading.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       context.compareDocumentPosition(rankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(screen.getByText('1. 何をしたいか決める')).toBeInTheDocument();
+    expect(screen.getByText('2. ランキングの条件と基準装備を決める')).toBeInTheDocument();
     expect(screen.getByText('4. ランキングを見る')).toBeInTheDocument();
   });
 
@@ -329,5 +339,20 @@ describe('UI quality – overflow and wrapping prevention', () => {
     fireEvent.click(screen.getByRole('button', { name: /どの魚が当たりか見る/ }));
     expect(screen.getByRole('heading', { name: '魚種別詳細' })).toBeInTheDocument();
     expect(screen.queryByTestId('compare-slot-selector')).not.toBeInTheDocument();
+  });
+
+  it('updates the setup guidance after changing the goal', () => {
+    render(<CalculatorPageClient />);
+
+    expect(screen.getByText('2. ランキングの条件と基準装備を決める')).toBeInTheDocument();
+    expect(
+      screen.getByText('どの条件で順位を見るかを、装備・釣り場・時間帯・天気から決めます。'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /保存した候補を並べて比べる/ }));
+    expect(screen.getByText('2. 保存した候補を比べる条件を決める')).toBeInTheDocument();
+    expect(
+      screen.getByText('比較一覧にある候補を、同じ釣り場と同じ前提で比べられるように整えます。'),
+    ).toBeInTheDocument();
   });
 });
