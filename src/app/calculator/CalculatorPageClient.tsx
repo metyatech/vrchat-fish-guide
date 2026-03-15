@@ -5,6 +5,11 @@ import { AdSlot } from '@/components/AdSlot';
 import { BuildTabs } from '@/components/Calculator/BuildTabs';
 import { ComparisonSummary } from '@/components/Calculator/ComparisonSummary';
 import { DistributionChart } from '@/components/Calculator/DistributionChart';
+import {
+  CALCULATOR_GOAL_COPY,
+  CalculatorGoal,
+  GoalModePicker,
+} from '@/components/Calculator/GoalModePicker';
 import { OptimizerView } from '@/components/Calculator/OptimizerView';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { RankingView } from '@/components/Calculator/RankingView';
@@ -39,6 +44,31 @@ const SLOT_LABELS: Record<RankSlot, string> = {
 };
 
 const ALL_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+
+const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
+  upgrade: '変えたいスロットを選び、気になる候補だけを比較へ送ります。',
+  compare: '追加した候補を並べて、どれが一番伸びるかを選びます。',
+  summary: 'いまの条件でどれだけ稼げるかを、主要指標から先に確認します。',
+  fish: '上の条件に合う魚を見て、どの魚が収益を支えているかを確認します。',
+};
+
+const RESULT_SECTION_COPY: Record<
+  Exclude<CalculatorGoal, 'upgrade'>,
+  { title: string; description: string }
+> = {
+  compare: {
+    title: '選択中の候補の結果',
+    description: '比較一覧で選んだ候補の数値です。',
+  },
+  summary: {
+    title: 'いまの装備の結果',
+    description: '主要指標は期待値/時間です。',
+  },
+  fish: {
+    title: '魚一覧の前に見る数値',
+    description: 'この数値を見ながら、下の魚一覧で収益の内訳を確認します。',
+  },
+};
 
 function formatSelectedTimeLabel(value: CalculatorParams['timeOfDay']): string {
   return value === 'any' ? '平均で見る' : TIME_OF_DAY_LABELS[value];
@@ -78,6 +108,9 @@ export function CalculatorPageClient() {
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
   const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
   const [selectedSlots, setSelectedSlots] = useState<RankSlot[]>(['rod']);
+  const [goalView, setGoalView] = useState<CalculatorGoal>(() =>
+    initialBuilds.length > 1 ? 'compare' : 'upgrade',
+  );
   const [notesOpen, setNotesOpen] = useState(false);
 
   // Sync URL hash whenever builds/activeId change
@@ -129,6 +162,7 @@ export function CalculatorPageClient() {
     const newBuild = createBuildFrom(ref, builds.length);
     setBuilds((prev) => [...prev, newBuild]);
     setActiveId(newBuild.id);
+    setGoalView('compare');
   }, [builds, activeId]);
 
   const handleDuplicateBuild = useCallback(
@@ -143,6 +177,7 @@ export function CalculatorPageClient() {
         return next;
       });
       setActiveId(dup.id);
+      setGoalView('compare');
     },
     [builds],
   );
@@ -187,6 +222,7 @@ export function CalculatorPageClient() {
 
       setBuilds((prev) => [...prev, nextBuild]);
       setActiveId(nextBuild.id);
+      setGoalView('compare');
     },
     [activeBuild, builds.length],
   );
@@ -235,6 +271,7 @@ export function CalculatorPageClient() {
 
       setBuilds((prev) => [...prev, nextBuild]);
       setActiveId(nextBuild.id);
+      setGoalView('compare');
     },
     [activeBuild, builds.length, orderedSelectedSlots],
   );
@@ -300,6 +337,17 @@ export function CalculatorPageClient() {
     : `${selectedSlotsLabel} を変え、残りのスロットは現在の装備で固定します。`;
 
   const hasComparisons = builds.length > 1;
+  const goalCopy = CALCULATOR_GOAL_COPY[goalView];
+  const goalHelperText = GOAL_HELPER_COPY[goalView];
+  const showUpgradeTools = goalView === 'upgrade';
+  const showCompareTools = goalView === 'compare';
+  const showResultInsights = goalView !== 'upgrade';
+  const showChart = goalView === 'summary' || goalView === 'fish';
+  const showMetricLegend = goalView === 'summary';
+  const showFishDetails = goalView === 'fish';
+  const showNotes = goalView === 'summary' || goalView === 'fish';
+  const resultSectionCopy =
+    goalView === 'upgrade' ? RESULT_SECTION_COPY.summary : RESULT_SECTION_COPY[goalView];
 
   // ── Share URL ──────────────────────────────────────────────────────────────
 
@@ -352,443 +400,568 @@ export function CalculatorPageClient() {
         <div className="overflow-hidden rounded-[30px] bg-[radial-gradient(circle_at_top_left,_rgba(147,209,252,0.34),_rgba(37,120,232,0.98)_36%,_rgba(12,74,153,1)_100%)] px-6 py-6 text-white shadow-[0_28px_90px_rgba(37,120,232,0.28)] ring-1 ring-white/20">
           <h1 className="text-2xl font-bold tracking-tight">📊 装備込みの期待値比較</h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ocean-100">
-            装備と条件を入れると、期待値/時間で装備差を並べて比べられます。
+            まず条件を入れて、次に見たいものを 1 つ選ぶと、その目的に必要な情報だけを表示します。
           </p>
         </div>
       </div>
 
       <div className="space-y-6">
+        <section className="rounded-[30px] border border-white/80 bg-white/84 p-5 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+          <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
+            1. 条件を入れる
+          </div>
+          <h2 className="mt-2 text-lg font-semibold text-gray-900">いまの装備と条件を決める</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            ここで入れた装備、釣り場、時間帯、天気をもとに、下の結果をすべてそろえて表示します。
+          </p>
+        </section>
+
         <ParameterForm
           params={activeBuild.params}
           model={activeResult.model}
           onChange={handleParamsChange}
         />
 
-        <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">比べるスロットを選ぶ</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。
-            </p>
-          </div>
+        <GoalModePicker value={goalView} onChange={setGoalView} />
 
-          <div data-testid="compare-slot-selector" className="mb-4 flex flex-wrap gap-2">
-            {ALL_SLOTS.map((slot) => {
-              const isSelected = orderedSelectedSlots.includes(slot);
-              const theme = SLOT_THEME[slot];
-              return (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() =>
-                    setSelectedSlots((prev) => {
-                      const next = isSelected
-                        ? prev.length > 1
-                          ? prev.filter((candidate) => candidate !== slot)
-                          : prev
-                        : [...prev, slot];
-                      return ALL_SLOTS.filter((candidate) => next.includes(candidate));
-                    })
-                  }
-                  aria-pressed={isSelected}
-                  aria-label={`${SLOT_LABELS[slot]} ${isSelected ? '選択中' : '未選択'}`}
-                  data-state={isSelected ? 'selected' : 'idle'}
-                  data-testid={`compare-slot-button-${slot}`}
-                  className={`flex min-w-[9.5rem] items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 text-left text-sm font-semibold transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
-                    isSelected
-                      ? `${theme.buttonActiveClassName} shadow-[0_10px_24px_rgba(15,23,42,0.18)] ring-2 ring-white/75 ring-offset-2 ring-offset-white`
-                      : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      className={`h-2.5 w-2.5 rounded-full ${theme.dotClassName} ${
-                        isSelected ? '' : 'opacity-40'
-                      }`}
-                    />
-                    <span>{SLOT_LABELS[slot]}</span>
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    data-slot-indicator={isSelected ? 'selected' : 'idle'}
-                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${
-                      isSelected
-                        ? 'border-white/35 bg-white/15 text-white shadow-inner'
-                        : 'border-slate-300 bg-slate-50 text-slate-300'
-                    }`}
-                  >
-                    {isSelected ? (
-                      <svg
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        className="h-3.5 w-3.5"
-                        stroke="currentColor"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M4.5 10.5 8.2 14 15.5 6.5" />
-                      </svg>
-                    ) : (
-                      <span className="h-2.5 w-2.5 rounded-full border-2 border-current" />
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-            <p className="text-xs font-medium text-emerald-800">{selectionHelperText}</p>
-          </div>
-
-          <div
-            className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
-          >
-            <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
-              選択中
-            </div>
-            <p className="mt-2 text-sm text-gray-900">
-              <strong>{compareTargetActionLabel}</strong> の候補を選んで、比較一覧に追加できます。
-            </p>
-          </div>
-        </section>
-
-        <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {isSingleSlotSelection
-                ? `${SLOT_LABELS[primarySlot]} の候補を追加`
-                : '組み合わせ候補を追加'}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">1 件追加すると、下の比較に並びます。</p>
-          </div>
-
-          {isSingleSlotSelection && bestNextTry ? (
-            <div
-              className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
-            >
-              <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
-                おすすめ候補
-              </div>
-              <div className="mt-2 rounded-xl border border-white/60 bg-white/80 p-3 text-sm text-gray-700">
-                現在: <strong>{bestNextTry.currentEntry.item.nameEn}</strong>
-                <br />
-                候補: <strong>{bestNextTry.bestEntry.item.nameEn}</strong>
-                <br />
-                期待値/時間:{' '}
-                <strong>{formatCurrency(bestNextTry.currentEntry.expectedValuePerHour)}</strong>
-                {' → '}
-                <strong>{formatCurrency(bestNextTry.bestEntry.expectedValuePerHour)}</strong>
-                {!bestNextTry.alreadyBest ? (
-                  <>
-                    <br />
-                    伸び幅: <strong>{bestNextTry.upliftPct.toFixed(1)}%</strong>
-                  </>
-                ) : null}
-              </div>
-              {!bestNextTry.alreadyBest ? (
-                <button
-                  onClick={handleCreateRecommendationBuild}
-                  className={`mt-3 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${compareTargetTheme.buttonActiveClassName}`}
-                >
-                  この候補を比較に追加
-                </button>
-              ) : (
-                <p className="mt-3 text-xs text-gray-700">
-                  いまの装備がこの欄では一番良い状態です。別の欄を選ぶと、次に試す候補が出ます。
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          {!isSingleSlotSelection ? (
-            <OptimizerView
-              key={`optimizer-${orderedSelectedSlots.join('-')}`}
-              baseParams={activeBuild.params}
-              varyingSlots={orderedSelectedSlots}
-              initialExpanded={true}
-              alwaysOpen={true}
-              onPickBuild={handleCreateOptimizedBuild}
-            />
-          ) : (
-            <RankingView
-              key={`ranking-${primarySlot}`}
-              baseParams={activeBuild.params}
-              focusSlot={primarySlot}
-              initialExpanded={true}
-              alwaysOpen={true}
-              onPickItem={handleCreateSlotComparison}
-            />
-          )}
-        </section>
-
-        <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+        <section
+          className="rounded-[30px] border border-white/80 bg-white/84 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm"
+          data-testid="current-goal-context"
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">比較一覧</h2>
-              <p className="mt-1 text-sm text-gray-500">追加した候補がここに並びます。</p>
-            </div>
-            <button
-              onClick={handleCopyLink}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm transition-all duration-150 hover:border-ocean-300 hover:shadow-md hover:text-ocean-700"
-              title="今の比較内容を URL で共有"
-            >
-              {copied ? '✓ コピー済み' : '🔗 この比較を URL で共有'}
-            </button>
-          </div>
-
-          <BuildTabs
-            builds={builds}
-            activeId={activeId}
-            onSelect={setActiveId}
-            onAdd={handleAddBuild}
-            onDuplicate={handleDuplicateBuild}
-            onRemove={handleRemoveBuild}
-            onRename={handleRenameBuild}
-          />
-
-          {!hasComparisons ? (
-            <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-              まだ比較する候補がありません。上の候補から 1 件追加すると、ここに比較結果が出ます。
-            </div>
-          ) : (
-            <ComparisonSummary
-              builds={builds}
-              results={results}
-              activeId={activeId}
-              onSelect={setActiveId}
-            />
-          )}
-        </section>
-
-        <section className="space-y-6" data-testid="result-summary-section">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">結果サマリー</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              主要指標は <strong>期待値/時間</strong> です。
-            </p>
-          </div>
-
-          <WarningBanner
-            warnings={activeResult.warnings.map((warning) =>
-              warning.replaceAll('Time of Day', '時間帯').replaceAll('Weather', '天気'),
-            )}
-          />
-
-          <div
-            key={resultAnimKey}
-            className="animate-flash-update grid grid-cols-2 gap-3 md:grid-cols-4"
-          >
-            <div
-              className="rounded-2xl border border-ocean-200/80 bg-[linear-gradient(145deg,rgba(239,248,255,0.95),rgba(255,255,255,1))] p-4 text-center shadow-[0_16px_40px_rgba(37,120,232,0.10)]"
-              data-testid="summary-expected-value-per-catch"
-            >
-              <div className="text-2xl font-bold text-ocean-700">
-                {formatCurrency(activeResult.expectedValuePerCatch)}
+              <div
+                className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${goalCopy.accentClassName}`}
+              >
+                {goalCopy.badge}
               </div>
-              <div className="mt-1.5 text-xs font-medium text-ocean-500">期待値/回</div>
+              <h2 className="mt-3 text-lg font-semibold text-gray-900">
+                いまは「{goalCopy.title}」を表示中
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">{goalHelperText}</p>
             </div>
+            {hasComparisons && goalView !== 'compare' ? (
+              <button
+                type="button"
+                onClick={() => setGoalView('compare')}
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-100"
+              >
+                保存した候補を開く
+              </button>
+            ) : null}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-700">
+            <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+              ビルド: {activeBuild.name}
+            </span>
+            <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+              釣り場: {areaContextText}
+            </span>
+            <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+              時間帯: {formatSelectedTimeLabel(activeResult.params.timeOfDay)}
+            </span>
+            <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
+              天気: {formatSelectedWeatherLabel(activeResult.params.weatherType)}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div
-              className="rounded-2xl border-2 border-ocean-400 bg-[linear-gradient(145deg,rgba(219,238,254,0.95),rgba(239,248,255,0.96))] p-4 text-center shadow-[0_18px_48px_rgba(37,120,232,0.20)]"
-              data-testid="summary-expected-value-per-hour"
+              className="rounded-2xl border-2 border-ocean-300 bg-[linear-gradient(145deg,rgba(219,238,254,0.95),rgba(239,248,255,0.96))] p-4 shadow-[0_18px_48px_rgba(37,120,232,0.16)]"
+              data-testid="context-expected-value-per-hour"
             >
-              <div className="text-3xl font-bold text-ocean-700">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-600">
+                いまの時給
+              </div>
+              <div className="mt-2 text-3xl font-bold text-ocean-700">
                 {formatCurrency(activeResult.expectedValuePerHour)}
               </div>
-              <div className="mt-1.5 text-xs font-semibold text-ocean-600">期待値/時間</div>
+              <div className="mt-1 text-xs text-ocean-600">期待値/時間</div>
             </div>
-            <div
-              className="rounded-2xl border border-white/80 bg-[linear-gradient(145deg,rgba(249,250,251,0.92),rgba(255,255,255,1))] p-4 text-center shadow-[0_14px_36px_rgba(15,23,42,0.08)]"
-              data-testid="summary-catches-per-hour"
-            >
-              <div className="text-2xl font-bold text-gray-700">{catchesPerHour.toFixed(0)}回</div>
-              <div className="mt-1.5 text-xs font-medium text-gray-500">試行回数/時間</div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                投げられる回数
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-800">
+                {catchesPerHour.toFixed(0)}回
+              </div>
+              <div className="mt-1 text-xs text-slate-500">試行回数/時間</div>
             </div>
-            <div
-              className="rounded-2xl border border-white/80 bg-[linear-gradient(145deg,rgba(249,250,251,0.92),rgba(255,255,255,1))] p-4 text-center shadow-[0_14px_36px_rgba(15,23,42,0.08)]"
-              data-testid="summary-total-fish-probability"
-            >
-              <div className="text-2xl font-bold text-gray-700">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                釣れる確率
+              </div>
+              <div className="mt-2 text-2xl font-bold text-slate-800">
                 {(activeResult.totalFishProbability * 100).toFixed(0)}%
               </div>
-              <div className="mt-1.5 text-xs font-medium text-gray-500">魚が釣れる確率</div>
+              <div className="mt-1 text-xs text-slate-500">逃がし込みの実釣率</div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-ocean-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,249,255,0.95))] p-4 text-sm shadow-[0_14px_28px_rgba(30,70,136,0.08)] md:col-span-2 xl:col-span-4">
-              <div className="text-xs font-bold uppercase tracking-[0.16em] text-ocean-700">
-                いま見ている結果
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-700">
-                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
-                  ビルド: {activeBuild.name}
-                </span>
-                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
-                  釣り場: {areaContextText}
-                </span>
-                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
-                  時間帯: {formatSelectedTimeLabel(activeResult.params.timeOfDay)}
-                </span>
-                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
-                  天気: {formatSelectedWeatherLabel(activeResult.params.weatherType)}
-                </span>
-              </div>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              <div className="mb-1 font-semibold text-gray-800">期待値/回</div>
-              {'1回あたりの平均収益です。'}
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              <div className="mb-1 font-semibold text-gray-800">期待値/時間</div>
-              周回効率の比較に使う指標です。
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              <div className="mb-1 font-semibold text-gray-800">試行回数/時間</div>
-              {'1時間に投げられる回数です。'}
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-              <div className="mb-1 font-semibold text-gray-800">魚が釣れる確率</div>
-              逃がしを差し引いた確率です。
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-800">確率・期待値グラフ</h2>
-              <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-                <button
-                  onClick={() => setChartMode('per-catch')}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 ${
-                    chartMode === 'per-catch'
-                      ? 'bg-white text-ocean-700 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  1回あたり
-                </button>
-                <button
-                  onClick={() => setChartMode('per-hour')}
-                  className={`rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 ${
-                    chartMode === 'per-hour'
-                      ? 'bg-white text-ocean-700 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  1時間あたり
-                </button>
-              </div>
-            </div>
-            <DistributionChart result={activeResult} mode={chartMode} />
-            <p className="mt-3 text-xs leading-relaxed text-gray-500">
-              `1回あたり` は1投ごとの寄与、`1時間あたり` は1回にかかる時間を反映した時給寄与です。
-              見たい軸に合わせて切り替えてください。
-            </p>
-          </div>
-
-          <div className="flex justify-center">
-            <AdSlot position="in-content" size="leaderboard" showPlaceholder={false} />
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-gray-800">魚種別詳細</h2>
-            <ResultTable result={activeResult} />
-            <p className="mt-4 text-xs leading-relaxed text-gray-500">
-              各魚の条件や売値レンジ、釣獲率、期待値を確認できます。
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-xs leading-relaxed text-gray-600">
-            <button
-              type="button"
-              onClick={() => setNotesOpen((current) => !current)}
-              aria-expanded={notesOpen}
-              aria-controls="calculation-notes-panel"
-              className="flex w-full items-center justify-between gap-3 text-left font-semibold text-gray-700"
-            >
-              <span>📝 この計算について</span>
-              <span className="text-xs text-gray-500">{notesOpen ? '閉じる' : '開く'}</span>
-            </button>
-            <div
-              id="calculation-notes-panel"
-              data-testid="calculation-notes-panel"
-              aria-hidden={!notesOpen}
-              className="mt-3 grid transition-[grid-template-rows,opacity] duration-300 ease-out"
-              style={{
-                gridTemplateRows: notesOpen ? '1fr' : '0fr',
-                opacity: notesOpen ? 1 : 0,
-              }}
-            >
-              <div className="overflow-hidden">
-                <ul className="space-y-1.5">
-                  <li>
-                    • <strong>いま見ている条件</strong>: 釣り場{' '}
-                    {AREA_MAP[activeResult.model.autoSelectedAreaId ?? activeResult.params.areaId]
-                      ?.nameEn ?? '—'}
-                    、時間帯 {formatSelectedTimeLabel(activeResult.params.timeOfDay)}、天気{' '}
-                    {formatSelectedWeatherLabel(activeResult.params.weatherType)}
-                  </li>
-                  <li>
-                    • <strong>計算に入っている魚</strong>: {activeResult.fishResults.length} 種{' '}
-                    {activeResult.missingPriceFish.length > 0
-                      ? `(価格情報が未取得の魚 ${activeResult.missingPriceFish.length} 種を除く)`
-                      : ''}
-                  </li>
-                  <li>
-                    • <strong>どの魚が釣れるか</strong>:
-                    各釣り場の魚リストから、時間帯と天気の条件に合う魚を選んでいます。
-                  </li>
-                  <li>
-                    • <strong>装備の効果</strong>: 選んだ Rod / Line / Bobber / Enchant
-                    のステータスを合算しています。
-                  </li>
-                  <li>
-                    • <strong>レア度の影響</strong>:
-                    公開されているレア度テーブルを基準に、同じレア度の魚は同じ確率で出るように計算しています。
-                  </li>
-                  <li>
-                    • <strong>Luck の効果</strong>:{' '}
-                    {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x
-                    の補正として反映しています。(※内部計算式は未公開のため推定値)
-                  </li>
-                  <li>
-                    • <strong>Big Catch / Max Weight の効果</strong>: 魚の重さを上位{' '}
-                    {(activeResult.model.weightPercentile * 100).toFixed(0)}%
-                    の範囲に寄せる形で反映しています。(※推定式)
-                  </li>
-                  <li>
-                    • <strong>見た目・サイズボーナス</strong>:{' '}
-                    {activeResult.params.modifierAssumptions.includeModifiers
-                      ? `約 ${activeResult.model.modifierEvFactor.toFixed(3)}x のボーナスとして計算に入れています。(※コミュニティ観測値に基づく推定)`
-                      : '現在はオフです。左の「詳細設定」からオンにできます。'}
-                  </li>
-                  <li>
-                    • <strong>期待値/回</strong>: 各魚の釣れる確率 × 推定売値
-                    {activeResult.params.modifierAssumptions.includeModifiers
-                      ? ' × 見た目・サイズボーナス'
-                      : ''}
-                    を全魚種で合計した値です。
-                  </li>
-                  <li>
-                    • <strong>期待値/時間</strong>: 期待値/回 × (1時間 ÷ 1回の所要時間)
-                    で計算しています。
-                  </li>
-                  <li>
-                    • <strong>使用中のレア度重み</strong>:{' '}
-                    {Object.entries(activeResult.effectiveRarityWeights)
-                      .map(
-                        ([rarity, weight]) =>
-                          `${RARITY_LABELS[rarity as Rarity]} ${weight?.toFixed(2)}`,
-                      )
-                      .join(', ') || 'なし'}
-                  </li>
-                </ul>
-              </div>
-            </div>
+          <div className="mt-4">
+            <WarningBanner
+              warnings={activeResult.warnings.map((warning) =>
+                warning.replaceAll('Time of Day', '時間帯').replaceAll('Weather', '天気'),
+              )}
+            />
           </div>
         </section>
+
+        {showUpgradeTools ? (
+          <>
+            <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">比べるスロットを選ぶ</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。
+                </p>
+              </div>
+
+              <div data-testid="compare-slot-selector" className="mb-4 flex flex-wrap gap-2">
+                {ALL_SLOTS.map((slot) => {
+                  const isSelected = orderedSelectedSlots.includes(slot);
+                  const theme = SLOT_THEME[slot];
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() =>
+                        setSelectedSlots((prev) => {
+                          const next = isSelected
+                            ? prev.length > 1
+                              ? prev.filter((candidate) => candidate !== slot)
+                              : prev
+                            : [...prev, slot];
+                          return ALL_SLOTS.filter((candidate) => next.includes(candidate));
+                        })
+                      }
+                      aria-pressed={isSelected}
+                      aria-label={`${SLOT_LABELS[slot]} ${isSelected ? '選択中' : '未選択'}`}
+                      data-state={isSelected ? 'selected' : 'idle'}
+                      data-testid={`compare-slot-button-${slot}`}
+                      className={`flex min-w-[9.5rem] items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 text-left text-sm font-semibold transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
+                        isSelected
+                          ? `${theme.buttonActiveClassName} shadow-[0_10px_24px_rgba(15,23,42,0.18)] ring-2 ring-white/75 ring-offset-2 ring-offset-white`
+                          : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          className={`h-2.5 w-2.5 rounded-full ${theme.dotClassName} ${
+                            isSelected ? '' : 'opacity-40'
+                          }`}
+                        />
+                        <span>{SLOT_LABELS[slot]}</span>
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        data-slot-indicator={isSelected ? 'selected' : 'idle'}
+                        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${
+                          isSelected
+                            ? 'border-white/35 bg-white/15 text-white shadow-inner'
+                            : 'border-slate-300 bg-slate-50 text-slate-300'
+                        }`}
+                      >
+                        {isSelected ? (
+                          <svg
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            className="h-3.5 w-3.5"
+                            stroke="currentColor"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M4.5 10.5 8.2 14 15.5 6.5" />
+                          </svg>
+                        ) : (
+                          <span className="h-2.5 w-2.5 rounded-full border-2 border-current" />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-xs font-medium text-emerald-800">{selectionHelperText}</p>
+              </div>
+
+              <div
+                className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
+              >
+                <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                  選択中
+                </div>
+                <p className="mt-2 text-sm text-gray-900">
+                  <strong>{compareTargetActionLabel}</strong>{' '}
+                  の候補を選んで、比較一覧に追加できます。
+                </p>
+              </div>
+            </section>
+
+            <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {isSingleSlotSelection
+                    ? `${SLOT_LABELS[primarySlot]} の候補を追加`
+                    : '組み合わせ候補を追加'}
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  1 件追加すると、自動で「保存した候補を並べて比べる」に切り替わります。
+                </p>
+              </div>
+
+              {isSingleSlotSelection && bestNextTry ? (
+                <div
+                  className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
+                >
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
+                    おすすめ候補
+                  </div>
+                  <div className="mt-2 rounded-xl border border-white/60 bg-white/80 p-3 text-sm text-gray-700">
+                    現在: <strong>{bestNextTry.currentEntry.item.nameEn}</strong>
+                    <br />
+                    候補: <strong>{bestNextTry.bestEntry.item.nameEn}</strong>
+                    <br />
+                    期待値/時間:{' '}
+                    <strong>{formatCurrency(bestNextTry.currentEntry.expectedValuePerHour)}</strong>
+                    {' → '}
+                    <strong>{formatCurrency(bestNextTry.bestEntry.expectedValuePerHour)}</strong>
+                    {!bestNextTry.alreadyBest ? (
+                      <>
+                        <br />
+                        伸び幅: <strong>{bestNextTry.upliftPct.toFixed(1)}%</strong>
+                      </>
+                    ) : null}
+                  </div>
+                  {!bestNextTry.alreadyBest ? (
+                    <button
+                      onClick={handleCreateRecommendationBuild}
+                      className={`mt-3 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${compareTargetTheme.buttonActiveClassName}`}
+                    >
+                      この候補を比較に追加
+                    </button>
+                  ) : (
+                    <p className="mt-3 text-xs text-gray-700">
+                      いまの装備がこの欄では一番良い状態です。別の欄を選ぶと、次に試す候補が出ます。
+                    </p>
+                  )}
+                </div>
+              ) : null}
+
+              {!isSingleSlotSelection ? (
+                <OptimizerView
+                  key={`optimizer-${orderedSelectedSlots.join('-')}`}
+                  baseParams={activeBuild.params}
+                  varyingSlots={orderedSelectedSlots}
+                  initialExpanded={true}
+                  alwaysOpen={true}
+                  onPickBuild={handleCreateOptimizedBuild}
+                />
+              ) : (
+                <RankingView
+                  key={`ranking-${primarySlot}`}
+                  baseParams={activeBuild.params}
+                  focusSlot={primarySlot}
+                  initialExpanded={true}
+                  alwaysOpen={true}
+                  onPickItem={handleCreateSlotComparison}
+                />
+              )}
+            </section>
+          </>
+        ) : null}
+
+        {showCompareTools ? (
+          <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">保存した候補を比べる</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  追加した候補だけを並べて、どれが一番伸びるかを見ます。
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleCopyLink}
+                  className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 shadow-sm transition-all duration-150 hover:border-ocean-300 hover:shadow-md hover:text-ocean-700"
+                  title="今の比較内容を URL で共有"
+                >
+                  {copied ? '✓ コピー済み' : '🔗 この比較を URL で共有'}
+                </button>
+                {!hasComparisons ? (
+                  <button
+                    type="button"
+                    onClick={() => setGoalView('upgrade')}
+                    className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-800 transition-colors hover:bg-cyan-100"
+                  >
+                    候補を探しに戻る
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <BuildTabs
+              builds={builds}
+              activeId={activeId}
+              onSelect={setActiveId}
+              onAdd={handleAddBuild}
+              onDuplicate={handleDuplicateBuild}
+              onRemove={handleRemoveBuild}
+              onRename={handleRenameBuild}
+            />
+
+            {!hasComparisons ? (
+              <div className="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/60 px-4 py-4 text-sm text-emerald-900">
+                まだ比較する候補がありません。「次に買い替える候補を見る」で 1
+                件追加すると、ここに比較結果が出ます。
+              </div>
+            ) : (
+              <ComparisonSummary
+                builds={builds}
+                results={results}
+                activeId={activeId}
+                onSelect={setActiveId}
+              />
+            )}
+          </section>
+        ) : null}
+
+        {showResultInsights ? (
+          <section className="space-y-6" data-testid="result-summary-section">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{resultSectionCopy.title}</h2>
+                <p className="mt-1 text-sm text-gray-500">{resultSectionCopy.description}</p>
+              </div>
+              {hasComparisons && goalView !== 'compare' ? (
+                <button
+                  type="button"
+                  onClick={() => setGoalView('compare')}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-800 transition-colors hover:bg-emerald-100"
+                >
+                  保存した候補を比べる
+                </button>
+              ) : null}
+            </div>
+
+            {hasComparisons && goalView !== 'compare' ? (
+              <div className="rounded-xl border border-ocean-200 bg-ocean-50 px-4 py-3 text-sm text-ocean-900">
+                いま表示しているのは <strong>{activeBuild.name}</strong>{' '}
+                です。別の候補に切り替えるときは 「保存した候補を比べる」を開いてください。
+              </div>
+            ) : null}
+
+            <div
+              key={resultAnimKey}
+              className="animate-flash-update grid grid-cols-2 gap-3 md:grid-cols-4"
+            >
+              <div
+                className="rounded-2xl border border-ocean-200/80 bg-[linear-gradient(145deg,rgba(239,248,255,0.95),rgba(255,255,255,1))] p-4 text-center shadow-[0_16px_40px_rgba(37,120,232,0.10)]"
+                data-testid="summary-expected-value-per-catch"
+              >
+                <div className="text-2xl font-bold text-ocean-700">
+                  {formatCurrency(activeResult.expectedValuePerCatch)}
+                </div>
+                <div className="mt-1.5 text-xs font-medium text-ocean-500">期待値/回</div>
+              </div>
+              <div
+                className="rounded-2xl border-2 border-ocean-400 bg-[linear-gradient(145deg,rgba(219,238,254,0.95),rgba(239,248,255,0.96))] p-4 text-center shadow-[0_18px_48px_rgba(37,120,232,0.20)]"
+                data-testid="summary-expected-value-per-hour"
+              >
+                <div className="text-3xl font-bold text-ocean-700">
+                  {formatCurrency(activeResult.expectedValuePerHour)}
+                </div>
+                <div className="mt-1.5 text-xs font-semibold text-ocean-600">期待値/時間</div>
+              </div>
+              <div
+                className="rounded-2xl border border-white/80 bg-[linear-gradient(145deg,rgba(249,250,251,0.92),rgba(255,255,255,1))] p-4 text-center shadow-[0_14px_36px_rgba(15,23,42,0.08)]"
+                data-testid="summary-catches-per-hour"
+              >
+                <div className="text-2xl font-bold text-gray-700">
+                  {catchesPerHour.toFixed(0)}回
+                </div>
+                <div className="mt-1.5 text-xs font-medium text-gray-500">試行回数/時間</div>
+              </div>
+              <div
+                className="rounded-2xl border border-white/80 bg-[linear-gradient(145deg,rgba(249,250,251,0.92),rgba(255,255,255,1))] p-4 text-center shadow-[0_14px_36px_rgba(15,23,42,0.08)]"
+                data-testid="summary-total-fish-probability"
+              >
+                <div className="text-2xl font-bold text-gray-700">
+                  {(activeResult.totalFishProbability * 100).toFixed(0)}%
+                </div>
+                <div className="mt-1.5 text-xs font-medium text-gray-500">魚が釣れる確率</div>
+              </div>
+            </div>
+
+            {showMetricLegend ? (
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  <div className="mb-1 font-semibold text-gray-800">期待値/回</div>
+                  {'1回あたりの平均収益です。'}
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  <div className="mb-1 font-semibold text-gray-800">期待値/時間</div>
+                  周回効率の比較に使う指標です。
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  <div className="mb-1 font-semibold text-gray-800">試行回数/時間</div>
+                  {'1時間に投げられる回数です。'}
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  <div className="mb-1 font-semibold text-gray-800">魚が釣れる確率</div>
+                  逃がしを差し引いた確率です。
+                </div>
+              </div>
+            ) : null}
+
+            {showChart ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-base font-semibold text-gray-800">確率・期待値グラフ</h2>
+                  <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+                    <button
+                      onClick={() => setChartMode('per-catch')}
+                      className={`rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 ${
+                        chartMode === 'per-catch'
+                          ? 'bg-white text-ocean-700 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      1回あたり
+                    </button>
+                    <button
+                      onClick={() => setChartMode('per-hour')}
+                      className={`rounded-md px-3 py-1 text-xs font-medium transition-all duration-150 ${
+                        chartMode === 'per-hour'
+                          ? 'bg-white text-ocean-700 shadow-sm'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      1時間あたり
+                    </button>
+                  </div>
+                </div>
+                <DistributionChart result={activeResult} mode={chartMode} />
+                <p className="mt-3 text-xs leading-relaxed text-gray-500">
+                  `1回あたり` は1投ごとの寄与、`1時間あたり`
+                  は1回にかかる時間を反映した時給寄与です。 見たい軸に合わせて切り替えてください。
+                </p>
+              </div>
+            ) : null}
+
+            {showChart || showFishDetails ? (
+              <div className="flex justify-center">
+                <AdSlot position="in-content" size="leaderboard" showPlaceholder={false} />
+              </div>
+            ) : null}
+
+            {showFishDetails ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-base font-semibold text-gray-800">魚種別詳細</h2>
+                <ResultTable result={activeResult} />
+                <p className="mt-4 text-xs leading-relaxed text-gray-500">
+                  各魚の条件や売値レンジ、釣獲率、期待値を確認できます。
+                </p>
+              </div>
+            ) : null}
+
+            {showNotes ? (
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 text-xs leading-relaxed text-gray-600">
+                <button
+                  type="button"
+                  onClick={() => setNotesOpen((current) => !current)}
+                  aria-expanded={notesOpen}
+                  aria-controls="calculation-notes-panel"
+                  className="flex w-full items-center justify-between gap-3 text-left font-semibold text-gray-700"
+                >
+                  <span>📝 この計算について</span>
+                  <span className="text-xs text-gray-500">{notesOpen ? '閉じる' : '開く'}</span>
+                </button>
+                <div
+                  id="calculation-notes-panel"
+                  data-testid="calculation-notes-panel"
+                  aria-hidden={!notesOpen}
+                  className="mt-3 grid transition-[grid-template-rows,opacity] duration-300 ease-out"
+                  style={{
+                    gridTemplateRows: notesOpen ? '1fr' : '0fr',
+                    opacity: notesOpen ? 1 : 0,
+                  }}
+                >
+                  <div className="overflow-hidden">
+                    <ul className="space-y-1.5">
+                      <li>
+                        • <strong>いま見ている条件</strong>: 釣り場{' '}
+                        {AREA_MAP[
+                          activeResult.model.autoSelectedAreaId ?? activeResult.params.areaId
+                        ]?.nameEn ?? '—'}
+                        、時間帯 {formatSelectedTimeLabel(activeResult.params.timeOfDay)}、天気{' '}
+                        {formatSelectedWeatherLabel(activeResult.params.weatherType)}
+                      </li>
+                      <li>
+                        • <strong>計算に入っている魚</strong>: {activeResult.fishResults.length} 種{' '}
+                        {activeResult.missingPriceFish.length > 0
+                          ? `(価格情報が未取得の魚 ${activeResult.missingPriceFish.length} 種を除く)`
+                          : ''}
+                      </li>
+                      <li>
+                        • <strong>どの魚が釣れるか</strong>:
+                        各釣り場の魚リストから、時間帯と天気の条件に合う魚を選んでいます。
+                      </li>
+                      <li>
+                        • <strong>装備の効果</strong>: 選んだ Rod / Line / Bobber / Enchant
+                        のステータスを合算しています。
+                      </li>
+                      <li>
+                        • <strong>レア度の影響</strong>:
+                        公開されているレア度テーブルを基準に、同じレア度の魚は同じ確率で出るように計算しています。
+                      </li>
+                      <li>
+                        • <strong>Luck の効果</strong>:{' '}
+                        {activeResult.model.effectiveLuckMultiplier.toFixed(2)}x
+                        の補正として反映しています。(※内部計算式は未公開のため推定値)
+                      </li>
+                      <li>
+                        • <strong>Big Catch / Max Weight の効果</strong>: 魚の重さを上位{' '}
+                        {(activeResult.model.weightPercentile * 100).toFixed(0)}%
+                        の範囲に寄せる形で反映しています。(※推定式)
+                      </li>
+                      <li>
+                        • <strong>見た目・サイズボーナス</strong>:{' '}
+                        {activeResult.params.modifierAssumptions.includeModifiers
+                          ? `約 ${activeResult.model.modifierEvFactor.toFixed(3)}x のボーナスとして計算に入れています。(※コミュニティ観測値に基づく推定)`
+                          : '現在はオフです。左の「詳細設定」からオンにできます。'}
+                      </li>
+                      <li>
+                        • <strong>期待値/回</strong>: 各魚の釣れる確率 × 推定売値
+                        {activeResult.params.modifierAssumptions.includeModifiers
+                          ? ' × 見た目・サイズボーナス'
+                          : ''}
+                        を全魚種で合計した値です。
+                      </li>
+                      <li>
+                        • <strong>期待値/時間</strong>: 期待値/回 × (1時間 ÷ 1回の所要時間)
+                        で計算しています。
+                      </li>
+                      <li>
+                        • <strong>使用中のレア度重み</strong>:{' '}
+                        {Object.entries(activeResult.effectiveRarityWeights)
+                          .map(
+                            ([rarity, weight]) =>
+                              `${RARITY_LABELS[rarity as Rarity]} ${weight?.toFixed(2)}`,
+                          )
+                          .join(', ') || 'なし'}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
       </div>
     </div>
   );

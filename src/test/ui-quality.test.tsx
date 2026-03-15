@@ -137,6 +137,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('demotes calculation diagnostics into the notes panel', () => {
     render(<CalculatorPageClient />);
 
+    fireEvent.click(screen.getByRole('button', { name: /今の装備の時給を見る/ }));
     const notesPanel = screen.getByTestId('calculation-notes-panel');
     const diagnosticNodes = screen.getAllByText('計算に入っている魚');
     for (const node of diagnosticNodes) {
@@ -225,14 +226,16 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(screen.queryByText(/平均値を用います/)).not.toBeInTheDocument();
   });
 
-  it('keeps the visible result context outside the calculation notes', () => {
+  it('keeps the visible goal context outside the calculation notes', () => {
     render(<CalculatorPageClient />);
 
-    expect(screen.getByText('いま見ている結果')).toBeInTheDocument();
-    expect(screen.getByText(/ビルド:/)).toBeInTheDocument();
-    expect(screen.getByText(/釣り場:/)).toBeInTheDocument();
-    expect(screen.getByText(/時間帯:/)).toBeInTheDocument();
-    expect(screen.getByText(/天気:/)).toBeInTheDocument();
+    const context = screen.getByTestId('current-goal-context');
+    expect(context).toHaveTextContent('いまは「次に買い替える候補を見る」を表示中');
+    expect(context).toHaveTextContent(/ビルド:/);
+    expect(context).toHaveTextContent(/釣り場:/);
+    expect(context).toHaveTextContent(/時間帯:/);
+    expect(context).toHaveTextContent(/天気:/);
+    expect(screen.queryByText('いま見ている結果')).not.toBeInTheDocument();
   });
 
   it('uses only the four slot toggles as the optimizer entry point', () => {
@@ -290,5 +293,21 @@ describe('UI quality – overflow and wrapping prevention', () => {
         .getByTestId('compare-slot-button-rod')
         .querySelector('[data-slot-indicator="idle"]'),
     ).not.toBeNull();
+  });
+
+  it('shows only the sections needed for the selected goal', () => {
+    render(<CalculatorPageClient />);
+
+    expect(screen.getByTestId('compare-slot-selector')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '保存した候補を比べる' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '魚種別詳細' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /保存した候補を並べて比べる/ }));
+    expect(screen.getByRole('heading', { name: '保存した候補を比べる' })).toBeInTheDocument();
+    expect(screen.queryByTestId('compare-slot-selector')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /どの魚が当たりか見る/ }));
+    expect(screen.getByRole('heading', { name: '魚種別詳細' })).toBeInTheDocument();
+    expect(screen.queryByTestId('compare-slot-selector')).not.toBeInTheDocument();
   });
 });

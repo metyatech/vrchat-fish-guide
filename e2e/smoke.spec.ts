@@ -41,10 +41,14 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.goto('/calculator/');
 
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'いまの装備' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '何を見たい？' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '比べるスロットを選ぶ' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Rod の候補を追加' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '比較一覧' })).toBeVisible();
+  await expect(page.getByTestId('current-goal-context')).toContainText(
+    'いまは「次に買い替える候補を見る」を表示中',
+  );
+  await expect(page.getByRole('heading', { name: '保存した候補を比べる' })).toHaveCount(0);
   await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
@@ -56,7 +60,6 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   );
   await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute('data-state', 'idle');
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
   const totalStatsSection = page.getByTestId('total-stats-section');
   await expect(
     totalStatsSection.locator('[data-total-stat="luck"] span.rounded-full').first(),
@@ -86,9 +89,8 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   ).toContainText('-50');
 
   const initialExpectedValuePerHour = await page
-    .getByTestId('summary-expected-value-per-hour')
+    .getByTestId('context-expected-value-per-hour')
     .textContent();
-  const initialRowCount = await page.locator('tbody tr').count();
 
   await page
     .locator('#loadout-picker-rod [data-testid="picker-option-row"]', { hasText: 'Fortunate Rod' })
@@ -123,18 +125,20 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
   await page.getByRole('button', { name: 'この候補を比較に追加' }).click();
   await expect(page.getByText('いま比べている候補 2 件')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '比較一覧' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '保存した候補を比べる' })).toBeVisible();
+  await expect(page.getByTestId('compare-slot-selector')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
 
+  await page.getByRole('button', { name: /どの魚が当たりか見る/ }).click();
+  await expect(page.getByRole('heading', { name: '魚種別詳細' })).toBeVisible();
   await expect(page.getByRole('table').getByText('Abyssal Serpentfish').first()).toBeVisible();
   await expect(page.getByRole('table').getByText('Albacore Tuna').first()).toBeVisible();
 
   const updatedExpectedValuePerHour = await page
-    .getByTestId('summary-expected-value-per-hour')
+    .getByTestId('context-expected-value-per-hour')
     .textContent();
-  const updatedRowCount = await page.locator('tbody tr').count();
 
   expect(updatedExpectedValuePerHour).not.toBe(initialExpectedValuePerHour);
-  expect(updatedRowCount).not.toBe(initialRowCount);
 });
 
 test('current loadout table has no horizontal overflow', async ({ page }) => {
@@ -292,7 +296,7 @@ test('calculator avoids horizontal scrolling on a narrow viewport', async ({ pag
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/calculator/');
 
-  await expect(page.getByRole('heading', { name: 'いまの装備' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
 
   const pageOverflow = await page.evaluate(() => {
     const target = document.documentElement;
