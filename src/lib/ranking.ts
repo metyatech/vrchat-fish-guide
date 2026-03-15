@@ -203,6 +203,21 @@ export interface FullBuildOptimizerResult {
 }
 
 /**
+ * Progress event emitted by optimizeFullBuildAsync after each rod-level chunk.
+ * Used to stream provisional top builds to the UI before the full search completes.
+ */
+export interface OptimizerProgressEvent {
+  /** Current best builds (provisional when isComplete is false). */
+  topBuilds: FullBuildEntry[];
+  /** Number of combinations evaluated so far. */
+  searchedCount: number;
+  /** Total combination space (rod × line × bobber × enchant). */
+  totalCombinationSpace: number;
+  /** True only on the final event, after all combinations have been evaluated. */
+  isComplete: boolean;
+}
+
+/**
  * Find the top full-build (rod+line+bobber+enchant) combinations for the given
  * base params using exact exhaustive search over the full equipment space.
  *
@@ -265,11 +280,16 @@ export function optimizeFullBuild(
  * Uses the same TopNHeap optimisation as the sync variant.
  *
  * Accepts a signal to cancel mid-flight; resolves with null when cancelled.
+ *
+ * onProgress is called after each rod-level chunk (isComplete=false) and once
+ * at the end (isComplete=true), allowing the UI to stream provisional top builds
+ * before the full exhaustive search completes.
  */
 export async function optimizeFullBuildAsync(
   baseParams: CalculatorParams,
   topNResults = 10,
   signal?: AbortSignal,
+  onProgress?: (event: OptimizerProgressEvent) => void,
 ): Promise<FullBuildOptimizerResult | null> {
   const totalCombinationSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
   const heap = new TopNHeap(normalizeTopNResults(topNResults));
@@ -304,12 +324,23 @@ export async function optimizeFullBuildAsync(
         }
       }
     }
+
+    // Emit a provisional progress update after each rod's chunk.
+    onProgress?.({
+      topBuilds: heap.toSortedDesc(),
+      searchedCount,
+      totalCombinationSpace,
+      isComplete: false,
+    });
   }
 
   if (signal?.aborted) return null;
 
+  const finalBuilds = heap.toSortedDesc();
+  onProgress?.({ topBuilds: finalBuilds, searchedCount, totalCombinationSpace, isComplete: true });
+
   return {
-    topBuilds: heap.toSortedDesc(),
+    topBuilds: finalBuilds,
     searchedCount,
     totalCombinationSpace,
   };

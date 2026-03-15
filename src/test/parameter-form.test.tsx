@@ -2,8 +2,56 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
+import { OptimizerView } from '@/components/Calculator/OptimizerView';
 import { STAT_THEME } from '@/components/Calculator/statTheme';
 import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
+import { RODS, LINES, BOBBERS, ENCHANTS } from '@/data/equipment';
+import type { FullBuildEntry, FullBuildOptimizerResult } from '@/lib/ranking';
+import * as rankingModule from '@/lib/ranking';
+
+// Replace optimizeFullBuildAsync with a vi.fn() at module load time so that
+// the component's static import binding points to the same mock instance.
+// vi.mock is hoisted before all imports by Vitest, so this intercepts the
+// binding before OptimizerView ever touches it.
+vi.mock('@/lib/ranking', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/ranking')>('@/lib/ranking');
+  return {
+    ...actual,
+    optimizeFullBuildAsync: vi.fn(),
+  };
+});
+
+/**
+ * Build n fake FullBuildEntry objects using real equipment items (no optimizer run).
+ * Uses enchant index to produce distinct loadout keys up to ENCHANTS.length.
+ */
+function makeFakeBuilds(n: number): FullBuildEntry[] {
+  return Array.from({ length: n }, (_, i) => ({
+    loadout: {
+      rodId: RODS[0].id,
+      lineId: LINES[0].id,
+      bobberId: BOBBERS[0].id,
+      enchantId: ENCHANTS[i % ENCHANTS.length].id,
+    },
+    items: {
+      rod: RODS[0],
+      line: LINES[0],
+      bobber: BOBBERS[0],
+      enchant: ENCHANTS[i % ENCHANTS.length],
+    },
+    expectedValuePerHour: 10000 - i * 10,
+    expectedValuePerCatch: 1000 - i,
+    totalFishProbability: 0.5,
+  }));
+}
+
+function makeFakeOptimizerResult(n: number): FullBuildOptimizerResult {
+  return {
+    topBuilds: makeFakeBuilds(n),
+    searchedCount: 41280,
+    totalCombinationSpace: 41280,
+  };
+}
 
 // ── Step 1 UI quality regression checks ───────────────────────────────────────
 // These tests catch regressions that previously caused horizontal overflow,
@@ -474,7 +522,7 @@ describe('Step 1 loadout UI quality', () => {
 
 describe('ParameterForm', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
   });
 
   it('shows color-coded stat summaries for the selected gear and total stats', () => {
@@ -674,5 +722,87 @@ describe('ParameterForm', () => {
       writable: true,
       value: originalMatchMedia,
     });
+  });
+});
+
+// ── OptimizerView progressive loading UI ──────────────────────────────────────
+
+describe('OptimizerView progressive loading UI', () => {
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('shows a progress bar immediately when the optimizer is visible', async () => {
+    // Resolve immediately — the component does not use the return value; isLoading
+    // stays true because no onProgress(isComplete=true) is fired.
+    vi.mocked(rankingModule.optimizeFullBuildAsync).mockResolvedValue(null);
+    render(<OptimizerView baseParams={getDefaultParams()} alwaysOpen />);
+    await waitFor(() => {
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    });
+  });
+
+  it('shows provisional results and speed-report label via onProgress before completion', async () => {
+    const fakeResult = makeFakeOptimizerResult(10);
+    vi.mocked(rankingModule.optimizeFullBuildAsync).mockImplementation(
+      (_params, _n, _signal, onProgress) => {
+        // Emit one intermediate event (isComplete=false keeps isLoading=true).
+        onProgress?.({
+          topBuilds: fakeResult.topBuilds,
+          searchedCount: 2752,
+          totalCombinationSpace: 41280,
+          isComplete: false,
+        });
+        // Resolve immediately — the component ignores the return value.
+        return Promise.resolve(null);
+      },
+    );
+    render(<OptimizerView baseParams={getDefaultParams()} alwaysOpen />);
+    await waitFor(() => {
+      // Progress bar still visible (still loading)
+      expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      // Provisional speed-report note visible
+      expect(screen.getByText(/速報/)).toBeInTheDocument();
+    });
+  });
+
+  it('hides the progress bar and shows もっと見る after search completes with a large buffer', async () => {
+    const fakeResult = makeFakeOptimizerResult(20);
+    vi.mocked(rankingModule.optimizeFullBuildAsync).mockImplementation(
+      (_params, _n, _signal, onProgress) => {
+        onProgress?.({
+          topBuilds: fakeResult.topBuilds,
+          searchedCount: 41280,
+          totalCombinationSpace: 41280,
+          isComplete: true,
+        });
+        return Promise.resolve(fakeResult);
+      },
+    );
+    render(<OptimizerView baseParams={getDefaultParams()} alwaysOpen />);
+    await waitFor(() => {
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.getByText(/もっと見る/)).toBeInTheDocument();
+    });
+  });
+
+  it('does not show もっと見る when buffer has 10 or fewer builds', async () => {
+    const fakeResult = makeFakeOptimizerResult(10);
+    vi.mocked(rankingModule.optimizeFullBuildAsync).mockImplementation(
+      (_params, _n, _signal, onProgress) => {
+        onProgress?.({
+          topBuilds: fakeResult.topBuilds,
+          searchedCount: 41280,
+          totalCombinationSpace: 41280,
+          isComplete: true,
+        });
+        return Promise.resolve(fakeResult);
+      },
+    );
+    render(<OptimizerView baseParams={getDefaultParams()} alwaysOpen />);
+    await waitFor(() => {
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(/もっと見る/)).not.toBeInTheDocument();
   });
 });

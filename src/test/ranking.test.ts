@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { getDefaultParams } from '@/lib/calculator';
-import { optimizeFullBuild, optimizeFullBuildAsync, rankAllSlots, rankSlot } from '@/lib/ranking';
+import {
+  optimizeFullBuild,
+  optimizeFullBuildAsync,
+  rankAllSlots,
+  rankSlot,
+  OptimizerProgressEvent,
+} from '@/lib/ranking';
 
 describe('rankSlot', () => {
   const baseParams = {
@@ -231,6 +237,90 @@ describe('optimizeFullBuildAsync', () => {
     const result = await optimizeFullBuildAsync(baseParams, 0);
     expect(result).not.toBeNull();
     expect(result!.topBuilds).toEqual([]);
+    expect(result!.searchedCount).toBe(result!.totalCombinationSpace);
+  }, 30000);
+});
+
+describe('optimizeFullBuildAsync onProgress callback', () => {
+  const baseParams = {
+    ...getDefaultParams('coconut-bay'),
+    timeOfDay: 'day' as const,
+    weatherType: 'clear' as const,
+  };
+
+  it('calls onProgress at least once with isComplete=false before the final isComplete=true event', async () => {
+    const events: OptimizerProgressEvent[] = [];
+    await optimizeFullBuildAsync(baseParams, 5, undefined, (e) => events.push(e));
+    const intermediates = events.filter((e) => !e.isComplete);
+    const finals = events.filter((e) => e.isComplete);
+    expect(intermediates.length).toBeGreaterThan(0);
+    expect(finals).toHaveLength(1);
+    // Final event must be last
+    expect(events[events.length - 1].isComplete).toBe(true);
+  }, 30000);
+
+  it('searchedCount is non-decreasing across all progress events', async () => {
+    const counts: number[] = [];
+    await optimizeFullBuildAsync(baseParams, 5, undefined, (e) => counts.push(e.searchedCount));
+    for (let i = 1; i < counts.length; i++) {
+      expect(counts[i]).toBeGreaterThanOrEqual(counts[i - 1]);
+    }
+  }, 30000);
+
+  it('final progress event searchedCount equals totalCombinationSpace', async () => {
+    let finalEvent: OptimizerProgressEvent | null = null;
+    await optimizeFullBuildAsync(baseParams, 5, undefined, (e) => {
+      if (e.isComplete) finalEvent = e;
+    });
+    expect(finalEvent).not.toBeNull();
+    expect(finalEvent!.searchedCount).toBe(finalEvent!.totalCombinationSpace);
+    const fullSpace = RODS.length * LINES.length * BOBBERS.length * ENCHANTS.length;
+    expect(finalEvent!.searchedCount).toBe(fullSpace);
+  }, 30000);
+
+  it('all but the last intermediate progress event have searchedCount < totalCombinationSpace', async () => {
+    const intermediates: OptimizerProgressEvent[] = [];
+    await optimizeFullBuildAsync(baseParams, 5, undefined, (e) => {
+      if (!e.isComplete) intermediates.push(e);
+    });
+    // At least one intermediate should exist before the full space is covered.
+    expect(intermediates.length).toBeGreaterThan(1);
+    // All but the final intermediate (last-rod chunk) must be strictly partial.
+    const allButLast = intermediates.slice(0, -1);
+    for (const e of allButLast) {
+      expect(e.searchedCount).toBeLessThan(e.totalCombinationSpace);
+    }
+  }, 30000);
+
+  it('does not call onProgress when aborted before the first yield', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const callCount = { n: 0 };
+    const result = await optimizeFullBuildAsync(baseParams, 5, controller.signal, () => {
+      callCount.n++;
+    });
+    expect(result).toBeNull();
+    expect(callCount.n).toBe(0);
+  });
+
+  it('top 1 from buffer-100 matches top 1 from buffer-1 (exhaustive semantics preserved)', async () => {
+    const [r1, r100] = await Promise.all([
+      optimizeFullBuildAsync(baseParams, 1),
+      optimizeFullBuildAsync(baseParams, 100),
+    ]);
+    expect(r1).not.toBeNull();
+    expect(r100).not.toBeNull();
+    expect(r100!.topBuilds[0].expectedValuePerHour).toBeCloseTo(
+      r1!.topBuilds[0].expectedValuePerHour,
+      5,
+    );
+    expect(r100!.topBuilds[0].loadout).toEqual(r1!.topBuilds[0].loadout);
+  }, 60000);
+
+  it('buffer-100 returns up to 100 builds', async () => {
+    const result = await optimizeFullBuildAsync(baseParams, 100);
+    expect(result).not.toBeNull();
+    expect(result!.topBuilds.length).toBe(100);
     expect(result!.searchedCount).toBe(result!.totalCombinationSpace);
   }, 30000);
 });
