@@ -1,6 +1,6 @@
 1:"$Sreact.fragment"
-2:I[93736,["/vrchat-fish-guide/_next/static/chunks/7c92e96509cd355e.js","/vrchat-fish-guide/_next/static/chunks/0a2a9aaeaadde00c.js"],"CalculatorPageClient"]
+2:I[93736,["/vrchat-fish-guide/_next/static/chunks/7c92e96509cd355e.js","/vrchat-fish-guide/_next/static/chunks/cb8f59f1948ef4f1.js"],"CalculatorPageClient"]
 3:I[97367,["/vrchat-fish-guide/_next/static/chunks/ff1a16fafef87110.js","/vrchat-fish-guide/_next/static/chunks/a2dfb6fc5208ab9b.js"],"OutletBoundary"]
 4:"$Sreact.suspense"
-0:{"buildId":"19BCr4uiUVnsUdd9PL0si","rsc":["$","$1","c",{"children":[["$","$L2",null,{}],[["$","script","script-0",{"src":"/vrchat-fish-guide/_next/static/chunks/0a2a9aaeaadde00c.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"UZKtcFZIzRYtasUZOzFyQ","rsc":["$","$1","c",{"children":[["$","$L2",null,{}],[["$","script","script-0",{"src":"/vrchat-fish-guide/_next/static/chunks/cb8f59f1948ef4f1.js","async":true}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"loading":null,"isPartial":false}
 5:null
