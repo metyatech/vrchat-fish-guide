@@ -54,7 +54,6 @@ function validateModifierAssumptions(v: unknown): v is ModifierAssumptions {
   return isBoolean(o.includeModifiers) && isBoolean(o.assumeCursedToBlessed);
 }
 
-const VALID_TIME_MODEL_MODES = ['observed', 'estimated'] as const;
 const VALID_TIME_OF_DAY = ['any', 'morning', 'day', 'evening', 'night'] as const;
 const VALID_WEATHER_TYPES = ['any', 'clear', 'rainy', 'moonrain', 'stormy', 'foggy'] as const;
 
@@ -65,10 +64,7 @@ function validateParams(v: unknown): v is CalculatorParams {
     isString(o.areaId) &&
     VALID_TIME_OF_DAY.includes(o.timeOfDay as never) &&
     VALID_WEATHER_TYPES.includes(o.weatherType as never) &&
-    VALID_TIME_MODEL_MODES.includes(o.timeModelMode as never) &&
     validateLoadout(o.loadout) &&
-    isFiniteNumber(o.observedAvgCatchTimeSec) &&
-    isFiniteNumber(o.observedMissRate) &&
     isFiniteNumber(o.baseBiteTimeSec) &&
     isFiniteNumber(o.baseMinigameTimeSec) &&
     isFiniteNumber(o.baseMissRate) &&

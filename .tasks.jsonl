@@ -2,3 +2,4 @@
 {"id":"GJ8JSs-Y","description":"Eliminate remaining Fish calculator GUI-rule violations","stage":"done","createdAt":"2026-03-13T02:33:08.054Z","updatedAt":"2026-03-13T02:51:45.409Z"}
 {"id":"OgBjn0HL","description":"Remove Node 20 deprecation warnings from vrchat-fish-guide GitHub Actions workflows","stage":"done","createdAt":"2026-03-13T03:57:00.974Z","updatedAt":"2026-03-13T04:17:56.087Z"}
 {"id":"i0fh_afk","description":"Finish remaining Fish follow-ups: workflow warnings, notes wording, model accuracy, and equipment search/filter","stage":"done","createdAt":"2026-03-13T03:58:30.475Z","updatedAt":"2026-03-13T04:17:56.200Z"}
+{"id":"DTPHFBHz","description":"Implement vrchat-fish-guide calculator improvements: observed-mode cleanup, EV auto-area/tests, missing-price UX, optimizer efficiency, Attraction Rate verification","stage":"in-progress","createdAt":"2026-03-15T07:02:36.850Z","updatedAt":"2026-03-15T07:20:58.247Z"}

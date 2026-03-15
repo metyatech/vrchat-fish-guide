@@ -280,17 +280,6 @@ function normalizeParams(params: CalculatorParams): CalculatorParams {
       bobberId: selected.bobber.id,
       enchantId: selected.enchant.id,
     },
-    timeModelMode: 'estimated',
-    observedAvgCatchTimeSec: clamp(
-      Number.isFinite(params.observedAvgCatchTimeSec) ? params.observedAvgCatchTimeSec : 60,
-      1,
-      600,
-    ),
-    observedMissRate: clamp(
-      Number.isFinite(params.observedMissRate) ? params.observedMissRate : 0.1,
-      0,
-      0.95,
-    ),
     baseBiteTimeSec: clamp(
       Number.isFinite(params.baseBiteTimeSec) ? params.baseBiteTimeSec : 20,
       1,
@@ -512,7 +501,7 @@ function deriveScenarioModel(
   ];
   const experimentalNotes = [
     `Luck ${formatSignedDisplayNumber(totalStats.luck)} は、レアな魚が出やすくなる推定補正 ${effectiveLuckMultiplier.toFixed(2)}x として入れています。`,
-    `Attraction Rate ${formatSignedDisplayNumber(totalStats.attractionPct, '%')} は、魚が掛かるまでの待ち時間に反映しています。`,
+    `Attraction Rate ${formatSignedDisplayNumber(totalStats.attractionPct, '%')} は、魚が掛かるまでの待ち時間に反映しています（待ち時間が短くなるほど時間あたり期待値も上がります）。`,
     `Strength + Expertise (${formatSignedDisplayNumber(controlScore)}) は、ミニゲーム時間と基本の逃がしやすさに反映しています。プレイヤーが操作で出すミス率は別に加算しています。`,
     `Big Catch Rate ${formatSignedDisplayNumber(totalStats.bigCatch)} は、重い個体が出やすい側へ ${(weightPercentile * 100).toFixed(0)}% ぶん寄せる推定です。`,
     `Max Weight ${formatWeightKg(totalStats.maxWeightKg)} は、魚ごとの重さ上限をどこまで使うかの目安にしています。`,
@@ -1035,6 +1024,11 @@ export function calculateDistribution(params: CalculatorParams): DistributionRes
         .map((fish) => fish.nameEn)
         .join(', ')}`,
     );
+    if (normalizedParams.areaId === BEST_AREA_ID) {
+      warnings.push(
+        '釣り場自動選択の結果は、価格不明の魚を 0G として扱った順位に基づいています。実際の EV/時間はこの表示より高い可能性があります。',
+      );
+    }
   }
 
   return {
@@ -1091,9 +1085,6 @@ export function getDefaultParams(areaId = BEST_AREA_ID): CalculatorParams {
       bobberId: 'basic-bobber',
       enchantId: 'no-enchant',
     },
-    timeModelMode: 'estimated',
-    observedAvgCatchTimeSec: 60,
-    observedMissRate: 0.1,
     baseBiteTimeSec: 20,
     baseMinigameTimeSec: 40,
     baseMissRate: 0.1,

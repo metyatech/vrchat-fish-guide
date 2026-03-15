@@ -77,8 +77,6 @@ describe('encodeUrlState / decodeUrlState round-trip', () => {
 
   it('preserves all CalculatorParams fields', () => {
     const build = makeBuild('Params Build');
-    build.params.observedAvgCatchTimeSec = 73;
-    build.params.observedMissRate = 0.15;
     build.params.castTimeSec = 1.7;
     build.params.hookReactionTimeSec = 0.3;
     build.params.playerMistakeRate = 0.08;
@@ -88,8 +86,6 @@ describe('encodeUrlState / decodeUrlState round-trip', () => {
     const decoded = decodeUrlState(encodeUrlState(state));
 
     expect(decoded).not.toBeNull();
-    expect(decoded!.builds[0].params.observedAvgCatchTimeSec).toBe(73);
-    expect(decoded!.builds[0].params.observedMissRate).toBe(0.15);
     expect(decoded!.builds[0].params.castTimeSec).toBe(1.7);
     expect(decoded!.builds[0].params.hookReactionTimeSec).toBe(0.3);
     expect(decoded!.builds[0].params.playerMistakeRate).toBe(0.08);
@@ -244,11 +240,11 @@ describe('build management helpers', () => {
   });
 
   it('updateBuildParams updates params of the target build only', () => {
-    const newParams = { ...getDefaultParams('coconut-bay'), observedAvgCatchTimeSec: 99 };
+    const newParams = { ...getDefaultParams('coconut-bay'), castTimeSec: 99 };
     const result = updateBuildParams(baseBuilds, 'a', newParams);
-    expect(result.find((b) => b.id === 'a')!.params.observedAvgCatchTimeSec).toBe(99);
-    expect(result.find((b) => b.id === 'b')!.params.observedAvgCatchTimeSec).toBe(
-      getDefaultParams().observedAvgCatchTimeSec,
+    expect(result.find((b) => b.id === 'a')!.params.castTimeSec).toBe(99);
+    expect(result.find((b) => b.id === 'b')!.params.castTimeSec).toBe(
+      getDefaultParams().castTimeSec,
     );
   });
 

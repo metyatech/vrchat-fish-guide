@@ -126,7 +126,6 @@ export interface StatBlock {
 }
 
 export type EquipmentCategory = 'rod' | 'line' | 'bobber' | 'enchant';
-export type TimeModelMode = 'observed' | 'estimated';
 export type EnchantActivationTime = 'day' | 'night';
 export type EnchantActivationWeather = 'rainy' | 'foggy';
 export type EquipmentEffectType =
@@ -188,11 +187,6 @@ export interface CalculatorParams {
   weatherType: WeatherType;
   timeOfDay: TimeOfDay;
   loadout: EquipmentLoadout;
-  timeModelMode: TimeModelMode;
-  /** Average seconds per attempt after gear effects are already reflected */
-  observedAvgCatchTimeSec: number;
-  /** Miss rate after gear effects are already reflected */
-  observedMissRate: number;
   /** Player baseline bite wait before experimental Attraction scaling */
   baseBiteTimeSec: number;
   /** Player baseline minigame duration before experimental Strength/Expertise scaling */
