@@ -391,11 +391,33 @@ export function CalculatorPageClient() {
                     })
                   }
                   aria-pressed={isSelected}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
-                    isSelected ? theme.buttonActiveClassName : theme.buttonIdleClassName
+                  aria-label={`${SLOT_LABELS[slot]} ${isSelected ? '選択中' : '未選択'}`}
+                  data-state={isSelected ? 'selected' : 'idle'}
+                  data-testid={`compare-slot-button-${slot}`}
+                  className={`flex min-w-[9.5rem] items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 text-left text-sm font-semibold transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
+                    isSelected
+                      ? `${theme.buttonActiveClassName} shadow-[0_10px_24px_rgba(15,23,42,0.18)] ring-2 ring-white/75 ring-offset-2 ring-offset-white`
+                      : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  {SLOT_LABELS[slot]}
+                  <span className="flex items-center gap-2">
+                    <span
+                      aria-hidden="true"
+                      className={`h-2.5 w-2.5 rounded-full ${theme.dotClassName} ${
+                        isSelected ? '' : 'opacity-40'
+                      }`}
+                    />
+                    <span>{SLOT_LABELS[slot]}</span>
+                  </span>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-[0.16em] ${
+                      isSelected
+                        ? 'border-white/35 bg-white/15 text-white'
+                        : 'border-slate-200 bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {isSelected ? '選択中' : '未選択'}
+                  </span>
                 </button>
               );
             })}

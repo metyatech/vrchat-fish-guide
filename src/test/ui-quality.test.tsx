@@ -239,22 +239,21 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const selector = screen.getByTestId('compare-slot-selector');
-    expect(within(selector).getByRole('button', { name: 'Rod' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(within(selector).getByRole('button', { name: 'Line' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(within(selector).getByRole('button', { name: 'Bobber' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(within(selector).getByRole('button', { name: 'Enchant' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    const rodButton = within(selector).getByTestId('compare-slot-button-rod');
+    const lineButton = within(selector).getByTestId('compare-slot-button-line');
+    const bobberButton = within(selector).getByTestId('compare-slot-button-bobber');
+    const enchantButton = within(selector).getByTestId('compare-slot-button-enchant');
+
+    expect(rodButton).toHaveAttribute('aria-pressed', 'true');
+    expect(rodButton).toHaveTextContent('選択中');
+    expect(rodButton).toHaveAttribute('data-state', 'selected');
+    expect(lineButton).toHaveAttribute('aria-pressed', 'false');
+    expect(lineButton).toHaveTextContent('未選択');
+    expect(lineButton).toHaveAttribute('data-state', 'idle');
+    expect(bobberButton).toHaveAttribute('aria-pressed', 'false');
+    expect(bobberButton).toHaveTextContent('未選択');
+    expect(enchantButton).toHaveAttribute('aria-pressed', 'false');
+    expect(enchantButton).toHaveTextContent('未選択');
     expect(
       screen.queryByRole('button', { name: '全部まとめて入れ替える' }),
     ).not.toBeInTheDocument();
@@ -264,7 +263,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const selector = screen.getByTestId('compare-slot-selector');
-    fireEvent.click(within(selector).getByRole('button', { name: 'Line' }));
+    fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
 
     expect(
       screen.getByRole('heading', { name: 'Rod + Line を組み合わせて探す' }),
@@ -272,9 +271,12 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(
       screen.getByText('Rod + Line を変え、残りのスロットは現在の装備で固定します。'),
     ).toBeInTheDocument();
+    expect(within(selector).getByTestId('compare-slot-button-line')).toHaveTextContent('選択中');
+    expect(within(selector).getByTestId('compare-slot-button-rod')).toHaveTextContent('選択中');
 
-    fireEvent.click(within(selector).getByRole('button', { name: 'Rod' }));
+    fireEvent.click(within(selector).getByTestId('compare-slot-button-rod'));
 
     expect(screen.getByText('Line の候補一覧')).toBeInTheDocument();
+    expect(within(selector).getByTestId('compare-slot-button-rod')).toHaveTextContent('未選択');
   });
 });
