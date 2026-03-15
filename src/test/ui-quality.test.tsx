@@ -230,8 +230,8 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const context = screen.getByTestId('current-goal-context');
-    expect(context).toHaveTextContent('いまは「次に買い替える候補を見る」を表示中');
-    expect(context).toHaveTextContent(/ビルド:/);
+    expect(context).toHaveTextContent('いまは「ランキングだけ見る」を表示中');
+    expect(context).toHaveTextContent(/基準装備:/);
     expect(context).toHaveTextContent(/釣り場:/);
     expect(context).toHaveTextContent(/時間帯:/);
     expect(context).toHaveTextContent(/天気:/);
@@ -268,11 +268,11 @@ describe('UI quality – overflow and wrapping prevention', () => {
     const selector = screen.getByTestId('compare-slot-selector');
     fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
 
+    expect(screen.getByRole('heading', { name: '組み合わせランキング' })).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Rod + Line を組み合わせて探す' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Rod + Line を変え、残りのスロットは現在の装備で固定します。'),
+      screen.getByText(
+        'Rod + Line だけを組み合わせて順位を出します。残りのスロットは基準装備のまま固定です。',
+      ),
     ).toBeInTheDocument();
     expect(
       within(selector)
@@ -287,7 +287,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     fireEvent.click(within(selector).getByTestId('compare-slot-button-rod'));
 
-    expect(screen.getByText('Line の候補一覧')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Line のランキング' })).toBeInTheDocument();
     expect(
       within(selector)
         .getByTestId('compare-slot-button-rod')
@@ -295,12 +295,32 @@ describe('UI quality – overflow and wrapping prevention', () => {
     ).not.toBeNull();
   });
 
+  it('keeps the ranking flow in a top-to-bottom order', () => {
+    render(<CalculatorPageClient />);
+
+    const selectionHeading = screen.getByRole('heading', { name: '3. ランキング対象を決める' });
+    const context = screen.getByTestId('current-goal-context');
+    const rankingHeading = screen.getByRole('heading', { name: 'Rod のランキング' });
+
+    expect(
+      selectionHeading.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      context.compareDocumentPosition(rankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText('4. ランキングを見る')).toBeInTheDocument();
+  });
+
   it('shows only the sections needed for the selected goal', () => {
     render(<CalculatorPageClient />);
 
     expect(screen.getByTestId('compare-slot-selector')).toBeInTheDocument();
+    expect(screen.queryByText('この候補を比較に追加')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '保存した候補を比べる' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '魚種別詳細' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
+    expect(screen.getByText('この候補を比較に追加')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /保存した候補を並べて比べる/ }));
     expect(screen.getByRole('heading', { name: '保存した候補を比べる' })).toBeInTheDocument();

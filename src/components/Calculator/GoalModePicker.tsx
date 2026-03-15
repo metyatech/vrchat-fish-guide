@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type CalculatorGoal = 'upgrade' | 'compare' | 'summary' | 'fish';
+export type CalculatorGoal = 'ranking' | 'upgrade' | 'compare' | 'summary' | 'fish';
 
 type GoalModeCopy = {
   badge: string;
@@ -12,10 +12,19 @@ type GoalModeCopy = {
 };
 
 export const CALCULATOR_GOAL_COPY: Record<CalculatorGoal, GoalModeCopy> = {
+  ranking: {
+    badge: 'ランキング',
+    title: 'ランキングだけ見る',
+    description: '条件を決めて、装備や組み合わせをそのまま順位で眺めます。',
+    accentClassName:
+      'border-amber-300 bg-[linear-gradient(145deg,rgba(255,251,235,0.98),rgba(254,243,199,0.94))] text-amber-950',
+    ringClassName: 'ring-amber-200',
+    glowClassName: 'shadow-[0_16px_36px_rgba(245,158,11,0.18)]',
+  },
   upgrade: {
     badge: '候補探し',
-    title: '次に買い替える候補を見る',
-    description: '変えたいスロットだけに絞って、伸びる候補を先に見ます。',
+    title: '今の装備から次を探す',
+    description: '変えたいスロットだけに絞って、次に試す候補を先に見ます。',
     accentClassName:
       'border-cyan-300 bg-[linear-gradient(145deg,rgba(236,254,255,0.98),rgba(224,242,254,0.94))] text-cyan-950',
     ringClassName: 'ring-cyan-200',
@@ -55,7 +64,7 @@ type GoalModePickerProps = {
   onChange: (goal: CalculatorGoal) => void;
 };
 
-const GOAL_ORDER: CalculatorGoal[] = ['upgrade', 'compare', 'summary', 'fish'];
+const GOAL_ORDER: CalculatorGoal[] = ['ranking', 'upgrade', 'compare', 'summary', 'fish'];
 
 export function GoalModePicker({ value, onChange }: GoalModePickerProps) {
   return (
@@ -64,6 +73,9 @@ export function GoalModePicker({ value, onChange }: GoalModePickerProps) {
       data-testid="calculator-goal-picker"
     >
       <div className="mb-4">
+        <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
+          2. 見たいものを選ぶ
+        </div>
         <h2 className="text-lg font-semibold text-gray-900">何を見たい？</h2>
         <p className="mt-1 text-sm text-gray-500">
           1つ選ぶと、その目的に必要な情報だけを下に出します。
@@ -87,7 +99,7 @@ export function GoalModePicker({ value, onChange }: GoalModePickerProps) {
                 isSelected
                   ? `${copy.accentClassName} ${copy.glowClassName} ring-2 ${copy.ringClassName} ring-offset-2 ring-offset-white`
                   : 'border-slate-200 bg-white text-slate-900 shadow-sm hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50'
-              }`}
+              } ${goal === 'fish' ? 'lg:col-span-2' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>

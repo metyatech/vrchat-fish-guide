@@ -35,6 +35,10 @@ interface OptimizerViewProps {
   alwaysOpen?: boolean;
   /** Add an optimized combination to the comparison list */
   onPickBuild?: (entry: FullBuildEntry, rank: number) => void;
+  /** Show compare CTA buttons inside the result list */
+  showPickActions?: boolean;
+  /** Optional explanation above the result list */
+  helperText?: string;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -53,10 +57,12 @@ function ResultTable({
   rankedBuilds,
   bestValuePerHour,
   onPickBuild,
+  showPickActions,
 }: {
   rankedBuilds: Array<{ entry: FullBuildEntry; rank: number }>;
   bestValuePerHour: number;
   onPickBuild?: (entry: FullBuildEntry, rank: number) => void;
+  showPickActions: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -119,16 +125,23 @@ function ResultTable({
                     {formatCurrency(entry.expectedValuePerCatch)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
-                  <span>操作</span>
-                  <button
-                    type="button"
-                    onClick={() => onPickBuild?.(entry, rank - 1)}
-                    className="rounded border border-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-                  >
-                    追加
-                  </button>
-                </div>
+                {showPickActions ? (
+                  <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
+                    <span>操作</span>
+                    <button
+                      type="button"
+                      onClick={() => onPickBuild?.(entry, rank - 1)}
+                      className="rounded border border-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                    >
+                      追加
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2 py-1">
+                    <span>順位</span>
+                    <span className="font-semibold text-gray-800">#{rank}</span>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -146,7 +159,9 @@ function ResultTable({
               <th className="pb-2 text-left font-medium text-gray-500">Enchant</th>
               <th className="pb-2 text-right font-medium text-gray-500">期待値/時間</th>
               <th className="pb-2 text-right font-medium text-gray-500">期待値/回</th>
-              <th className="pb-2 text-right font-medium text-gray-500">操作</th>
+              {showPickActions ? (
+                <th className="pb-2 text-right font-medium text-gray-500">操作</th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -200,15 +215,17 @@ function ResultTable({
                   <td className="py-1.5 text-right text-gray-600">
                     {formatCurrency(entry.expectedValuePerCatch)}
                   </td>
-                  <td className="py-1.5 pl-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onPickBuild?.(entry, rank - 1)}
-                      className="w-full whitespace-normal rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-                    >
-                      この組み合わせを追加
-                    </button>
-                  </td>
+                  {showPickActions ? (
+                    <td className="py-1.5 pl-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => onPickBuild?.(entry, rank - 1)}
+                        className="w-full whitespace-normal rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+                      >
+                        この組み合わせを追加
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}
@@ -225,6 +242,8 @@ export function OptimizerView({
   initialExpanded = false,
   alwaysOpen = false,
   onPickBuild,
+  showPickActions = true,
+  helperText,
 }: OptimizerViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [provisionalResult, setProvisionalResult] = useState<SubsetBuildOptimizerResult | null>(
@@ -417,7 +436,10 @@ export function OptimizerView({
                   </li>
                 )}
                 <li>
-                  上位/下位ショートカット、順位範囲、表示順の切り替えで、トップ帯から下位帯まで同じ検索結果を見返せます。
+                  {helperText ??
+                    (showPickActions
+                      ? '上位/下位ショートカット、順位範囲、表示順の切り替えで、トップ帯から下位帯まで同じ検索結果を見返せます。'
+                      : '上位/下位ショートカット、順位範囲、表示順の切り替えで、見たい順位帯だけを同じ検索結果のまま眺められます。')}
                 </li>
               </ul>
             </div>
@@ -540,6 +562,7 @@ export function OptimizerView({
                   rankedBuilds={visibleBuilds}
                   bestValuePerHour={bestValuePerHour}
                   onPickBuild={onPickBuild}
+                  showPickActions={showPickActions}
                 />
                 {hasMore && (
                   <button
@@ -559,9 +582,11 @@ export function OptimizerView({
               <p className="text-xs text-gray-500">結果がありません。</p>
             ) : null}
 
-            <p className="text-xs text-gray-400">
-              ※ 気になる候補は「この組み合わせを追加」を押すと、上の比較一覧に追加できます。
-            </p>
+            {showPickActions ? (
+              <p className="text-xs text-gray-400">
+                ※ 気になる候補は「この組み合わせを追加」を押すと、上の比較一覧に追加できます。
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

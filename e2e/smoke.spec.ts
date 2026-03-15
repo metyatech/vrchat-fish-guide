@@ -43,10 +43,11 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '何を見たい？' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '比べるスロットを選ぶ' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Rod の候補を追加' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '3. ランキング対象を決める' })).toBeVisible();
+  await expect(page.getByText('4. ランキングを見る')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rod のランキング' })).toBeVisible();
   await expect(page.getByTestId('current-goal-context')).toContainText(
-    'いまは「次に買い替える候補を見る」を表示中',
+    'いまは「ランキングだけ見る」を表示中',
   );
   await expect(page.getByRole('heading', { name: '保存した候補を比べる' })).toHaveCount(0);
   await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
@@ -59,7 +60,14 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     'selected',
   );
   await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute('data-state', 'idle');
-  await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toHaveCount(0);
+  const selectionBox = await page
+    .getByRole('heading', { name: '3. ランキング対象を決める' })
+    .boundingBox();
+  const contextBox = await page.getByTestId('current-goal-context').boundingBox();
+  const rankingBox = await page.getByRole('heading', { name: 'Rod のランキング' }).boundingBox();
+  expect(selectionBox?.y).toBeLessThan(contextBox?.y ?? Number.POSITIVE_INFINITY);
+  expect(contextBox?.y).toBeLessThan(rankingBox?.y ?? Number.POSITIVE_INFINITY);
   const totalStatsSection = page.getByTestId('total-stats-section');
   await expect(
     totalStatsSection.locator('[data-total-stat="luck"] span.rounded-full').first(),
@@ -119,6 +127,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByLabel('`!` が出てから反応するまで (sec)').fill('0.25');
   await page.getByLabel('ミス率').fill('0.12');
 
+  await page.getByRole('button', { name: /今の装備から次を探す/ }).click();
   await page.getByTestId('compare-slot-button-enchant').click();
   await page.getByTestId('compare-slot-button-rod').click();
   await expect(page.getByRole('heading', { name: 'Enchant の候補を追加' })).toBeVisible();

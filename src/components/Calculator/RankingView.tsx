@@ -19,6 +19,10 @@ interface RankingViewProps {
   alwaysOpen?: boolean;
   /** Create a comparison pattern from a ranked item */
   onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
+  /** Show compare CTA buttons inside the ranking table */
+  showPickActions?: boolean;
+  /** Optional explanation above the table */
+  helperText?: string;
 }
 
 const SLOT_LABELS: Record<RankSlot, string> = {
@@ -45,12 +49,14 @@ function SlotTable({
   topN,
   activeItemId,
   onPickItem,
+  showPickActions,
 }: {
   slot: RankSlot;
   entries: SlotRankEntry[];
   topN: number;
   activeItemId: string;
   onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
+  showPickActions: boolean;
 }) {
   const [displayOrder, setDisplayOrder] = useState<'desc' | 'asc'>('desc');
   const [rangeStart, setRangeStart] = useState(1);
@@ -177,10 +183,36 @@ function SlotTable({
       <table className="w-full table-fixed text-xs">
         <thead>
           <tr className="border-b border-gray-100">
-            <th className="w-1/2 pb-1.5 text-left font-medium text-gray-500">装備</th>
-            <th className="w-1/6 pb-1.5 text-right font-medium text-gray-500">期待値/時間</th>
-            <th className="w-1/6 pb-1.5 text-right font-medium text-gray-500">期待値/回</th>
-            <th className="w-1/6 pb-1.5 text-right font-medium text-gray-500">操作</th>
+            <th
+              className={
+                showPickActions
+                  ? 'w-1/2 pb-1.5 text-left font-medium text-gray-500'
+                  : 'w-2/3 pb-1.5 text-left font-medium text-gray-500'
+              }
+            >
+              装備
+            </th>
+            <th
+              className={
+                showPickActions
+                  ? 'w-1/6 pb-1.5 text-right font-medium text-gray-500'
+                  : 'w-1/6 pb-1.5 text-right font-medium text-gray-500'
+              }
+            >
+              期待値/時間
+            </th>
+            <th
+              className={
+                showPickActions
+                  ? 'w-1/6 pb-1.5 text-right font-medium text-gray-500'
+                  : 'w-1/6 pb-1.5 text-right font-medium text-gray-500'
+              }
+            >
+              期待値/回
+            </th>
+            {showPickActions ? (
+              <th className="w-1/6 pb-1.5 text-right font-medium text-gray-500">操作</th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -230,15 +262,17 @@ function SlotTable({
                 <td className="py-1.5 text-right align-top text-gray-600">
                   {formatCurrency(entry.expectedValuePerCatch)}
                 </td>
-                <td className="py-1.5 pl-2 text-right align-top">
-                  <button
-                    type="button"
-                    onClick={() => onPickItem?.(slot, entry.item.id, entry.item.nameEn)}
-                    className="w-full rounded-lg border border-ocean-200 bg-ocean-50 px-2.5 py-1 text-[11px] font-medium text-ocean-700 shadow-sm transition-all duration-150 hover:border-ocean-400 hover:bg-ocean-100 hover:shadow-md active:scale-95"
-                  >
-                    この候補を追加
-                  </button>
-                </td>
+                {showPickActions ? (
+                  <td className="py-1.5 pl-2 text-right align-top">
+                    <button
+                      type="button"
+                      onClick={() => onPickItem?.(slot, entry.item.id, entry.item.nameEn)}
+                      className="w-full rounded-lg border border-ocean-200 bg-ocean-50 px-2.5 py-1 text-[11px] font-medium text-ocean-700 shadow-sm transition-all duration-150 hover:border-ocean-400 hover:bg-ocean-100 hover:shadow-md active:scale-95"
+                    >
+                      この候補を追加
+                    </button>
+                  </td>
+                ) : null}
               </tr>
             );
           })}
@@ -267,6 +301,8 @@ export function RankingView({
   initialExpanded = false,
   alwaysOpen = false,
   onPickItem,
+  showPickActions = true,
+  helperText,
 }: RankingViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [showOtherSlots, setShowOtherSlots] = useState(false);
@@ -302,7 +338,10 @@ export function RankingView({
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
             <strong>見方:</strong>{' '}
-            上にあるほど、今の条件では伸びやすい候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで見たい帯だけを確認できます。1つ押すと、その候補が比較一覧に追加されます。
+            {helperText ??
+              (showPickActions
+                ? '上にあるほど、今の条件では伸びやすい候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで見たい帯だけを確認できます。1つ押すと、その候補が比較一覧に追加されます。'
+                : '上にあるほど、今の条件で強い候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで、見たい順位帯だけをそのまま追えます。')}
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -320,6 +359,7 @@ export function RankingView({
                       : baseParams.loadout.enchantId
               }
               onPickItem={onPickItem}
+              showPickActions={showPickActions}
             />
           </div>
 
@@ -354,6 +394,7 @@ export function RankingView({
                               : baseParams.loadout.enchantId
                       }
                       onPickItem={onPickItem}
+                      showPickActions={showPickActions}
                     />
                   ))}
                 </div>
