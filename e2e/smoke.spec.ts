@@ -42,14 +42,16 @@ test('calculator updates summary cards and fish list when loadout and filters ch
 
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'いまの装備' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '比べる部位を選ぶ' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '比べるスロットを選ぶ' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Rod の候補を追加' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '比較一覧' })).toBeVisible();
   await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /詳細設定/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Rod を変える' })).toBeVisible();
+  await expect(
+    page.getByTestId('compare-slot-selector').getByRole('button', { name: 'Rod' }),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: /この比較を URL で共有/ })).toBeVisible();
   const totalStatsSection = page.getByTestId('total-stats-section');
@@ -112,7 +114,8 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByLabel('`!` が出てから反応するまで (sec)').fill('0.25');
   await page.getByLabel('ミス率').fill('0.12');
 
-  await page.getByRole('button', { name: 'Enchant を変える' }).click();
+  await page.getByTestId('compare-slot-selector').getByRole('button', { name: 'Enchant' }).click();
+  await page.getByTestId('compare-slot-selector').getByRole('button', { name: 'Rod' }).click();
   await expect(page.getByRole('heading', { name: 'Enchant の候補を追加' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toBeVisible();
   await page.getByRole('button', { name: 'この候補を比較に追加' }).click();

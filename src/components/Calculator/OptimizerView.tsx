@@ -315,7 +315,7 @@ export function OptimizerView({
     ? 'Rod / Line / Bobber / Enchant'
     : orderedVaryingSlots.map((slot) => SLOT_LABELS[slot]).join(' + ');
   const descriptionText = isFullBuild
-    ? `Rod / Line / Bobber / Enchant の候補から、能力的に完全に劣る装備を先に外した ${totalCombinations.toLocaleString()} 通りを厳密に調べて、伸びやすい順に並べます。1欄ずつではなく、全部まとめて入れ替えたいときだけ使ってください。`
+    ? `Rod / Line / Bobber / Enchant の候補から、能力的に完全に劣る装備を先に外した ${totalCombinations.toLocaleString()} 通りを厳密に調べて、伸びやすい順に並べます。4つのスロットを同時に変えたいときに使ってください。`
     : `${varyingLabel} の組み合わせを厳密に調べて（${totalCombinations.toLocaleString()} 通り）、伸びやすい順に並べます。固定スロットはいまの装備のままです。`;
   const rangeLabel =
     totalResults > 0
@@ -351,7 +351,7 @@ export function OptimizerView({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-gray-800">
-            {isFullBuild ? '全部入れ替えて一気に探す' : `${varyingLabel} を組み合わせて探す`}
+            {isFullBuild ? '4スロットを組み合わせて探す' : `${varyingLabel} を組み合わせて探す`}
           </h2>
           <p className="mt-0.5 text-xs text-gray-500">{descriptionText}</p>
         </div>

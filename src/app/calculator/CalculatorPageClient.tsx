@@ -31,14 +31,6 @@ import {
 } from '@/lib/url-state';
 import { BuildConfig, CalculatorParams, DistributionResult, Rarity } from '@/types';
 
-const COMPARE_TARGET_LABELS: Record<CompareTarget, string> = {
-  rod: 'Rod',
-  line: 'Line',
-  bobber: 'Bobber',
-  enchant: 'Enchant',
-  'full-build': '全部まとめて',
-};
-
 const SLOT_LABELS: Record<RankSlot, string> = {
   rod: 'Rod',
   line: 'Line',
@@ -85,8 +77,7 @@ export function CalculatorPageClient() {
   const [activeId, setActiveId] = useState(initialActiveId);
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
   const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
-  const [compareTarget, setCompareTarget] = useState<CompareTarget>('rod');
-  const [varyingSlots, setVaryingSlots] = useState<RankSlot[]>(ALL_SLOTS);
+  const [selectedSlots, setSelectedSlots] = useState<RankSlot[]>(['rod']);
   const [notesOpen, setNotesOpen] = useState(false);
 
   // Sync URL hash whenever builds/activeId change
@@ -122,7 +113,9 @@ export function CalculatorPageClient() {
   // ── Build operations ───────────────────────────────────────────────────────
 
   const activeBuild = builds.find((b) => b.id === activeId) ?? builds[0];
-  const orderedVaryingSlots = ALL_SLOTS.filter((slot) => varyingSlots.includes(slot));
+  const orderedSelectedSlots = ALL_SLOTS.filter((slot) => selectedSlots.includes(slot));
+  const isSingleSlotSelection = orderedSelectedSlots.length === 1;
+  const primarySlot = orderedSelectedSlots[0] ?? 'rod';
 
   const handleParamsChange = useCallback(
     (params: CalculatorParams) => {
@@ -199,24 +192,24 @@ export function CalculatorPageClient() {
   );
 
   const handleCreateRecommendationBuild = useCallback(() => {
-    if (!activeBuild || compareTarget === 'full-build') return;
+    if (!activeBuild || !isSingleSlotSelection) return;
     const rankedBySlot = rankAllSlots(activeBuild.params);
-    const bestEntry = rankedBySlot[compareTarget][0];
+    const bestEntry = rankedBySlot[primarySlot][0];
     if (!bestEntry) return;
 
     const currentItemId =
-      compareTarget === 'rod'
+      primarySlot === 'rod'
         ? activeBuild.params.loadout.rodId
-        : compareTarget === 'line'
+        : primarySlot === 'line'
           ? activeBuild.params.loadout.lineId
-          : compareTarget === 'bobber'
+          : primarySlot === 'bobber'
             ? activeBuild.params.loadout.bobberId
             : activeBuild.params.loadout.enchantId;
 
     if (bestEntry.item.id === currentItemId) return;
 
-    handleCreateSlotComparison(compareTarget, bestEntry.item.id, bestEntry.item.nameEn);
-  }, [activeBuild, compareTarget, handleCreateSlotComparison]);
+    handleCreateSlotComparison(primarySlot, bestEntry.item.id, bestEntry.item.nameEn);
+  }, [activeBuild, handleCreateSlotComparison, isSingleSlotSelection, primarySlot]);
 
   const handleCreateOptimizedBuild = useCallback(
     (
@@ -228,11 +221,9 @@ export function CalculatorPageClient() {
       if (!activeBuild) return;
       const nextBuild = createBuildFrom(activeBuild, builds.length);
       const varyingLabel =
-        orderedVaryingSlots.length === ALL_SLOTS.length
-          ? '全部比較'
-          : orderedVaryingSlots
-              .map((s) => COMPARE_TARGET_LABELS[s as keyof typeof COMPARE_TARGET_LABELS])
-              .join('+');
+        orderedSelectedSlots.length === ALL_SLOTS.length
+          ? '4スロット比較'
+          : orderedSelectedSlots.map((slot) => SLOT_LABELS[slot]).join('+');
       nextBuild.name = rank === 0 ? `${varyingLabel}のおすすめ` : `${varyingLabel} ${rank + 1}`;
       nextBuild.params = {
         ...nextBuild.params,
@@ -245,7 +236,7 @@ export function CalculatorPageClient() {
       setBuilds((prev) => [...prev, nextBuild]);
       setActiveId(nextBuild.id);
     },
-    [activeBuild, builds.length, orderedVaryingSlots],
+    [activeBuild, builds.length, orderedSelectedSlots],
   );
 
   // ── Calculations ───────────────────────────────────────────────────────────
@@ -266,16 +257,16 @@ export function CalculatorPageClient() {
       : effectiveAreaName;
 
   const bestNextTry = useMemo(() => {
-    if (compareTarget === 'full-build') return null;
+    if (!isSingleSlotSelection) return null;
 
-    const entries = rankedBySlot[compareTarget];
+    const entries = rankedBySlot[primarySlot];
     const bestEntry = entries[0];
     const currentItemId =
-      compareTarget === 'rod'
+      primarySlot === 'rod'
         ? activeBuild.params.loadout.rodId
-        : compareTarget === 'line'
+        : primarySlot === 'line'
           ? activeBuild.params.loadout.lineId
-          : compareTarget === 'bobber'
+          : primarySlot === 'bobber'
             ? activeBuild.params.loadout.bobberId
             : activeBuild.params.loadout.enchantId;
     const currentEntry = entries.find((entry) => entry.item.id === currentItemId);
@@ -293,18 +284,20 @@ export function CalculatorPageClient() {
             100
           : 0,
     };
-  }, [activeBuild.params, compareTarget, rankedBySlot]);
+  }, [activeBuild.params, isSingleSlotSelection, primarySlot, rankedBySlot]);
 
   // Key that changes when result values change meaningfully — drives the CSS update animation.
   const resultAnimKey = `${Math.round(activeResult.expectedValuePerHour)}-${Math.round(activeResult.expectedValuePerCatch)}-${activeResult.fishResults.length}`;
 
-  const compareTargetTheme = SLOT_THEME[compareTarget];
-  const compareTargetActionLabel =
-    compareTarget === 'full-build'
-      ? orderedVaryingSlots.length === ALL_SLOTS.length
-        ? '全部まとめて入れ替える'
-        : `${orderedVaryingSlots.map((s) => SLOT_LABELS[s]).join(' + ')} を組み合わせて探す`
-      : `${COMPARE_TARGET_LABELS[compareTarget]} を変える`;
+  const selectionThemeKey: CompareTarget = isSingleSlotSelection ? primarySlot : 'full-build';
+  const compareTargetTheme = SLOT_THEME[selectionThemeKey];
+  const selectedSlotsLabel = orderedSelectedSlots.map((slot) => SLOT_LABELS[slot]).join(' + ');
+  const compareTargetActionLabel = isSingleSlotSelection
+    ? `${SLOT_LABELS[primarySlot]} を変える`
+    : `${selectedSlotsLabel} を組み合わせて探す`;
+  const selectionHelperText = isSingleSlotSelection
+    ? `${SLOT_LABELS[primarySlot]} だけを変えた候補を見ます。もう1つ押すと組み合わせ検索に切り替わります。`
+    : `${selectedSlotsLabel} を変え、残りのスロットは現在の装備で固定します。`;
 
   const hasComparisons = builds.length > 1;
 
@@ -373,78 +366,53 @@ export function CalculatorPageClient() {
 
         <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">比べる部位を選ぶ</h2>
-            <p className="mt-1 text-sm text-gray-500">1 か所ずつ切り替えると差が見えやすいです。</p>
+            <h2 className="text-lg font-semibold text-gray-900">比べるスロットを選ぶ</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。
+            </p>
           </div>
 
-          <div className="mb-4 flex flex-wrap gap-2">
-            {(Object.keys(COMPARE_TARGET_LABELS) as CompareTarget[]).map((target) => (
-              <button
-                key={target}
-                onClick={() => setCompareTarget(target)}
-                className={`rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
-                  compareTarget === target
-                    ? SLOT_THEME[target].buttonActiveClassName
-                    : SLOT_THEME[target].buttonIdleClassName
-                }`}
-              >
-                {target === 'full-build'
-                  ? '全部まとめて入れ替える'
-                  : `${COMPARE_TARGET_LABELS[target]} を変える`}
-              </button>
-            ))}
+          <div data-testid="compare-slot-selector" className="mb-4 flex flex-wrap gap-2">
+            {ALL_SLOTS.map((slot) => {
+              const isSelected = orderedSelectedSlots.includes(slot);
+              const theme = SLOT_THEME[slot];
+              return (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() =>
+                    setSelectedSlots((prev) => {
+                      const next = isSelected
+                        ? prev.length > 1
+                          ? prev.filter((candidate) => candidate !== slot)
+                          : prev
+                        : [...prev, slot];
+                      return ALL_SLOTS.filter((candidate) => next.includes(candidate));
+                    })
+                  }
+                  aria-pressed={isSelected}
+                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
+                    isSelected ? theme.buttonActiveClassName : theme.buttonIdleClassName
+                  }`}
+                >
+                  {SLOT_LABELS[slot]}
+                </button>
+              );
+            })}
           </div>
 
-          {compareTarget === 'full-build' && (
-            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-              <p className="mb-2 text-xs font-medium text-emerald-800">
-                組み合わせるスロットを選ぶ（最低 1 つ）:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {ALL_SLOTS.map((slot) => {
-                  const isSelected = varyingSlots.includes(slot);
-                  const theme = SLOT_THEME[slot];
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() =>
-                        setVaryingSlots((prev) => {
-                          const next = isSelected
-                            ? prev.length > 1
-                              ? prev.filter((s) => s !== slot)
-                              : prev
-                            : [...prev, slot];
-                          return ALL_SLOTS.filter((candidate) => next.includes(candidate));
-                        })
-                      }
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
-                        isSelected ? theme.buttonActiveClassName : theme.buttonIdleClassName
-                      }`}
-                      aria-pressed={isSelected}
-                    >
-                      {SLOT_LABELS[slot]}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-2 text-[11px] text-emerald-700">
-                {orderedVaryingSlots.length === ALL_SLOTS.length
-                  ? '全スロットを組み合わせて最適ビルドを探します。'
-                  : `${orderedVaryingSlots.map((s) => SLOT_LABELS[s]).join(' + ')} を変え、残りのスロットは現在の装備で固定します。`}
-              </p>
-            </div>
-          )}
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <p className="text-xs font-medium text-emerald-800">{selectionHelperText}</p>
+          </div>
 
           <div
             className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
           >
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-700">
-              選択中の部位
+              選択中
             </div>
             <p className="mt-2 text-sm text-gray-900">
-              <strong>{compareTargetActionLabel}</strong>{' '}
-              を切り替えます。候補を選んで比較に追加します。
+              <strong>{compareTargetActionLabel}</strong> の候補を選んで、比較一覧に追加できます。
             </p>
           </div>
         </section>
@@ -452,14 +420,14 @@ export function CalculatorPageClient() {
         <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              {compareTarget === 'full-build'
-                ? '装備一式の候補を追加'
-                : `${COMPARE_TARGET_LABELS[compareTarget]} の候補を追加`}
+              {isSingleSlotSelection
+                ? `${SLOT_LABELS[primarySlot]} の候補を追加`
+                : '組み合わせ候補を追加'}
             </h2>
             <p className="mt-1 text-sm text-gray-500">1 件追加すると、下の比較に並びます。</p>
           </div>
 
-          {compareTarget !== 'full-build' && bestNextTry ? (
+          {isSingleSlotSelection && bestNextTry ? (
             <div
               className={`rounded-2xl border p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${compareTargetTheme.panelClassName}`}
             >
@@ -497,20 +465,20 @@ export function CalculatorPageClient() {
             </div>
           ) : null}
 
-          {compareTarget === 'full-build' ? (
+          {!isSingleSlotSelection ? (
             <OptimizerView
-              key={`optimizer-${orderedVaryingSlots.join('-')}`}
+              key={`optimizer-${orderedSelectedSlots.join('-')}`}
               baseParams={activeBuild.params}
-              varyingSlots={orderedVaryingSlots}
+              varyingSlots={orderedSelectedSlots}
               initialExpanded={true}
               alwaysOpen={true}
               onPickBuild={handleCreateOptimizedBuild}
             />
           ) : (
             <RankingView
-              key={`ranking-${compareTarget}`}
+              key={`ranking-${primarySlot}`}
               baseParams={activeBuild.params}
-              focusSlot={compareTarget as RankSlot}
+              focusSlot={primarySlot}
               initialExpanded={true}
               alwaysOpen={true}
               onPickItem={handleCreateSlotComparison}

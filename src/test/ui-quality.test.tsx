@@ -234,4 +234,47 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(screen.getByText(/時間帯:/)).toBeInTheDocument();
     expect(screen.getByText(/天気:/)).toBeInTheDocument();
   });
+
+  it('uses only the four slot toggles as the optimizer entry point', () => {
+    render(<CalculatorPageClient />);
+
+    const selector = screen.getByTestId('compare-slot-selector');
+    expect(within(selector).getByRole('button', { name: 'Rod' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(within(selector).getByRole('button', { name: 'Line' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(within(selector).getByRole('button', { name: 'Bobber' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(within(selector).getByRole('button', { name: 'Enchant' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(
+      screen.queryByRole('button', { name: '全部まとめて入れ替える' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('switches between single-slot ranking and multi-slot optimizer from the same selector', () => {
+    render(<CalculatorPageClient />);
+
+    const selector = screen.getByTestId('compare-slot-selector');
+    fireEvent.click(within(selector).getByRole('button', { name: 'Line' }));
+
+    expect(
+      screen.getByRole('heading', { name: 'Rod + Line を組み合わせて探す' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Rod + Line を変え、残りのスロットは現在の装備で固定します。'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(within(selector).getByRole('button', { name: 'Rod' }));
+
+    expect(screen.getByText('Line の候補一覧')).toBeInTheDocument();
+  });
 });
