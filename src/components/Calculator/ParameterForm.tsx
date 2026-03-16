@@ -33,6 +33,7 @@ interface ParameterFormProps {
   params: CalculatorParams;
   model: DerivedModelSummary;
   onChange: (params: CalculatorParams) => void;
+  showLoadoutWorkspace?: boolean;
 }
 
 const TIME_OF_DAY_HELPER: Record<TimeOfDay, string> = {
@@ -2686,7 +2687,12 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   );
 }
 
-export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
+export function ParameterForm({
+  params,
+  model,
+  onChange,
+  showLoadoutWorkspace = true,
+}: ParameterFormProps) {
   const [activeSlot, setActiveSlot] = React.useState<LoadoutSlot | null>(null);
   const [recentlyUpdatedSlot, setRecentlyUpdatedSlot] = React.useState<LoadoutSlot | null>(null);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
@@ -2805,56 +2811,58 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
 
   return (
     <div className="space-y-5">
-      <section className="animate-slide-in-up space-y-5 rounded-[28px] border border-ocean-100/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(232,243,255,0.96))] p-5 shadow-[0_24px_64px_rgba(30,70,136,0.12)]">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">いまの装備</h2>
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            変えたい行をクリックすると、その部位の候補が開きます。
-          </p>
-        </div>
-
-        <div
-          className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[38rem_minmax(0,1fr)] 2xl:grid-cols-[40rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
-        >
-          <div className="min-w-0">
-            <CurrentLoadoutTable
-              activeSlot={activeSlot}
-              selectedIds={{
-                rod: params.loadout.rodId,
-                line: params.loadout.lineId,
-                bobber: params.loadout.bobberId,
-                enchant: params.loadout.enchantId,
-              }}
-              model={model}
-              recentlyUpdatedSlot={recentlyUpdatedSlot}
-              onActivate={activateSlot}
-              onCloseActivePicker={() => setActiveSlot(null)}
-              pickerContainerRef={pickerPanelRef}
-              comparisonMode={showComparisonWorkspace}
-            />
+      {showLoadoutWorkspace ? (
+        <section className="animate-slide-in-up space-y-5 rounded-[28px] border border-ocean-100/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(232,243,255,0.96))] p-5 shadow-[0_24px_64px_rgba(30,70,136,0.12)]">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">いまの装備</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-600">
+              変えたい行をクリックすると、その部位の候補が開きます。
+            </p>
           </div>
 
-          {showComparisonWorkspace ? (
-            <div
-              ref={pickerPanelRef}
-              data-testid="slot-picker-workspace-shell"
-              className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] xl:sticky xl:top-6"
-            >
-              {activePickerPanel}
+          <div
+            className={`relative ${showComparisonWorkspace ? 'grid gap-5 xl:grid-cols-[38rem_minmax(0,1fr)] 2xl:grid-cols-[40rem_minmax(0,1fr)] xl:items-start' : 'space-y-5'}`}
+          >
+            <div className="min-w-0">
+              <CurrentLoadoutTable
+                activeSlot={activeSlot}
+                selectedIds={{
+                  rod: params.loadout.rodId,
+                  line: params.loadout.lineId,
+                  bobber: params.loadout.bobberId,
+                  enchant: params.loadout.enchantId,
+                }}
+                model={model}
+                recentlyUpdatedSlot={recentlyUpdatedSlot}
+                onActivate={activateSlot}
+                onCloseActivePicker={() => setActiveSlot(null)}
+                pickerContainerRef={pickerPanelRef}
+                comparisonMode={showComparisonWorkspace}
+              />
             </div>
-          ) : null}
 
-          {showStackedPicker ? (
-            <div
-              ref={pickerPanelRef}
-              data-testid="slot-picker-stacked-shell"
-              className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
-            >
-              {activePickerPanel}
-            </div>
-          ) : null}
-        </div>
-      </section>
+            {showComparisonWorkspace ? (
+              <div
+                ref={pickerPanelRef}
+                data-testid="slot-picker-workspace-shell"
+                className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)] xl:sticky xl:top-6"
+              >
+                {activePickerPanel}
+              </div>
+            ) : null}
+
+            {showStackedPicker ? (
+              <div
+                ref={pickerPanelRef}
+                data-testid="slot-picker-stacked-shell"
+                className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+              >
+                {activePickerPanel}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {/* ─── Conditions ─── */}
       <section className="animate-slide-in-up space-y-4 rounded-[20px] border border-slate-700/30 bg-[linear-gradient(145deg,rgba(255,255,255,0.97),rgba(241,245,255,0.99))] p-5 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">

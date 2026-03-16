@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.74] - 2026-03-16
+
+### Changed
+
+- **Ranking no longer front-loads the baseline loadout board**: the leaderboard now opens as the primary view, while the current loadout workspace stays in the upgrade flow where it is actually needed for side-by-side comparison.
+- **Ranking guidance now hides duplicated framing instead of repeating the same setup concepts in multiple places**: the inner leaderboard keeps its short explanation without reintroducing the heavier baseline panel that made ranking feel like a setup wizard.
+- **Upgrade-flow verification now matches the result-first GUI**: the Playwright coverage opens the current-loadout workspace only after switching into the upgrade goal and expanding its optional setup section, so release verification follows the same flow users see on the page.
+
 ## [0.12.73] - 2026-03-16
 
 ### Changed

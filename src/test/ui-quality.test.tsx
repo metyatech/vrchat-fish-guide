@@ -233,17 +233,18 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(screen.queryByText(/平均値を用います/)).not.toBeInTheDocument();
   });
 
-  it('keeps the visible goal context outside the calculation notes', () => {
+  it('keeps the visible goal context outside the calculation notes for non-ranking goals', () => {
     render(<CalculatorPageClient />);
 
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
     const context = screen.getByTestId('current-goal-context');
-    expect(context).toHaveTextContent('いまは「まず全体ランキングを見る」を表示中');
+    expect(context).toHaveTextContent('いまは「今の装備から次を探す」を表示中');
     expect(context).toHaveTextContent(/基準装備:/);
     expect(context).toHaveTextContent(/釣り場:/);
     expect(context).toHaveTextContent(/時間帯:/);
     expect(context).toHaveTextContent(/天気:/);
-    expect(context).not.toHaveTextContent(/変える欄:/);
-    expect(context).not.toHaveTextContent(/固定したまま:/);
+    expect(context).toHaveTextContent(/変える欄:/);
+    expect(context).toHaveTextContent(/固定したまま:/);
     expect(screen.queryByText('いま見ている結果')).not.toBeInTheDocument();
   });
 
@@ -251,6 +252,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     expect(screen.queryByTestId('compare-slot-selector')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('current-goal-context')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'まず全体ランキングを見る' })).toBeInTheDocument();
     expect(screen.getByTestId('optimizer-filter-panel')).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: 'ランキングを検索' })).toBeInTheDocument();
@@ -279,17 +281,13 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     const goalHeading = screen.getByRole('heading', { name: '何を見たい？' });
     const rankingHeading = screen.getByRole('heading', { name: 'まず全体ランキングを見る' });
-    const context = screen.getByTestId('current-goal-context');
     const setupHeading = screen.getByRole('heading', { name: '計算の前提を変える' });
 
     expect(
       goalHeading.compareDocumentPosition(rankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      rankingHeading.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      context.compareDocumentPosition(setupHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      rankingHeading.compareDocumentPosition(setupHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getByText('1. 何をしたいか決める')).toBeInTheDocument();
     expect(screen.getByText('2. ランキングを見る')).toBeInTheDocument();
@@ -322,7 +320,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(screen.getByText('3. 必要なら計算の前提を変える')).toBeInTheDocument();
     expect(
       screen.getByText(
-        '時間帯・天気・基準装備を変えたいときだけ開いてください。ここを変えるとランキングそのものを作り直します。',
+        '時間帯・天気・プレイ速度の前提を変えたいときだけ開いてください。ここを変えるとランキングそのものを作り直します。',
       ),
     ).toBeInTheDocument();
 
@@ -363,7 +361,8 @@ describe('UI quality – overflow and wrapping prevention', () => {
     fireEvent.click(toggle);
 
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByTestId('current-loadout-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('current-loadout-table')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('釣り場')).toBeInTheDocument();
     expect(screen.queryByTestId('setup-collapsed-summary')).not.toBeInTheDocument();
   });
 
@@ -535,16 +534,10 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(headingsWithSelecting).toHaveLength(0);
   });
 
-  it('ranking goal shows metric as compact row, not heavy 3-card cluster', () => {
+  it('ranking goal keeps metric cards out of the main ranking flow', () => {
     render(<CalculatorPageClient />);
 
-    // The metric element must still be present (for accessibility and EV tracking)
-    // but must not contain a large heading-level number in the 3-card layout.
-    const metricEl = screen.getByTestId('context-expected-value-per-hour');
-    expect(metricEl).toBeInTheDocument();
-    // Compact row: should not contain a child with text-3xl (used only in the full card).
-    const largeNumbers = metricEl.querySelectorAll('.text-3xl');
-    expect(largeNumbers.length).toBe(0);
+    expect(screen.queryByTestId('context-expected-value-per-hour')).not.toBeInTheDocument();
   });
 
   it('summary goal shows full 3-card metric cluster', () => {

@@ -3,6 +3,18 @@ import { expect, test } from '@playwright/test';
 
 const SITE_VERSION = `v${packageJson.version}`;
 
+async function openUpgradeWorkspace(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: /今の装備から次を探す/ }).click();
+  await expect(page.getByTestId('current-goal-context')).toContainText(
+    'いまは「今の装備から次を探す」を表示中',
+  );
+  const currentLoadoutTable = page.getByTestId('current-loadout-table');
+  if ((await currentLoadoutTable.count()) === 0 || !(await currentLoadoutTable.isVisible())) {
+    await page.getByTestId('setup-toggle').click();
+  }
+  await expect(currentLoadoutTable).toBeVisible();
+}
+
 test('home page exposes primary navigation links', async ({ page }) => {
   await page.goto('/');
 
@@ -51,17 +63,16 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   // Expand setup to interact with ParameterForm.
   await page.getByTestId('setup-toggle').click();
 
-  await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
   await expect(page.getByText('2. ランキングを見る')).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'まず全体ランキングを見る', exact: true }),
   ).toBeVisible();
-  await expect(page.getByTestId('current-goal-context')).toContainText(
-    'いまは「まず全体ランキングを見る」を表示中',
-  );
+  await expect(page.getByTestId('current-goal-context')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '保存した候補を比べる' })).toHaveCount(0);
-  await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
-  await expect(page.getByTestId('current-loadout-table')).toBeVisible();
+  const setupSection = page.getByTestId('setup-section');
+  await expect(setupSection.getByLabel('釣り場')).toBeVisible();
+  await expect(page.getByTestId('total-stats-section')).toHaveCount(0);
+  await expect(page.getByTestId('current-loadout-table')).toHaveCount(0);
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /詳細設定/ })).toBeVisible();
   await expect(page.getByTestId('optimizer-filter-panel')).toBeVisible();
@@ -72,15 +83,17 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     .boundingBox();
   const goalBox = await page.getByRole('heading', { name: '何を見たい？' }).boundingBox();
   const setupBox = await page.getByRole('heading', { name: '計算の前提を変える' }).boundingBox();
-  const contextBox = await page.getByTestId('current-goal-context').boundingBox();
-  const rankingBox = await page
-    .getByTestId('ranking-results-container')
-    .getByRole('heading', { name: 'ランキング', exact: true })
-    .boundingBox();
+  const rankingBox = await page.getByTestId('ranking-results-container').boundingBox();
   expect(goalBox?.y).toBeLessThan(selectionBox?.y ?? Number.POSITIVE_INFINITY);
   expect(selectionBox?.y).toBeLessThan(rankingBox?.y ?? Number.POSITIVE_INFINITY);
-  expect(rankingBox?.y).toBeLessThan(contextBox?.y ?? Number.POSITIVE_INFINITY);
-  expect(contextBox?.y).toBeLessThan(setupBox?.y ?? Number.POSITIVE_INFINITY);
+  expect(rankingBox?.y).toBeLessThan(setupBox?.y ?? Number.POSITIVE_INFINITY);
+
+  await openUpgradeWorkspace(page);
+  await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
+  await expect(page.getByTestId('current-goal-context')).toContainText(
+    'いまは「今の装備から次を探す」を表示中',
+  );
+  await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
   const totalStatsSection = page.getByTestId('total-stats-section');
   await expect(
     totalStatsSection.locator('[data-total-stat="luck"] span.rounded-full').first(),
@@ -112,7 +125,6 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   const initialExpectedValuePerHour = await page
     .getByTestId('context-expected-value-per-hour')
     .textContent();
-
   await page
     .locator('#loadout-picker-rod [data-testid="picker-option-row"]', { hasText: 'Fortunate Rod' })
     .click();
@@ -133,7 +145,6 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     })
     .click();
   expect(await page.getByTestId('slot-picker-panel').count()).toBe(0);
-  const setupSection = page.getByTestId('setup-section');
   await setupSection.getByLabel('釣り場').selectOption('open-sea');
   await setupSection.getByLabel('時間帯').selectOption('night');
   await setupSection.getByLabel('天気').selectOption('rainy');
@@ -141,7 +152,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await setupSection.getByLabel('`!` が出てから反応するまで (sec)').fill('0.25');
   await setupSection.getByLabel('ミス率').fill('0.12');
 
-  await page.getByRole('button', { name: /今の装備から次を探す/ }).click();
+  await openUpgradeWorkspace(page);
   await page.getByTestId('compare-slot-button-enchant').click();
   await page.getByTestId('compare-slot-button-rod').click();
   await expect(page.getByRole('heading', { name: 'Enchant の候補を追加' })).toBeVisible();
@@ -168,9 +179,7 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  // Expand setup section before interacting with loadout table.
-  await page.getByTestId('setup-toggle').click();
-  await expect(page.getByTestId('current-loadout-table')).toBeVisible();
+  await openUpgradeWorkspace(page);
   await expect(page.getByTestId('active-slot-indicator')).toHaveCount(0);
   await expect(page.getByTestId('current-loadout-card')).toHaveCSS('overflow', 'visible');
 
@@ -238,7 +247,7 @@ test('desktop widths switch Step 1 into a side-by-side comparison workspace', as
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toContainText('Rod の候補');
@@ -281,7 +290,7 @@ test('1920-width desktop keeps the picker in the side workspace', async ({ page 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
 
   const workspaceShell = page.getByTestId('slot-picker-workspace-shell');
@@ -345,7 +354,7 @@ test('current loadout workspace visual appearance matches snapshot', async ({ pa
   await page.setViewportSize({ width: 1720, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を編集中');
   const workspaceBoard = page.getByTestId('current-loadout-workspace-board');
@@ -372,7 +381,7 @@ test('clicking outside the picker panel closes it', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
 
@@ -385,7 +394,7 @@ test('scrolled picker panel keeps the header sealed', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByLabel('Enchant を選び直す').click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toContainText('Enchant の候補');
@@ -442,7 +451,7 @@ test('equipment picker search filters items by name, location, and special effec
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toContainText('Rod の候補');
@@ -485,7 +494,7 @@ test('candidate picker supports recommendation-tag filters and stat-improvement 
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
@@ -508,7 +517,7 @@ test('candidate picker supports advanced price and stat range filters', async ({
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
@@ -536,7 +545,7 @@ test('candidate picker shows active filter chips and supports multiple locations
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
@@ -563,7 +572,7 @@ test('mobile widths keep a compact current-loadout summary above the stacked pic
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
 
   const mobileSummary = page.getByTestId('mobile-current-loadout-summary');
@@ -578,7 +587,7 @@ test('candidate rows show per-stat deltas against the current equipment', async 
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
-  await page.getByTestId('setup-toggle').click();
+  await openUpgradeWorkspace(page);
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const sunleafRow = page.getByTestId('picker-option-row').filter({ hasText: 'Sunleaf Rod' });
 

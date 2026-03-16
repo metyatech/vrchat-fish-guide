@@ -59,7 +59,7 @@ const SETUP_SECTION_COPY: Record<CalculatorGoal, { title: string; description: s
   ranking: {
     title: '3. 必要なら計算の前提を変える',
     description:
-      '時間帯・天気・基準装備を変えたいときだけ開いてください。ここを変えるとランキングそのものを作り直します。',
+      '時間帯・天気・プレイ速度の前提を変えたいときだけ開いてください。ここを変えるとランキングそのものを作り直します。',
   },
   upgrade: {
     title: '2. 今の装備と比較条件を決める',
@@ -660,17 +660,31 @@ export function CalculatorPageClient() {
             {showSetupToggle && !setupOpen && (
               <div
                 data-testid="setup-collapsed-summary"
-                className="flex flex-wrap gap-2 border-t border-slate-100 px-5 pb-4 pt-3"
+                className="border-t border-slate-100 px-5 pb-4 pt-3"
               >
-                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                  釣り場: {areaContextText}
-                </span>
-                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                  時間帯: {formatSelectedTimeLabel(activeBuild.params.timeOfDay)}
-                </span>
-                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                  天気: {formatSelectedWeatherLabel(activeBuild.params.weatherType)}
-                </span>
+                {isRankingGoal ? (
+                  <p className="text-xs leading-relaxed text-slate-500">
+                    既定では、釣り場は <strong>{areaContextText}</strong>、時間帯は{' '}
+                    <strong>{formatSelectedTimeLabel(activeBuild.params.timeOfDay)}</strong>
+                    、天気は{' '}
+                    <strong>
+                      {formatSelectedWeatherLabel(activeBuild.params.weatherType)}
+                    </strong>{' '}
+                    です。必要なときだけ前提を変えてください。
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                      釣り場: {areaContextText}
+                    </span>
+                    <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                      時間帯: {formatSelectedTimeLabel(activeBuild.params.timeOfDay)}
+                    </span>
+                    <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                      天気: {formatSelectedWeatherLabel(activeBuild.params.weatherType)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -947,14 +961,14 @@ export function CalculatorPageClient() {
                   onPickBuild={undefined}
                   showPickActions={false}
                   enableCombinationFilters={true}
-                  title="ランキング"
+                  showHeader={false}
+                  showScopeSummary={false}
+                  guideVariant="muted"
                   description="何も固定しない全体ランキングです。必要な条件だけフィルターで絞ります。"
                   helperText="同じ欄の複数選択は「または」、欄が違う条件は「かつ」で絞り込まれます。"
                 />
               </div>
             </section>
-
-            {goalContextSection}
           </>
         ) : null}
 
@@ -1008,6 +1022,7 @@ export function CalculatorPageClient() {
                   params={activeBuild.params}
                   model={activeResult.model}
                   onChange={handleParamsChange}
+                  showLoadoutWorkspace={false}
                 />
               </div>
             )}

@@ -66,6 +66,12 @@ interface OptimizerViewProps {
   description?: string;
   /** Show leaderboard-style filters above the result list. */
   enableCombinationFilters?: boolean;
+  /** Hide the inner heading/description when an outer section already owns that framing. */
+  showHeader?: boolean;
+  /** Show the "順位に含める欄" chip row. */
+  showScopeSummary?: boolean;
+  /** Visual emphasis level for the usage guidance box. */
+  guideVariant?: 'warning' | 'muted';
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -341,6 +347,9 @@ export function OptimizerView({
   title,
   description,
   enableCombinationFilters = false,
+  showHeader = true,
+  showScopeSummary = true,
+  guideVariant = 'warning',
 }: OptimizerViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [provisionalResult, setProvisionalResult] = useState<SubsetBuildOptimizerResult | null>(
@@ -448,6 +457,33 @@ export function OptimizerView({
     totalResults > 0
       ? `${hasActiveCombinationFilters(filters, searchQuery) ? '絞り込み後 ' : ''}第${normalizedStart}〜${normalizedEnd}位 / 全${totalResults.toLocaleString()}件`
       : `結果待ち / 全${totalCombinations.toLocaleString()}通り`;
+  const conciseGuideItems =
+    enableCombinationFilters && orderedVaryingSlots.length === ALL_SLOTS.length
+      ? [
+          '最初は何も固定しない順位です。気になる条件だけ後から絞り込めます。',
+          'Luck など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。',
+          helperText ?? '同じ欄の複数選択は「または」、欄が違う条件は「かつ」で絞り込まれます。',
+        ]
+      : [
+          'Luck や Big Catch Rate など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。',
+          '完全に劣る Rod / Line / Bobber は先に外していますが、順位の結果は変わりません。',
+          ...(!isFullBuild
+            ? [
+                `固定スロット（${ALL_SLOTS.filter((slot) => !orderedVaryingSlots.includes(slot))
+                  .map((slot) => SLOT_LABELS[slot])
+                  .join(' / ')}）はいまの装備のまま固定されています。`,
+              ]
+            : []),
+          helperText ??
+            (showPickActions
+              ? '上位/下位ショートカット、順位範囲、表示順の切り替えで、トップ帯から下位帯まで同じ検索結果を見返せます。'
+              : '上位/下位ショートカット、順位範囲、表示順の切り替えで、見たい順位帯だけを同じ検索結果のまま眺められます。'),
+        ];
+  const guideClasses =
+    guideVariant === 'muted'
+      ? 'rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700'
+      : 'rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800';
+  const guideTitle = guideVariant === 'muted' ? 'このランキングの前提' : '見方:';
 
   useEffect(() => {
     if (!isVisible) return;
@@ -494,46 +530,56 @@ export function OptimizerView({
     setRangeEnd(totalResults);
   };
 
+  const resolvedDescription = description ?? descriptionText;
+
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-gray-800">
-            {title ??
-              (isFullBuild ? '4スロットを組み合わせて探す' : `${varyingLabel} を組み合わせて探す`)}
-          </h2>
-          <p className="mt-0.5 text-xs text-gray-500">{description ?? descriptionText}</p>
-        </div>
-        {!alwaysOpen ? (
-          <button
-            onClick={() => setIsExpanded((value) => !value)}
-            className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
-            aria-expanded={isExpanded}
-            aria-controls="optimizer-results"
-          >
-            {isExpanded ? '閉じる' : '開く'}
-          </button>
-        ) : null}
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] text-gray-500">順位に含める欄:</span>
-        {ALL_SLOTS.map((slot) => {
-          const isVarying = orderedVaryingSlots.includes(slot);
-          return (
-            <span
-              key={slot}
-              className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                isVarying
-                  ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
-                  : 'border-gray-200 bg-gray-100 text-gray-400 line-through'
-              }`}
+      {showHeader ? (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">
+              {title ??
+                (isFullBuild
+                  ? '4スロットを組み合わせて探す'
+                  : `${varyingLabel} を組み合わせて探す`)}
+            </h2>
+            <p className="mt-0.5 text-xs text-gray-500">{resolvedDescription}</p>
+          </div>
+          {!alwaysOpen ? (
+            <button
+              onClick={() => setIsExpanded((value) => !value)}
+              className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+              aria-expanded={isExpanded}
+              aria-controls="optimizer-results"
             >
-              {SLOT_LABELS[slot]}
-            </span>
-          );
-        })}
-      </div>
+              {isExpanded ? '閉じる' : '開く'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!showHeader ? <p className="text-xs text-gray-500">{resolvedDescription}</p> : null}
+
+      {showScopeSummary ? (
+        <div className={`${showHeader ? 'mt-2' : ''} flex flex-wrap items-center gap-1.5`}>
+          <span className="text-[11px] text-gray-500">順位に含める欄:</span>
+          {ALL_SLOTS.map((slot) => {
+            const isVarying = orderedVaryingSlots.includes(slot);
+            return (
+              <span
+                key={slot}
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                  isVarying
+                    ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                    : 'border-gray-200 bg-gray-100 text-gray-400 line-through'
+                }`}
+              >
+                {SLOT_LABELS[slot]}
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
 
       {enableCombinationFilters ? (
         <div
@@ -664,31 +710,12 @@ export function OptimizerView({
       >
         <div className="overflow-hidden">
           <div className="space-y-4">
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-              <strong>見方:</strong>
+            <div className={guideClasses}>
+              <strong>{guideTitle}</strong>
               <ul className="mt-1 list-inside list-disc space-y-0.5">
-                <li>
-                  Luck や Big Catch Rate
-                  など、ゲーム内部の正確式が分かっていない部分は推定で計算しています。
-                </li>
-                <li>
-                  完全に劣る Rod / Line / Bobber は先に外していますが、順位の結果は変わりません。
-                </li>
-                {!isFullBuild && (
-                  <li>
-                    固定スロット（
-                    {ALL_SLOTS.filter((slot) => !orderedVaryingSlots.includes(slot))
-                      .map((slot) => SLOT_LABELS[slot])
-                      .join(' / ')}
-                    ）はいまの装備のまま固定されています。
-                  </li>
-                )}
-                <li>
-                  {helperText ??
-                    (showPickActions
-                      ? '上位/下位ショートカット、順位範囲、表示順の切り替えで、トップ帯から下位帯まで同じ検索結果を見返せます。'
-                      : '上位/下位ショートカット、順位範囲、表示順の切り替えで、見たい順位帯だけを同じ検索結果のまま眺められます。')}
-                </li>
+                {conciseGuideItems.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
               </ul>
             </div>
 
