@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.69] - 2026-03-16
+
+### Changed
+
+- **Ranking mode now reads like a conditional ranking instead of a generic leaderboard**: the ranking goal, selector help, context chips, and result headings now spell out which slots are being swapped and which slots stay fixed, so the page matches the common "XX fixed, AA ranking" mental model without extra explanation.
+- **The ranking results card no longer repeats the same title twice**: the outer section now carries the "swap this slot and see the ranking" meaning, while the inner table stays a simpler candidate list with explicit fixed-slot guidance.
+
 ## [0.12.68] - 2026-03-16
 
 ### Changed

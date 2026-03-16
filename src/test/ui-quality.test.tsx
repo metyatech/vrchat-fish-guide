@@ -237,11 +237,13 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const context = screen.getByTestId('current-goal-context');
-    expect(context).toHaveTextContent('いまは「ランキングだけ見る」を表示中');
+    expect(context).toHaveTextContent('いまは「条件を固定して順位を見る」を表示中');
     expect(context).toHaveTextContent(/基準装備:/);
     expect(context).toHaveTextContent(/釣り場:/);
     expect(context).toHaveTextContent(/時間帯:/);
     expect(context).toHaveTextContent(/天気:/);
+    expect(context).toHaveTextContent(/変える欄:/);
+    expect(context).toHaveTextContent(/固定したまま:/);
     expect(screen.queryByText('いま見ている結果')).not.toBeInTheDocument();
   });
 
@@ -275,10 +277,12 @@ describe('UI quality – overflow and wrapping prevention', () => {
     const selector = screen.getByTestId('compare-slot-selector');
     fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
 
-    expect(screen.getByRole('heading', { name: '組み合わせランキング' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Rod + Line を入れ替えた順位' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Rod + Line だけを組み合わせて順位を出します。残りのスロットは基準装備のまま固定です。',
+        'Rod + Line だけを入れ替えます。Bobber / Enchant は今の装備のまま固定です。',
       ),
     ).toBeInTheDocument();
     expect(
@@ -294,7 +298,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     fireEvent.click(within(selector).getByTestId('compare-slot-button-rod'));
 
-    expect(screen.getByRole('heading', { name: 'Line のランキング' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Line を入れ替えた順位' })).toBeInTheDocument();
     expect(
       within(selector)
         .getByTestId('compare-slot-button-rod')
@@ -307,9 +311,11 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     const goalHeading = screen.getByRole('heading', { name: '何を見たい？' });
     const setupHeading = screen.getByRole('heading', { name: '条件と基準装備を決める' });
-    const selectionHeading = screen.getByRole('heading', { name: '3. ランキング対象を決める' });
+    const selectionHeading = screen.getByRole('heading', {
+      name: '3. どの欄を入れ替えて順位を見るか決める',
+    });
     const context = screen.getByTestId('current-goal-context');
-    const rankingHeading = screen.getByRole('heading', { name: 'Rod のランキング' });
+    const rankingHeading = screen.getByRole('heading', { name: 'Rod を入れ替えた順位' });
 
     expect(
       goalHeading.compareDocumentPosition(setupHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -325,7 +331,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     ).toBeTruthy();
     expect(screen.getByText('1. 何をしたいか決める')).toBeInTheDocument();
     expect(screen.getByText('2. ランキングの条件と基準装備を決める')).toBeInTheDocument();
-    expect(screen.getByText('4. ランキングを見る')).toBeInTheDocument();
+    expect(screen.getByText('4. 条件つきの順位を見る')).toBeInTheDocument();
   });
 
   it('shows only the sections needed for the selected goal', () => {
@@ -422,7 +428,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     if (addButton) {
       fireEvent.click(addButton);
       // After adding, view switches to compare – switch back to ranking to see badge.
-      fireEvent.click(screen.getByRole('button', { name: /ランキングだけ見る/ }));
+      fireEvent.click(screen.getByRole('button', { name: /条件を固定して順位を見る/ }));
       expect(screen.getByTestId('saved-count-badge')).toBeInTheDocument();
       expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('保存済み');
       expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('比較を見る');
@@ -475,7 +481,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     // Clicking the ranking button switches the goal view.
     fireEvent.click(screen.getByTestId('compare-empty-go-ranking'));
-    expect(screen.getByRole('heading', { name: 'Rod のランキング' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Rod を入れ替えた順位' })).toBeInTheDocument();
     expect(screen.queryByTestId('compare-empty-state')).not.toBeInTheDocument();
   });
 

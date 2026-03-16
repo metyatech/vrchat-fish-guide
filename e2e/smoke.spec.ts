@@ -52,11 +52,13 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByTestId('setup-toggle').click();
 
   await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '3. ランキング対象を決める' })).toBeVisible();
-  await expect(page.getByText('4. ランキングを見る')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Rod のランキング' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '3. どの欄を入れ替えて順位を見るか決める' }),
+  ).toBeVisible();
+  await expect(page.getByText('4. 条件つきの順位を見る')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Rod を入れ替えた順位' })).toBeVisible();
   await expect(page.getByTestId('current-goal-context')).toContainText(
-    'いまは「ランキングだけ見る」を表示中',
+    'いまは「条件を固定して順位を見る」を表示中',
   );
   await expect(page.getByRole('heading', { name: '保存した候補を比べる' })).toHaveCount(0);
   await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
@@ -71,14 +73,16 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute('data-state', 'idle');
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toHaveCount(0);
   const selectionBox = await page
-    .getByRole('heading', { name: '3. ランキング対象を決める' })
+    .getByRole('heading', { name: '3. どの欄を入れ替えて順位を見るか決める' })
     .boundingBox();
   const goalBox = await page.getByRole('heading', { name: '何を見たい？' }).boundingBox();
   const setupBox = await page
     .getByRole('heading', { name: '条件と基準装備を決める' })
     .boundingBox();
   const contextBox = await page.getByTestId('current-goal-context').boundingBox();
-  const rankingBox = await page.getByRole('heading', { name: 'Rod のランキング' }).boundingBox();
+  const rankingBox = await page
+    .getByRole('heading', { name: 'Rod を入れ替えた順位' })
+    .boundingBox();
   expect(goalBox?.y).toBeLessThan(setupBox?.y ?? Number.POSITIVE_INFINITY);
   expect(setupBox?.y).toBeLessThan(selectionBox?.y ?? Number.POSITIVE_INFINITY);
   expect(selectionBox?.y).toBeLessThan(contextBox?.y ?? Number.POSITIVE_INFINITY);

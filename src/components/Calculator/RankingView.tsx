@@ -30,6 +30,10 @@ interface RankingViewProps {
   helperText?: string;
   /** Show one row per fishing area when the base params use auto-area selection. */
   includeAreaBreakdown?: boolean;
+  /** Override heading shown above the ranking table. */
+  title?: string;
+  /** Override description shown below the heading. */
+  description?: string;
 }
 
 const SLOT_LABELS: Record<RankSlot, string> = {
@@ -320,6 +324,8 @@ export function RankingView({
   showPickActions = true,
   helperText,
   includeAreaBreakdown = false,
+  title,
+  description,
 }: RankingViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [showOtherSlots, setShowOtherSlots] = useState(false);
@@ -338,12 +344,13 @@ export function RankingView({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-gray-800">
-            {SLOT_LABELS[focusSlot]} の候補一覧
+            {title ?? `${SLOT_LABELS[focusSlot]} の候補一覧`}
           </h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            {includeAreaBreakdown
-              ? `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えた順位を、釣り場ごとに別行で並べています。`
-              : `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えたときに、伸びやすい順で並べています。`}
+            {description ??
+              (includeAreaBreakdown
+                ? `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えた順位を、釣り場ごとに別行で並べています。`
+                : `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えたときに、伸びやすい順で並べています。`)}
           </p>
         </div>
         {!alwaysOpen ? (

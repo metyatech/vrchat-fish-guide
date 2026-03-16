@@ -46,7 +46,7 @@ const SLOT_LABELS: Record<RankSlot, string> = {
 const ALL_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
 
 const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
-  ranking: '変えたい欄や組み合わせを選んで、そのまま順位を上から見ます。',
+  ranking: '変えたい欄だけを入れ替え、残りを固定したまま順位を見ます。',
   upgrade: '変えたいスロットを選び、気になる候補だけを比較へ送ります。',
   compare: '追加した候補を並べて、どれが一番伸びるかを選びます。',
   summary: 'いまの条件でどれだけ稼げるかを、主要指標から先に確認します。',
@@ -383,22 +383,18 @@ export function CalculatorPageClient() {
   const selectionThemeKey: CompareTarget = isSingleSlotSelection ? primarySlot : 'full-build';
   const compareTargetTheme = SLOT_THEME[selectionThemeKey];
   const selectedSlotsLabel = orderedSelectedSlots.map((slot) => SLOT_LABELS[slot]).join(' + ');
+  const fixedSlots = ALL_SLOTS.filter((slot) => !orderedSelectedSlots.includes(slot));
+  const fixedSlotsLabel =
+    fixedSlots.length > 0 ? fixedSlots.map((slot) => SLOT_LABELS[slot]).join(' / ') : 'なし';
   const isRankingGoal = goalView === 'ranking';
   const isUpgradeGoal = goalView === 'upgrade';
   const showSelectionTools = isRankingGoal || isUpgradeGoal;
-  const compareTargetActionLabel = isSingleSlotSelection
-    ? isRankingGoal
-      ? `${SLOT_LABELS[primarySlot]} のランキング`
-      : `${SLOT_LABELS[primarySlot]} の候補`
-    : isRankingGoal
-      ? `${selectedSlotsLabel} の組み合わせランキング`
-      : `${selectedSlotsLabel} の組み合わせ候補`;
   const selectionHelperText = isSingleSlotSelection
     ? isRankingGoal
-      ? `${SLOT_LABELS[primarySlot]} だけを入れ替えた順位を見ます。もう1つ押すと組み合わせランキングに切り替わります。`
+      ? `${SLOT_LABELS[primarySlot]} だけを入れ替えます。${fixedSlotsLabel} は今の装備のまま固定です。もう1つ押すと、その組み合わせの順位に切り替わります。`
       : `${SLOT_LABELS[primarySlot]} だけを変えた候補を見ます。もう1つ押すと組み合わせ検索に切り替わります。`
     : isRankingGoal
-      ? `${selectedSlotsLabel} だけを組み合わせて順位を出します。残りのスロットは基準装備のまま固定です。`
+      ? `${selectedSlotsLabel} だけを入れ替えます。${fixedSlotsLabel} は今の装備のまま固定です。`
       : `${selectedSlotsLabel} を変え、残りのスロットは現在の装備で固定します。`;
 
   const hasComparisons = builds.length > 1;
@@ -420,12 +416,12 @@ export function CalculatorPageClient() {
   const goalContextLoadoutLabel = goalView === 'compare' ? '表示中の候補' : '基準装備';
   const currentValueCardTitle = goalView === 'summary' ? 'いまの時給' : 'この条件の目安';
   const selectionSectionTitle = isRankingGoal
-    ? '3. ランキング対象を決める'
+    ? '3. どの欄を入れ替えて順位を見るか決める'
     : '3. 次に試す欄を決める';
   const selectionSectionDescription = isRankingGoal
-    ? '1つ選ぶとその欄のランキング、2つ以上選ぶと組み合わせランキングを見ます。'
+    ? '選んだ欄だけ変わります。選んでいない欄は今の装備のまま固定です。'
     : '1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。';
-  const rankingResultsStepLabel = isRankingGoal ? '4. ランキングを見る' : '4. 候補を見る';
+  const rankingResultsStepLabel = isRankingGoal ? '4. 条件つきの順位を見る' : '4. 候補を見る';
   const goalContextEyebrow = showSelectionTools ? 'この条件で見ています' : '3. 結果を見る';
   const setupSectionCopy = SETUP_SECTION_COPY[goalView];
 
@@ -493,6 +489,16 @@ export function CalculatorPageClient() {
         <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
           天気: {formatSelectedWeatherLabel(activeResult.params.weatherType)}
         </span>
+        {showSelectionTools ? (
+          <>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 font-semibold text-emerald-900">
+              変える欄: {selectedSlotsLabel}
+            </span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-semibold text-slate-700">
+              固定したまま: {fixedSlotsLabel}
+            </span>
+          </>
+        ) : null}
       </div>
 
       {showSelectionTools ? (
@@ -756,10 +762,10 @@ export function CalculatorPageClient() {
                 <h2 className="text-lg font-semibold text-gray-900">
                   {isSingleSlotSelection
                     ? isRankingGoal
-                      ? `${SLOT_LABELS[primarySlot]} のランキング`
+                      ? `${SLOT_LABELS[primarySlot]} を入れ替えた順位`
                       : `${SLOT_LABELS[primarySlot]} の候補を追加`
                     : isRankingGoal
-                      ? '組み合わせランキング'
+                      ? `${selectedSlotsLabel} を入れ替えた順位`
                       : '組み合わせ候補を追加'}
                 </h2>
                 {isRankingGoal ? (
@@ -851,11 +857,19 @@ export function CalculatorPageClient() {
                     includeAreaBreakdown={
                       isRankingGoal && activeBuild.params.areaId === BEST_AREA_ID
                     }
+                    title={isRankingGoal ? undefined : `${SLOT_LABELS[primarySlot]} の候補一覧`}
+                    description={
+                      isRankingGoal
+                        ? activeBuild.params.areaId === BEST_AREA_ID
+                          ? `${SLOT_LABELS[primarySlot]} だけを入れ替えた順位を、釣り場ごとに並べています。${fixedSlotsLabel} は今の装備のまま固定です。`
+                          : `${SLOT_LABELS[primarySlot]} だけを入れ替えた順位です。${fixedSlotsLabel} は今の装備のまま固定です。`
+                        : undefined
+                    }
                     helperText={
                       isRankingGoal
                         ? activeBuild.params.areaId === BEST_AREA_ID
-                          ? 'この欄だけを入れ替えた順位を、釣り場ごとに見ます。'
-                          : 'この欄だけを入れ替えた順位です。'
+                          ? `${SLOT_LABELS[primarySlot]} だけを変えた結果を、釣り場ごとに見ます。`
+                          : `${SLOT_LABELS[primarySlot]} だけを変えた結果です。`
                         : undefined
                     }
                   />

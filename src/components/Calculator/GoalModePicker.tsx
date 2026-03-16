@@ -13,9 +13,9 @@ type GoalModeCopy = {
 
 export const CALCULATOR_GOAL_COPY: Record<CalculatorGoal, GoalModeCopy> = {
   ranking: {
-    badge: 'ランキング',
-    title: 'ランキングだけ見る',
-    description: '条件を決めて、装備や組み合わせをそのまま順位で眺めます。',
+    badge: '条件つき順位',
+    title: '条件を固定して順位を見る',
+    description: '選んだ欄だけを入れ替え、ほかは今の装備のまま固定して順位を見ます。',
     accentClassName:
       'border-amber-300 bg-[linear-gradient(145deg,rgba(255,251,235,0.98),rgba(254,243,199,0.94))] text-amber-950',
     ringClassName: 'ring-amber-200',
