@@ -54,7 +54,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '2. 順位を見る欄を選ぶ' })).toBeVisible();
   await expect(page.getByText('3. 順位を見る')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Rod を入れ替えた順位' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '全部の欄を入れ替えた順位' })).toBeVisible();
   await expect(page.getByTestId('current-goal-context')).toContainText(
     'いまは「スロット別に強い装備を順位で見る」を表示中',
   );
@@ -68,7 +68,22 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     'data-state',
     'selected',
   );
-  await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute('data-state', 'idle');
+  await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute(
+    'data-state',
+    'selected',
+  );
+  await expect(page.getByTestId('compare-slot-button-bobber')).toHaveAttribute(
+    'data-state',
+    'selected',
+  );
+  await expect(page.getByTestId('compare-slot-button-enchant')).toHaveAttribute(
+    'data-state',
+    'selected',
+  );
+  await expect(page.getByTestId('compare-slot-button-area')).toHaveAttribute(
+    'data-state',
+    'selected',
+  );
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toHaveCount(0);
   const selectionBox = await page
     .getByRole('heading', { name: '2. 順位を見る欄を選ぶ' })
@@ -77,7 +92,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   const setupBox = await page.getByRole('heading', { name: '必要なら条件を変える' }).boundingBox();
   const contextBox = await page.getByTestId('current-goal-context').boundingBox();
   const rankingBox = await page
-    .getByRole('heading', { name: 'Rod を入れ替えた順位' })
+    .getByRole('heading', { name: '全部の欄を入れ替えた順位' })
     .boundingBox();
   expect(goalBox?.y).toBeLessThan(selectionBox?.y ?? Number.POSITIVE_INFINITY);
   expect(selectionBox?.y).toBeLessThan(rankingBox?.y ?? Number.POSITIVE_INFINITY);

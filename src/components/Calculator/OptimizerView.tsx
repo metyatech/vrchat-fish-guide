@@ -42,6 +42,10 @@ interface OptimizerViewProps {
   showPickActions?: boolean;
   /** Optional explanation above the result list */
   helperText?: string;
+  /** Optional heading override shown above the result list */
+  title?: string;
+  /** Optional description override shown below the heading */
+  description?: string;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -260,6 +264,8 @@ export function OptimizerView({
   onPickBuild,
   showPickActions = true,
   helperText,
+  title,
+  description,
 }: OptimizerViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [provisionalResult, setProvisionalResult] = useState<SubsetBuildOptimizerResult | null>(
@@ -389,9 +395,10 @@ export function OptimizerView({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-gray-800">
-            {isFullBuild ? '4スロットを組み合わせて探す' : `${varyingLabel} を組み合わせて探す`}
+            {title ??
+              (isFullBuild ? '4スロットを組み合わせて探す' : `${varyingLabel} を組み合わせて探す`)}
           </h2>
-          <p className="mt-0.5 text-xs text-gray-500">{descriptionText}</p>
+          <p className="mt-0.5 text-xs text-gray-500">{description ?? descriptionText}</p>
         </div>
         {!alwaysOpen ? (
           <button
@@ -558,6 +565,7 @@ export function OptimizerView({
                 <div
                   className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200"
                   role="progressbar"
+                  aria-label={`${varyingLabel} の検索進捗`}
                   aria-valuenow={Math.round(progressPct)}
                   aria-valuemin={0}
                   aria-valuemax={100}

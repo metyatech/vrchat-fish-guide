@@ -134,7 +134,7 @@ export function CalculatorPageClient() {
   const [activeId, setActiveId] = useState(initialActiveId);
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
   const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
-  const [selectedSlots, setSelectedSlots] = useState<RankDimension[]>(['rod']);
+  const [selectedSlots, setSelectedSlots] = useState<RankDimension[]>(RANKING_SLOTS);
   const [goalView, setGoalView] = useState<CalculatorGoal>(() =>
     initialBuilds.length > 1 ? 'compare' : 'ranking',
   );
@@ -158,11 +158,10 @@ export function CalculatorPageClient() {
   // Ref to the setup section (step 2); used to scroll into view after goal selection.
   const nextSectionRef = useRef<HTMLElement | null>(null);
   const handleGoalChange = useCallback((goal: CalculatorGoal) => {
-    if (goal !== 'ranking') {
-      setSelectedSlots((prev) => {
-        const next = EQUIPMENT_SLOTS.filter((slot) => prev.includes(slot));
-        return next.length > 0 ? next : ['rod'];
-      });
+    if (goal === 'ranking') {
+      setSelectedSlots(RANKING_SLOTS);
+    } else {
+      setSelectedSlots(['rod']);
     }
     setGoalView(goal);
     requestAnimationFrame(() => {
@@ -206,6 +205,8 @@ export function CalculatorPageClient() {
   const isRankingGoal = goalView === 'ranking';
   const availableRankSlots = isRankingGoal ? RANKING_SLOTS : EQUIPMENT_SLOTS;
   const orderedSelectedSlots = availableRankSlots.filter((slot) => selectedSlots.includes(slot));
+  const allRankingSlotsSelected =
+    isRankingGoal && orderedSelectedSlots.length === RANKING_SLOTS.length;
   const isSingleSlotSelection = orderedSelectedSlots.length === 1;
   const primarySlot = orderedSelectedSlots[0] ?? 'rod';
 
@@ -412,7 +413,9 @@ export function CalculatorPageClient() {
       ? `${SLOT_LABELS[primarySlot]} の候補を強い順に表示中。（固定: ${fixedSlotsLabel}）もう1つ押すと、その組み合わせの順位に切り替わります。`
       : `${SLOT_LABELS[primarySlot]} だけを変えた候補を見ます。もう1つ押すと組み合わせ検索に切り替わります。`
     : isRankingGoal
-      ? `${selectedSlotsLabel} の組み合わせを最適化中。（固定: ${fixedSlotsLabel}）`
+      ? allRankingSlotsSelected
+        ? '初期状態では全部の欄を順位に含めています。固定したい欄だけ外してください。'
+        : `${selectedSlotsLabel} を順位に含めています。（固定: ${fixedSlotsLabel}）`
       : `${selectedSlotsLabel} を変え、残りのスロットは現在の装備で固定します。`;
 
   const hasComparisons = builds.length > 1;
@@ -435,7 +438,7 @@ export function CalculatorPageClient() {
   const currentValueCardTitle = goalView === 'summary' ? 'いまの時給' : 'この条件の目安';
   const selectionSectionTitle = isRankingGoal ? '2. 順位を見る欄を選ぶ' : '3. 次に試す欄を決める';
   const selectionSectionDescription = isRankingGoal
-    ? '選んだ欄の候補を強い順に並べます。（ほかの欄はいまの装備で固定）'
+    ? '初期状態では全部選択です。固定したい欄だけ外すと、その条件の順位に変わります。'
     : '1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。';
   const rankingResultsStepLabel = isRankingGoal ? '3. 順位を見る' : '4. 候補を見る';
   const goalContextEyebrow = isRankingGoal
@@ -788,7 +791,9 @@ export function CalculatorPageClient() {
                       ? `${SLOT_LABELS[primarySlot]} を入れ替えた順位`
                       : `${SLOT_LABELS[primarySlot]} の候補を追加`
                     : isRankingGoal
-                      ? `${selectedSlotsLabel} を入れ替えた順位`
+                      ? allRankingSlotsSelected
+                        ? '全部の欄を入れ替えた順位'
+                        : `${selectedSlotsLabel} を入れ替えた順位`
                       : '組み合わせ候補を追加'}
                 </h2>
                 {isRankingGoal ? (
@@ -853,20 +858,40 @@ export function CalculatorPageClient() {
                 className="animate-pop-in"
                 data-testid="ranking-results-container"
               >
-                {!isSingleSlotSelection ? (
+                {isRankingGoal ? (
                   <OptimizerView
                     key={`optimizer-${orderedSelectedSlots.join('-')}`}
                     baseParams={activeBuild.params}
                     varyingSlots={orderedSelectedSlots}
                     initialExpanded={true}
                     alwaysOpen={true}
-                    onPickBuild={isRankingGoal ? undefined : handleCreateOptimizedBuild}
-                    showPickActions={!isRankingGoal}
-                    helperText={
-                      isRankingGoal
-                        ? '複数スロットを同時に変えたときの順位です。上位だけでなく、特定の順位帯や下位帯も同じ結果のまま見返せます。'
-                        : undefined
+                    onPickBuild={undefined}
+                    showPickActions={false}
+                    title="候補一覧"
+                    description={
+                      isSingleSlotSelection
+                        ? `${SLOT_LABELS[primarySlot]} だけを順位に含めています。${fixedSlotsLabel} は固定です。`
+                        : allRankingSlotsSelected
+                          ? '全部の欄を順位に含めています。固定したい欄だけ外すと、その条件の順位に変わります。'
+                          : `${selectedSlotsLabel} を順位に含めています。${fixedSlotsLabel} は固定です。`
                     }
+                    helperText={
+                      isSingleSlotSelection
+                        ? `${SLOT_LABELS[primarySlot]} だけを変えた順位です。上位だけでなく、特定の順位帯や下位帯も同じ結果のまま見返せます。`
+                        : allRankingSlotsSelected
+                          ? '全部の欄を順位に含めています。固定したい欄だけ外すと、その条件の順位に変わります。'
+                          : `${selectedSlotsLabel} を順位に含めています。固定: ${fixedSlotsLabel}`
+                    }
+                  />
+                ) : !isSingleSlotSelection ? (
+                  <OptimizerView
+                    key={`optimizer-${orderedSelectedSlots.join('-')}`}
+                    baseParams={activeBuild.params}
+                    varyingSlots={orderedSelectedSlots}
+                    initialExpanded={true}
+                    alwaysOpen={true}
+                    onPickBuild={handleCreateOptimizedBuild}
+                    showPickActions={true}
                   />
                 ) : (
                   <RankingView
@@ -875,20 +900,10 @@ export function CalculatorPageClient() {
                     focusSlot={primarySlot}
                     initialExpanded={true}
                     alwaysOpen={true}
-                    onPickItem={isRankingGoal ? undefined : handleCreateSlotComparison}
-                    showPickActions={!isRankingGoal}
+                    onPickItem={handleCreateSlotComparison}
+                    showPickActions={true}
                     includeAreaBreakdown={false}
-                    title={isRankingGoal ? undefined : `${SLOT_LABELS[primarySlot]} の候補一覧`}
-                    description={
-                      isRankingGoal
-                        ? `${SLOT_LABELS[primarySlot]} だけを入れ替えた順位です。${fixedSlotsLabel} は今の装備のまま固定です。`
-                        : undefined
-                    }
-                    helperText={
-                      isRankingGoal
-                        ? `${SLOT_LABELS[primarySlot]} だけを変えた結果です。`
-                        : undefined
-                    }
+                    title={`${SLOT_LABELS[primarySlot]} の候補一覧`}
                   />
                 )}
               </div>

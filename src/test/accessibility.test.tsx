@@ -34,6 +34,22 @@ vi.mock('@/components/Calculator/DistributionChart', () => ({
   ),
 }));
 
+vi.mock('@/components/Calculator/OptimizerView', () => ({
+  OptimizerView: ({ title = '候補一覧' }: { title?: string }) => (
+    <section aria-label={title} data-testid="optimizer-view-mock">
+      optimizer placeholder
+    </section>
+  ),
+}));
+
+vi.mock('@/components/Calculator/RankingView', () => ({
+  RankingView: ({ title = '候補一覧' }: { title?: string }) => (
+    <section aria-label={title} data-testid="ranking-view-mock">
+      ranking placeholder
+    </section>
+  ),
+}));
+
 const runAxe = async (ui: React.ReactElement) => {
   const { container } = render(ui);
   const results = await axe.run(container, {

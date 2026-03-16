@@ -260,15 +260,15 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(rodButton).toHaveAttribute('aria-pressed', 'true');
     expect(rodButton).toHaveAttribute('data-state', 'selected');
     expect(rodButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
-    expect(lineButton).toHaveAttribute('aria-pressed', 'false');
-    expect(lineButton).toHaveAttribute('data-state', 'idle');
-    expect(lineButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
-    expect(bobberButton).toHaveAttribute('aria-pressed', 'false');
-    expect(bobberButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
-    expect(enchantButton).toHaveAttribute('aria-pressed', 'false');
-    expect(enchantButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
-    expect(areaButton).toHaveAttribute('aria-pressed', 'false');
-    expect(areaButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
+    expect(lineButton).toHaveAttribute('aria-pressed', 'true');
+    expect(lineButton).toHaveAttribute('data-state', 'selected');
+    expect(lineButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
+    expect(bobberButton).toHaveAttribute('aria-pressed', 'true');
+    expect(bobberButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
+    expect(enchantButton).toHaveAttribute('aria-pressed', 'true');
+    expect(enchantButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
+    expect(areaButton).toHaveAttribute('aria-pressed', 'true');
+    expect(areaButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
     expect(
       screen.queryByRole('button', { name: '全部まとめて入れ替える' }),
     ).not.toBeInTheDocument();
@@ -279,31 +279,36 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     const selector = screen.getByTestId('compare-slot-selector');
     fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
+    fireEvent.click(within(selector).getByTestId('compare-slot-button-bobber'));
+    fireEvent.click(within(selector).getByTestId('compare-slot-button-enchant'));
+    fireEvent.click(within(selector).getByTestId('compare-slot-button-area'));
+
+    expect(screen.getByRole('heading', { name: 'Rod を入れ替えた順位' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Rod の候補を強い順に表示中。（固定: Line / Bobber / Enchant / 釣り場）もう1つ押すと、その組み合わせの順位に切り替わります。',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(selector)
+        .getByTestId('compare-slot-button-line')
+        .querySelector('[data-slot-indicator="idle"]'),
+    ).not.toBeNull();
+    expect(
+      within(selector)
+        .getByTestId('compare-slot-button-rod')
+        .querySelector('[data-slot-indicator="selected"]'),
+    ).not.toBeNull();
+
+    fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
 
     expect(
       screen.getByRole('heading', { name: 'Rod + Line を入れ替えた順位' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Rod + Line の組み合わせを最適化中。（固定: Bobber / Enchant / 釣り場）'),
-    ).toBeInTheDocument();
-    expect(
       within(selector)
         .getByTestId('compare-slot-button-line')
         .querySelector('[data-slot-indicator="selected"]'),
-    ).not.toBeNull();
-    expect(
-      within(selector)
-        .getByTestId('compare-slot-button-rod')
-        .querySelector('[data-slot-indicator="selected"]'),
-    ).not.toBeNull();
-
-    fireEvent.click(within(selector).getByTestId('compare-slot-button-rod'));
-
-    expect(screen.getByRole('heading', { name: 'Line を入れ替えた順位' })).toBeInTheDocument();
-    expect(
-      within(selector)
-        .getByTestId('compare-slot-button-rod')
-        .querySelector('[data-slot-indicator="idle"]'),
     ).not.toBeNull();
   });
 
@@ -313,7 +318,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     const goalHeading = screen.getByRole('heading', { name: '何を見たい？' });
     const selectionHeading = screen.getByRole('heading', { name: '2. 順位を見る欄を選ぶ' });
     const context = screen.getByTestId('current-goal-context');
-    const rankingHeading = screen.getByRole('heading', { name: 'Rod を入れ替えた順位' });
+    const rankingHeading = screen.getByRole('heading', { name: '全部の欄を入れ替えた順位' });
     const setupHeading = screen.getByRole('heading', { name: '必要なら条件を変える' });
 
     expect(
@@ -483,7 +488,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     // Clicking the ranking button switches the goal view.
     fireEvent.click(screen.getByTestId('compare-empty-go-ranking'));
-    expect(screen.getByRole('heading', { name: 'Rod を入れ替えた順位' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '全部の欄を入れ替えた順位' })).toBeInTheDocument();
     expect(screen.queryByTestId('compare-empty-state')).not.toBeInTheDocument();
   });
 

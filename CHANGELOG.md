@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.72] - 2026-03-16
+
+### Changed
+
+- **Ranking now uses the same candidate-table view whether you rank one slot or multiple dimensions**: single-slot ranking no longer drops back to a different panel, so you can keep the same scroll range, rank window, and candidate-table behavior while adding or removing ranking dimensions.
+- **Ranking now starts from the broadest leaderboard by default**: the calculator opens with `Rod / Line / Bobber / Enchant / 釣り場` all selected in ranking mode, and you narrow the leaderboard only by turning fixed dimensions off instead of discovering a hidden broader mode later.
+
+### Fixed
+
+- **Optimizer progress feedback is now accessibility-safe in tests and in the UI**: the optimizer progress bar has an accessible name, and the accessibility smoke test now uses stable calculator placeholders so async ranking work does not produce false warning noise during release verification.
+
 ## [0.12.71] - 2026-03-16
 
 ### Changed
