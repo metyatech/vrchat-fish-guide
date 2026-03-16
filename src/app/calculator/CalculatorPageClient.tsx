@@ -23,7 +23,7 @@ import {
   formatCurrency,
   getDefaultParams,
 } from '@/lib/calculator';
-import { rankAllSlots, RankSlot } from '@/lib/ranking';
+import { rankAllSlots, RankDimension, RankSlot } from '@/lib/ranking';
 import {
   createBuildFrom,
   createDefaultBuild,
@@ -36,14 +36,16 @@ import {
 } from '@/lib/url-state';
 import { BuildConfig, CalculatorParams, DistributionResult, Rarity } from '@/types';
 
-const SLOT_LABELS: Record<RankSlot, string> = {
+const SLOT_LABELS: Record<RankDimension, string> = {
   rod: 'Rod',
   line: 'Line',
   bobber: 'Bobber',
   enchant: 'Enchant',
+  area: '釣り場',
 };
 
-const ALL_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+const EQUIPMENT_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+const RANKING_SLOTS: RankDimension[] = ['rod', 'line', 'bobber', 'enchant', 'area'];
 
 const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
   ranking: '見たい欄を選ぶと、その候補が強い順に並びます。',
@@ -132,7 +134,7 @@ export function CalculatorPageClient() {
   const [activeId, setActiveId] = useState(initialActiveId);
   const [chartMode, setChartMode] = useState<'per-catch' | 'per-hour'>('per-hour');
   const [urlRestoreError, setUrlRestoreError] = useState<string | undefined>(initialUrlError);
-  const [selectedSlots, setSelectedSlots] = useState<RankSlot[]>(['rod']);
+  const [selectedSlots, setSelectedSlots] = useState<RankDimension[]>(['rod']);
   const [goalView, setGoalView] = useState<CalculatorGoal>(() =>
     initialBuilds.length > 1 ? 'compare' : 'ranking',
   );
@@ -156,6 +158,12 @@ export function CalculatorPageClient() {
   // Ref to the setup section (step 2); used to scroll into view after goal selection.
   const nextSectionRef = useRef<HTMLElement | null>(null);
   const handleGoalChange = useCallback((goal: CalculatorGoal) => {
+    if (goal !== 'ranking') {
+      setSelectedSlots((prev) => {
+        const next = EQUIPMENT_SLOTS.filter((slot) => prev.includes(slot));
+        return next.length > 0 ? next : ['rod'];
+      });
+    }
     setGoalView(goal);
     requestAnimationFrame(() => {
       nextSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -195,7 +203,9 @@ export function CalculatorPageClient() {
   // ── Build operations ───────────────────────────────────────────────────────
 
   const activeBuild = builds.find((b) => b.id === activeId) ?? builds[0];
-  const orderedSelectedSlots = ALL_SLOTS.filter((slot) => selectedSlots.includes(slot));
+  const isRankingGoal = goalView === 'ranking';
+  const availableRankSlots = isRankingGoal ? RANKING_SLOTS : EQUIPMENT_SLOTS;
+  const orderedSelectedSlots = availableRankSlots.filter((slot) => selectedSlots.includes(slot));
   const isSingleSlotSelection = orderedSelectedSlots.length === 1;
   const primarySlot = orderedSelectedSlots[0] ?? 'rod';
 
@@ -245,7 +255,7 @@ export function CalculatorPageClient() {
   }, []);
 
   const handleCreateSlotComparison = useCallback(
-    (slot: RankSlot, itemId: string, itemName: string) => {
+    (slot: RankDimension, itemId: string, itemName: string) => {
       if (!activeBuild) return;
 
       const currentItemId =
@@ -255,7 +265,9 @@ export function CalculatorPageClient() {
             ? activeBuild.params.loadout.lineId
             : slot === 'bobber'
               ? activeBuild.params.loadout.bobberId
-              : activeBuild.params.loadout.enchantId;
+              : slot === 'enchant'
+                ? activeBuild.params.loadout.enchantId
+                : activeBuild.params.areaId;
 
       if (itemId === currentItemId) return;
 
@@ -263,10 +275,14 @@ export function CalculatorPageClient() {
       nextBuild.name = `${itemName} を試す`;
       nextBuild.params = {
         ...nextBuild.params,
-        loadout: {
-          ...nextBuild.params.loadout,
-          [`${slot}Id`]: itemId,
-        },
+        ...(slot === 'area'
+          ? { areaId: itemId }
+          : {
+              loadout: {
+                ...nextBuild.params.loadout,
+                [`${slot}Id`]: itemId,
+              },
+            }),
       };
 
       setBuilds((prev) => [...prev, nextBuild]);
@@ -292,7 +308,9 @@ export function CalculatorPageClient() {
           ? activeBuild.params.loadout.lineId
           : primarySlot === 'bobber'
             ? activeBuild.params.loadout.bobberId
-            : activeBuild.params.loadout.enchantId;
+            : primarySlot === 'enchant'
+              ? activeBuild.params.loadout.enchantId
+              : activeBuild.params.areaId;
 
     if (bestEntry.item.id === currentItemId) return;
 
@@ -309,7 +327,7 @@ export function CalculatorPageClient() {
       if (!activeBuild) return;
       const nextBuild = createBuildFrom(activeBuild, builds.length);
       const varyingLabel =
-        orderedSelectedSlots.length === ALL_SLOTS.length
+        orderedSelectedSlots.length === EQUIPMENT_SLOTS.length
           ? '4スロット比較'
           : orderedSelectedSlots.map((slot) => SLOT_LABELS[slot]).join('+');
       nextBuild.name = rank === 0 ? `${varyingLabel}のおすすめ` : `${varyingLabel} ${rank + 1}`;
@@ -384,10 +402,9 @@ export function CalculatorPageClient() {
   const selectionThemeKey: CompareTarget = isSingleSlotSelection ? primarySlot : 'full-build';
   const compareTargetTheme = SLOT_THEME[selectionThemeKey];
   const selectedSlotsLabel = orderedSelectedSlots.map((slot) => SLOT_LABELS[slot]).join(' + ');
-  const fixedSlots = ALL_SLOTS.filter((slot) => !orderedSelectedSlots.includes(slot));
+  const fixedSlots = availableRankSlots.filter((slot) => !orderedSelectedSlots.includes(slot));
   const fixedSlotsLabel =
     fixedSlots.length > 0 ? fixedSlots.map((slot) => SLOT_LABELS[slot]).join(' / ') : 'なし';
-  const isRankingGoal = goalView === 'ranking';
   const isUpgradeGoal = goalView === 'upgrade';
   const showSelectionTools = isRankingGoal || isUpgradeGoal;
   const selectionHelperText = isSingleSlotSelection
@@ -687,7 +704,7 @@ export function CalculatorPageClient() {
               </div>
 
               <div data-testid="compare-slot-selector" className="mb-4 flex flex-wrap gap-2">
-                {ALL_SLOTS.map((slot) => {
+                {availableRankSlots.map((slot) => {
                   const isSelected = orderedSelectedSlots.includes(slot);
                   const theme = SLOT_THEME[slot];
                   return (
@@ -701,11 +718,11 @@ export function CalculatorPageClient() {
                               ? prev.filter((candidate) => candidate !== slot)
                               : prev
                             : [...prev, slot];
-                          return ALL_SLOTS.filter((candidate) => next.includes(candidate));
+                          return availableRankSlots.filter((candidate) => next.includes(candidate));
                         })
                       }
                       aria-pressed={isSelected}
-                      aria-label={`${SLOT_LABELS[slot]} ${isSelected ? '選択中' : '未選択'}`}
+                      aria-label={`順位に含める ${SLOT_LABELS[slot]} ${isSelected ? '選択中' : '未選択'}`}
                       data-state={isSelected ? 'selected' : 'idle'}
                       data-testid={`compare-slot-button-${slot}`}
                       className={`flex min-w-[9.5rem] items-center justify-between gap-3 rounded-2xl border px-4 py-2.5 text-left text-sm font-semibold transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 ${
@@ -860,22 +877,16 @@ export function CalculatorPageClient() {
                     alwaysOpen={true}
                     onPickItem={isRankingGoal ? undefined : handleCreateSlotComparison}
                     showPickActions={!isRankingGoal}
-                    includeAreaBreakdown={
-                      isRankingGoal && activeBuild.params.areaId === BEST_AREA_ID
-                    }
+                    includeAreaBreakdown={false}
                     title={isRankingGoal ? undefined : `${SLOT_LABELS[primarySlot]} の候補一覧`}
                     description={
                       isRankingGoal
-                        ? activeBuild.params.areaId === BEST_AREA_ID
-                          ? `${SLOT_LABELS[primarySlot]} だけを入れ替えた順位を、釣り場ごとに並べています。${fixedSlotsLabel} は今の装備のまま固定です。`
-                          : `${SLOT_LABELS[primarySlot]} だけを入れ替えた順位です。${fixedSlotsLabel} は今の装備のまま固定です。`
+                        ? `${SLOT_LABELS[primarySlot]} だけを入れ替えた順位です。${fixedSlotsLabel} は今の装備のまま固定です。`
                         : undefined
                     }
                     helperText={
                       isRankingGoal
-                        ? activeBuild.params.areaId === BEST_AREA_ID
-                          ? `${SLOT_LABELS[primarySlot]} だけを変えた結果を、釣り場ごとに見ます。`
-                          : `${SLOT_LABELS[primarySlot]} だけを変えた結果です。`
+                        ? `${SLOT_LABELS[primarySlot]} だけを変えた結果です。`
                         : undefined
                     }
                   />

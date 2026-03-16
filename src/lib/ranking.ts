@@ -23,14 +23,21 @@
 
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
 import { AREA_MAP, FISHING_AREAS } from '@/data/fish';
-import { CalculatorParams, EnchantItem, EquipmentItem, EquipmentLoadout } from '@/types';
+import {
+  CalculatorParams,
+  EnchantItem,
+  EquipmentItem,
+  EquipmentLoadout,
+  FishingArea,
+} from '@/types';
 import { BEST_AREA_ID, calculateDistribution, calculateOptimizerMetrics } from '@/lib/calculator';
 
 export type RankSlot = 'rod' | 'line' | 'bobber' | 'enchant';
+export type RankDimension = RankSlot | 'area';
 
 export interface SlotRankEntry {
-  item: EquipmentItem | EnchantItem;
-  slot: RankSlot;
+  item: EquipmentItem | EnchantItem | FishingArea;
+  slot: RankDimension;
   expectedValuePerHour: number;
   expectedValuePerCatch: number;
   totalFishProbability: number;
@@ -39,11 +46,30 @@ export interface SlotRankEntry {
   areaName?: string;
 }
 
+export interface EquipmentSlotRankEntry extends SlotRankEntry {
+  item: EquipmentItem | EnchantItem;
+  slot: RankSlot;
+}
+
+export interface AreaRankEntry extends SlotRankEntry {
+  item: FishingArea;
+  slot: 'area';
+}
+
 const SLOT_DATA: Record<RankSlot, (EquipmentItem | EnchantItem)[]> = {
   rod: RODS,
   line: LINES,
   bobber: BOBBERS,
   enchant: ENCHANTS,
+};
+
+const AUTO_AREA_PLACEHOLDER: FishingArea = {
+  id: BEST_AREA_ID,
+  nameJa: 'Best Area',
+  nameEn: 'Best Area',
+  fishPool: [],
+  waterTypes: [],
+  sourceIds: [],
 };
 
 const DOMINANCE_KEYS = [
@@ -80,7 +106,32 @@ export const FULL_BUILD_SEARCH_SPACE = TOTAL_COMBINATION_SPACE;
  *
  * Returns entries sorted by expectedValuePerHour descending.
  */
-export function rankSlot(baseParams: CalculatorParams, slot: RankSlot): SlotRankEntry[] {
+export function rankSlot(baseParams: CalculatorParams, slot: RankSlot): EquipmentSlotRankEntry[];
+export function rankSlot(baseParams: CalculatorParams, slot: 'area'): AreaRankEntry[];
+export function rankSlot(baseParams: CalculatorParams, slot: RankDimension): SlotRankEntry[] {
+  if (slot === 'area') {
+    const entries: SlotRankEntry[] = [];
+
+    for (const area of FISHING_AREAS) {
+      const result = calculateDistribution({
+        ...baseParams,
+        areaId: area.id,
+      });
+      entries.push({
+        item: area,
+        slot,
+        expectedValuePerHour: result.expectedValuePerHour,
+        expectedValuePerCatch: result.expectedValuePerCatch,
+        totalFishProbability: result.totalFishProbability,
+        rankingKey: area.id,
+        areaId: area.id,
+        areaName: area.nameEn,
+      });
+    }
+
+    return entries.sort((a, b) => b.expectedValuePerHour - a.expectedValuePerHour);
+  }
+
   const items = SLOT_DATA[slot];
   const entries: SlotRankEntry[] = [];
 
@@ -121,7 +172,18 @@ function getRankingAreaIds(areaId: string): string[] {
 export function rankSlotWithAreaBreakdown(
   baseParams: CalculatorParams,
   slot: RankSlot,
+): EquipmentSlotRankEntry[];
+export function rankSlotWithAreaBreakdown(
+  baseParams: CalculatorParams,
+  slot: 'area',
+): AreaRankEntry[];
+export function rankSlotWithAreaBreakdown(
+  baseParams: CalculatorParams,
+  slot: RankDimension,
 ): SlotRankEntry[] {
+  if (slot === 'area') {
+    return rankSlot(baseParams, slot);
+  }
   const items = SLOT_DATA[slot];
   const areaIds = getRankingAreaIds(baseParams.areaId);
   const entries: SlotRankEntry[] = [];
@@ -157,12 +219,13 @@ export function rankSlotWithAreaBreakdown(
  * Rank all four slots simultaneously.
  * Returns a map from slot name to sorted entry list.
  */
-export function rankAllSlots(baseParams: CalculatorParams): Record<RankSlot, SlotRankEntry[]> {
+export function rankAllSlots(baseParams: CalculatorParams): Record<RankDimension, SlotRankEntry[]> {
   return {
     rod: rankSlot(baseParams, 'rod'),
     line: rankSlot(baseParams, 'line'),
     bobber: rankSlot(baseParams, 'bobber'),
     enchant: rankSlot(baseParams, 'enchant'),
+    area: rankSlot(baseParams, 'area'),
   };
 }
 
@@ -172,12 +235,13 @@ export function rankAllSlots(baseParams: CalculatorParams): Record<RankSlot, Slo
  */
 export function rankAllSlotsWithAreaBreakdown(
   baseParams: CalculatorParams,
-): Record<RankSlot, SlotRankEntry[]> {
+): Record<RankDimension, SlotRankEntry[]> {
   return {
     rod: rankSlotWithAreaBreakdown(baseParams, 'rod'),
     line: rankSlotWithAreaBreakdown(baseParams, 'line'),
     bobber: rankSlotWithAreaBreakdown(baseParams, 'bobber'),
     enchant: rankSlotWithAreaBreakdown(baseParams, 'enchant'),
+    area: rankSlotWithAreaBreakdown(baseParams, 'area'),
   };
 }
 
@@ -280,6 +344,8 @@ function normalizeTopNResults(topNResults: number): number {
 
 /** One entry in the full-build optimizer results. */
 export interface FullBuildEntry {
+  areaId: string;
+  areaName: string;
   loadout: EquipmentLoadout;
   items: {
     rod: EquipmentItem | EnchantItem;
@@ -319,11 +385,17 @@ export interface OptimizerProgressEvent {
 
 function createFullBuildEntry(
   baseParams: CalculatorParams,
+  areaId: string,
   loadout: EquipmentLoadout,
   items: FullBuildEntry['items'],
 ): FullBuildEntry {
-  const result = calculateOptimizerMetrics({ ...baseParams, loadout });
+  const result = calculateOptimizerMetrics({ ...baseParams, areaId, loadout });
   return {
+    areaId: result.areaId,
+    areaName:
+      result.areaId === BEST_AREA_ID
+        ? 'Best Area'
+        : (AREA_MAP[result.areaId]?.nameEn ?? result.areaId),
     loadout,
     items,
     expectedValuePerHour: result.expectedValuePerHour,
@@ -375,7 +447,12 @@ export function optimizeFullBuild(
             enchantId: enchant.id,
           };
           heap.consider(
-            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
+            createFullBuildEntry(baseParams, baseParams.areaId, loadout, {
+              rod,
+              line,
+              bobber,
+              enchant,
+            }),
             searchedCount,
           );
           searchedCount++;
@@ -426,7 +503,12 @@ export async function optimizeFullBuildAsync(
             enchantId: enchant.id,
           };
           heap.consider(
-            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
+            createFullBuildEntry(baseParams, baseParams.areaId, loadout, {
+              rod,
+              line,
+              bobber,
+              enchant,
+            }),
             searchedCount,
           );
           searchedCount++;
@@ -476,11 +558,11 @@ function getFixedItemForSlot(
 // When any slot is fixed the pruned superset rod/line/bobber may outperform in
 // that specific fixed context, so we must use the full arrays for subset builds.
 const FULL_BUILD_SLOTS = new Set<RankSlot>(['rod', 'line', 'bobber', 'enchant']);
-function isFullBuildSearch(varyingSlots: readonly RankSlot[]): boolean {
+function isFullBuildSearch(varyingSlots: readonly RankDimension[]): boolean {
   return (
     varyingSlots.length === 4 &&
     FULL_BUILD_SLOTS.size === 4 &&
-    varyingSlots.every((s) => FULL_BUILD_SLOTS.has(s))
+    varyingSlots.every((s): s is RankSlot => FULL_BUILD_SLOTS.has(s as RankSlot))
   );
 }
 
@@ -489,7 +571,7 @@ function isFullBuildSearch(varyingSlots: readonly RankSlot[]): boolean {
  * Non-varying slots contribute a factor of 1.
  * Dominance pruning is applied to rod/line/bobber only when all four slots vary.
  */
-export function computeSubsetSearchSpace(varyingSlots: readonly RankSlot[]): number {
+export function computeSubsetSearchSpace(varyingSlots: readonly RankDimension[]): number {
   const full = isFullBuildSearch(varyingSlots);
   const rodCount = varyingSlots.includes('rod') ? (full ? OPTIMIZER_RODS.length : RODS.length) : 1;
   const lineCount = varyingSlots.includes('line')
@@ -503,19 +585,20 @@ export function computeSubsetSearchSpace(varyingSlots: readonly RankSlot[]): num
       : BOBBERS.length
     : 1;
   const enchantCount = varyingSlots.includes('enchant') ? ENCHANTS.length : 1;
-  return rodCount * lineCount * bobberCount * enchantCount;
+  const areaCount = varyingSlots.includes('area') ? FISHING_AREAS.length : 1;
+  return rodCount * lineCount * bobberCount * enchantCount * areaCount;
 }
 
 /** Result returned by the subset-build optimizer. */
 export interface SubsetBuildOptimizerResult extends FullBuildOptimizerResult {
   /** The slots that were varied. Non-varying slots retain their baseParams.loadout values. */
-  varyingSlots: readonly RankSlot[];
+  varyingSlots: readonly RankDimension[];
 }
 
 /** Progress event emitted by optimizeSubsetBuildAsync. */
 export interface SubsetOptimizerProgressEvent extends OptimizerProgressEvent {
   /** The slots being varied. */
-  varyingSlots: readonly RankSlot[];
+  varyingSlots: readonly RankDimension[];
 }
 
 /**
@@ -528,7 +611,7 @@ export interface SubsetOptimizerProgressEvent extends OptimizerProgressEvent {
  */
 export function optimizeSubsetBuild(
   baseParams: CalculatorParams,
-  varyingSlots: readonly RankSlot[],
+  varyingSlots: readonly RankDimension[],
   topNResults = 10,
 ): SubsetBuildOptimizerResult {
   const heap = new TopNHeap(normalizeTopNResults(topNResults));
@@ -553,24 +636,31 @@ export function optimizeSubsetBuild(
   const enchantCandidates: (EquipmentItem | EnchantItem)[] = varyingSlots.includes('enchant')
     ? ENCHANTS
     : [getFixedItemForSlot('enchant', baseParams)];
+  const areaCandidates = varyingSlots.includes('area')
+    ? FISHING_AREAS
+    : baseParams.areaId === BEST_AREA_ID
+      ? [AUTO_AREA_PLACEHOLDER]
+      : [AREA_MAP[baseParams.areaId]!];
 
   const totalSpace = computeSubsetSearchSpace(varyingSlots);
 
-  for (const rod of rodCandidates) {
-    for (const line of lineCandidates) {
-      for (const bobber of bobberCandidates) {
-        for (const enchant of enchantCandidates) {
-          const loadout: EquipmentLoadout = {
-            rodId: rod.id,
-            lineId: line.id,
-            bobberId: bobber.id,
-            enchantId: enchant.id,
-          };
-          heap.consider(
-            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
-            searchedCount,
-          );
-          searchedCount++;
+  for (const area of areaCandidates) {
+    for (const rod of rodCandidates) {
+      for (const line of lineCandidates) {
+        for (const bobber of bobberCandidates) {
+          for (const enchant of enchantCandidates) {
+            const loadout: EquipmentLoadout = {
+              rodId: rod.id,
+              lineId: line.id,
+              bobberId: bobber.id,
+              enchantId: enchant.id,
+            };
+            heap.consider(
+              createFullBuildEntry(baseParams, area.id, loadout, { rod, line, bobber, enchant }),
+              searchedCount,
+            );
+            searchedCount++;
+          }
         }
       }
     }
@@ -594,7 +684,7 @@ export function optimizeSubsetBuild(
  */
 export async function optimizeSubsetBuildAsync(
   baseParams: CalculatorParams,
-  varyingSlots: readonly RankSlot[],
+  varyingSlots: readonly RankDimension[],
   topNResults = 10,
   signal?: AbortSignal,
   onProgress?: (event: SubsetOptimizerProgressEvent) => void,
@@ -623,38 +713,44 @@ export async function optimizeSubsetBuildAsync(
   const enchantCandidates: (EquipmentItem | EnchantItem)[] = varyingSlots.includes('enchant')
     ? ENCHANTS
     : [getFixedItemForSlot('enchant', baseParams)];
+  const areaCandidates = varyingSlots.includes('area')
+    ? FISHING_AREAS
+    : baseParams.areaId === BEST_AREA_ID
+      ? [AUTO_AREA_PLACEHOLDER]
+      : [AREA_MAP[baseParams.areaId]!];
 
   const totalSpace = computeSubsetSearchSpace(varyingSlots);
 
-  for (const rod of rodCandidates) {
-    for (const line of lineCandidates) {
-      for (const bobber of bobberCandidates) {
-        for (const enchant of enchantCandidates) {
-          const loadout: EquipmentLoadout = {
-            rodId: rod.id,
-            lineId: line.id,
-            bobberId: bobber.id,
-            enchantId: enchant.id,
-          };
-          heap.consider(
-            createFullBuildEntry(baseParams, loadout, { rod, line, bobber, enchant }),
-            searchedCount,
-          );
-          searchedCount++;
+  for (const area of areaCandidates) {
+    for (const rod of rodCandidates) {
+      for (const line of lineCandidates) {
+        for (const bobber of bobberCandidates) {
+          for (const enchant of enchantCandidates) {
+            const loadout: EquipmentLoadout = {
+              rodId: rod.id,
+              lineId: line.id,
+              bobberId: bobber.id,
+              enchantId: enchant.id,
+            };
+            heap.consider(
+              createFullBuildEntry(baseParams, area.id, loadout, { rod, line, bobber, enchant }),
+              searchedCount,
+            );
+            searchedCount++;
+          }
         }
+        if (onProgress) {
+          onProgress({
+            topBuilds: heap.toSortedDesc(),
+            searchedCount,
+            totalCombinationSpace: totalSpace,
+            isComplete: false,
+            varyingSlots,
+          });
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        if (signal?.aborted) return null;
       }
-
-      if (onProgress) {
-        onProgress({
-          topBuilds: heap.toSortedDesc(),
-          searchedCount,
-          totalCombinationSpace: totalSpace,
-          isComplete: false,
-          varyingSlots,
-        });
-      }
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      if (signal?.aborted) return null;
     }
   }
 

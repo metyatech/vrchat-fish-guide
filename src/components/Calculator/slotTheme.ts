@@ -1,6 +1,6 @@
-import { RankSlot } from '@/lib/ranking';
+import { RankDimension } from '@/lib/ranking';
 
-export type CompareTarget = RankSlot | 'full-build';
+export type CompareTarget = RankDimension | 'full-build';
 
 export interface SlotTheme {
   chipClassName: string;
@@ -60,6 +60,17 @@ export const SLOT_THEME: Record<CompareTarget, SlotTheme> = {
       'border-violet-200 bg-violet-50 text-violet-900 hover:border-violet-300 hover:bg-violet-100',
     dotClassName: 'bg-violet-500',
     boardChipClassName: 'border-violet-500/50 bg-violet-500/20 text-violet-300',
+  },
+  area: {
+    chipClassName: 'border-teal-200 bg-teal-50 text-teal-900',
+    panelClassName: 'border-teal-200 bg-teal-50',
+    panelBorderClassName: 'border-teal-200',
+    boardBorderClassName: 'border-teal-500/30',
+    buttonActiveClassName: 'border-teal-600 bg-teal-600 text-white',
+    buttonIdleClassName:
+      'border-teal-200 bg-teal-50 text-teal-900 hover:border-teal-300 hover:bg-teal-100',
+    dotClassName: 'bg-teal-500',
+    boardChipClassName: 'border-teal-500/50 bg-teal-500/20 text-teal-300',
   },
   'full-build': {
     chipClassName: 'border-emerald-200 bg-emerald-50 text-emerald-900',

@@ -255,6 +255,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     const lineButton = within(selector).getByTestId('compare-slot-button-line');
     const bobberButton = within(selector).getByTestId('compare-slot-button-bobber');
     const enchantButton = within(selector).getByTestId('compare-slot-button-enchant');
+    const areaButton = within(selector).getByTestId('compare-slot-button-area');
 
     expect(rodButton).toHaveAttribute('aria-pressed', 'true');
     expect(rodButton).toHaveAttribute('data-state', 'selected');
@@ -266,6 +267,8 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(bobberButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
     expect(enchantButton).toHaveAttribute('aria-pressed', 'false');
     expect(enchantButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
+    expect(areaButton).toHaveAttribute('aria-pressed', 'false');
+    expect(areaButton.querySelector('[data-slot-indicator="idle"]')).not.toBeNull();
     expect(
       screen.queryByRole('button', { name: '全部まとめて入れ替える' }),
     ).not.toBeInTheDocument();
@@ -281,7 +284,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
       screen.getByRole('heading', { name: 'Rod + Line を入れ替えた順位' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Rod + Line の組み合わせを最適化中。（固定: Bobber / Enchant）'),
+      screen.getByText('Rod + Line の組み合わせを最適化中。（固定: Bobber / Enchant / 釣り場）'),
     ).toBeInTheDocument();
     expect(
       within(selector)

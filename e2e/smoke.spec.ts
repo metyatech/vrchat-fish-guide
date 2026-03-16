@@ -135,12 +135,13 @@ test('calculator updates summary cards and fish list when loadout and filters ch
     })
     .click();
   expect(await page.getByTestId('slot-picker-panel').count()).toBe(0);
-  await page.getByLabel('釣り場').selectOption('open-sea');
-  await page.getByLabel('時間帯').selectOption('night');
-  await page.getByLabel('天気').selectOption('rainy');
-  await page.getByLabel('投げてから着水まで (sec)').fill('1.4');
-  await page.getByLabel('`!` が出てから反応するまで (sec)').fill('0.25');
-  await page.getByLabel('ミス率').fill('0.12');
+  const setupSection = page.getByTestId('setup-section');
+  await setupSection.getByLabel('釣り場').selectOption('open-sea');
+  await setupSection.getByLabel('時間帯').selectOption('night');
+  await setupSection.getByLabel('天気').selectOption('rainy');
+  await setupSection.getByLabel('投げてから着水まで (sec)').fill('1.4');
+  await setupSection.getByLabel('`!` が出てから反応するまで (sec)').fill('0.25');
+  await setupSection.getByLabel('ミス率').fill('0.12');
 
   await page.getByRole('button', { name: /今の装備から次を探す/ }).click();
   await page.getByTestId('compare-slot-button-enchant').click();

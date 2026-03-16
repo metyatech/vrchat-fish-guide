@@ -6,6 +6,7 @@ import {
   computeSubsetSearchSpace,
   FullBuildEntry,
   optimizeSubsetBuildAsync,
+  RankDimension,
   RankSlot,
   SubsetBuildOptimizerResult,
 } from '@/lib/ranking';
@@ -14,21 +15,23 @@ import { formatCurrency } from '@/lib/calculator';
 const INITIAL_WINDOW_SIZE = 10;
 const LOAD_MORE_INCREMENT = 10;
 
-const SLOT_LABELS: Record<RankSlot, string> = {
+const SLOT_LABELS: Record<RankDimension, string> = {
   rod: 'Rod',
   line: 'Line',
   bobber: 'Bobber',
   enchant: 'Enchant',
+  area: '釣り場',
 };
 
-const ALL_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+const ALL_SLOTS: RankDimension[] = ['rod', 'line', 'bobber', 'enchant', 'area'];
+const EQUIPMENT_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
 const EMPTY_BUILDS: FullBuildEntry[] = [];
 
 interface OptimizerViewProps {
   /** Base params to optimize against (area, conditions, time model, etc.) */
   baseParams: CalculatorParams;
   /** Slots to vary in the search (default: all four). Fixed slots retain baseParams.loadout values. */
-  varyingSlots?: RankSlot[];
+  varyingSlots?: RankDimension[];
   /** Expand by default */
   initialExpanded?: boolean;
   /** Keep the optimizer visible in guided flows */
@@ -45,8 +48,8 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-function buildKey(loadout: FullBuildEntry['loadout']): string {
-  return `${loadout.rodId}|${loadout.lineId}|${loadout.bobberId}|${loadout.enchantId}`;
+function buildKey(entry: FullBuildEntry): string {
+  return `${entry.areaId}|${entry.loadout.rodId}|${entry.loadout.lineId}|${entry.loadout.bobberId}|${entry.loadout.enchantId}`;
 }
 
 function isEnchantItem(item: { category: string }): item is EnchantItem {
@@ -58,11 +61,13 @@ function ResultTable({
   bestValuePerHour,
   onPickBuild,
   showPickActions,
+  showAreaColumn,
 }: {
   rankedBuilds: Array<{ entry: FullBuildEntry; rank: number }>;
   bestValuePerHour: number;
   onPickBuild?: (entry: FullBuildEntry, rank: number) => void;
   showPickActions: boolean;
+  showAreaColumn: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -76,7 +81,7 @@ function ResultTable({
 
           return (
             <div
-              key={buildKey(entry.loadout)}
+              key={buildKey(entry)}
               className={`rounded-xl border p-3 shadow-sm ${
                 isBest ? 'border-green-200 bg-green-50/60' : 'border-gray-200 bg-white'
               }`}
@@ -87,6 +92,11 @@ function ResultTable({
                     #{rank} {isBest ? 'ベスト' : ''}
                   </div>
                   <div className="mt-1 space-y-1 text-xs text-gray-700">
+                    {showAreaColumn ? (
+                      <div className="truncate">
+                        <span className="font-semibold">Area:</span> {entry.areaName}
+                      </div>
+                    ) : null}
                     <div className="truncate">
                       <span className="font-semibold">Rod:</span> {entry.items.rod.nameEn}
                     </div>
@@ -153,6 +163,9 @@ function ResultTable({
           <thead>
             <tr className="border-b border-gray-200">
               <th className="w-8 pb-2 text-left font-medium text-gray-500 md:w-auto">#</th>
+              {showAreaColumn ? (
+                <th className="pb-2 text-left font-medium text-gray-500">釣り場</th>
+              ) : null}
               <th className="pb-2 text-left font-medium text-gray-500">Rod</th>
               <th className="pb-2 text-left font-medium text-gray-500">Line</th>
               <th className="pb-2 text-left font-medium text-gray-500">Bobber</th>
@@ -174,10 +187,13 @@ function ResultTable({
 
               return (
                 <tr
-                  key={buildKey(entry.loadout)}
+                  key={buildKey(entry)}
                   className={`border-b border-gray-50 ${isBest ? 'bg-green-50' : ''}`}
                 >
                   <td className="py-1.5 font-medium text-gray-500">{rank}</td>
+                  {showAreaColumn ? (
+                    <td className="py-1.5 break-words text-gray-700">{entry.areaName}</td>
+                  ) : null}
                   <td className="py-1.5">
                     <span
                       className={`break-words font-medium ${
@@ -261,7 +277,10 @@ export function OptimizerView({
   );
   const slotsKey = JSON.stringify(orderedVaryingSlots);
   const isVisible = alwaysOpen || isExpanded;
-  const isFullBuild = orderedVaryingSlots.length === ALL_SLOTS.length;
+  const isFullBuild =
+    orderedVaryingSlots.length === EQUIPMENT_SLOTS.length &&
+    EQUIPMENT_SLOTS.every((slot) => orderedVaryingSlots.includes(slot));
+  const showAreaColumn = orderedVaryingSlots.includes('area');
   const totalCombinations = computeSubsetSearchSpace(orderedVaryingSlots);
 
   useEffect(() => {
@@ -318,7 +337,7 @@ export function OptimizerView({
     isLoading && totalCombinations > 0 ? (searchedSoFar / totalCombinations) * 100 : 0;
   const hasMore = normalizedEnd < totalResults;
   const rankByKey = useMemo(
-    () => new Map(allBuilds.map((entry, index) => [buildKey(entry.loadout), index + 1])),
+    () => new Map(allBuilds.map((entry, index) => [buildKey(entry), index + 1])),
     [allBuilds],
   );
   const visibleBuilds = useMemo(() => {
@@ -327,7 +346,7 @@ export function OptimizerView({
     const orderedWindow = displayOrder === 'desc' ? rankWindow : [...rankWindow].reverse();
     return orderedWindow.map((entry) => ({
       entry,
-      rank: rankByKey.get(buildKey(entry.loadout)) ?? 1,
+      rank: rankByKey.get(buildKey(entry)) ?? 1,
     }));
   }, [allBuilds, displayOrder, normalizedEnd, normalizedStart, rankByKey, totalResults]);
   const varyingLabel = isFullBuild
@@ -563,6 +582,7 @@ export function OptimizerView({
                   bestValuePerHour={bestValuePerHour}
                   onPickBuild={onPickBuild}
                   showPickActions={showPickActions}
+                  showAreaColumn={showAreaColumn}
                 />
                 {hasMore && (
                   <button

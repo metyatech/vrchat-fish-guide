@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { CalculatorParams, EquipmentItem, EnchantItem } from '@/types';
+import { CalculatorParams, EnchantItem, EquipmentItem, FishingArea } from '@/types';
 import {
   rankAllSlots,
   rankAllSlotsWithAreaBreakdown,
+  RankDimension,
   RankSlot,
   SlotRankEntry,
 } from '@/lib/ranking';
@@ -17,13 +18,13 @@ interface RankingViewProps {
   /** Top-N entries to show per slot initially (default: 5) */
   topN?: number;
   /** Slot to emphasize first in the UI */
-  focusSlot?: RankSlot;
+  focusSlot?: RankDimension;
   /** Expand by default */
   initialExpanded?: boolean;
   /** Keep the chosen slot open in guided flows */
   alwaysOpen?: boolean;
   /** Create a comparison pattern from a ranked item */
-  onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
+  onPickItem?: (slot: RankDimension, itemId: string, itemName: string) => void;
   /** Show compare CTA buttons inside the ranking table */
   showPickActions?: boolean;
   /** Optional explanation above the table */
@@ -36,22 +37,23 @@ interface RankingViewProps {
   description?: string;
 }
 
-const SLOT_LABELS: Record<RankSlot, string> = {
+const SLOT_LABELS: Record<RankDimension, string> = {
   rod: 'Rod',
   line: 'Line',
   bobber: 'Bobber',
   enchant: 'Enchant',
+  area: '釣り場',
 };
 
-const SLOT_ORDER: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
+const SLOT_ORDER: RankDimension[] = ['rod', 'line', 'bobber', 'enchant', 'area'];
 const LOAD_MORE_INCREMENT = 5;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-function isEnchantItem(item: EquipmentItem | EnchantItem): item is EnchantItem {
-  return item.category === 'enchant';
+function isEnchantItem(item: EquipmentItem | EnchantItem | FishingArea): item is EnchantItem {
+  return 'category' in item && item.category === 'enchant';
 }
 
 function SlotTable({
@@ -63,11 +65,11 @@ function SlotTable({
   showPickActions,
   showAreaBreakdown,
 }: {
-  slot: RankSlot;
+  slot: RankDimension;
   entries: SlotRankEntry[];
   topN: number;
   activeItemId: string;
-  onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
+  onPickItem?: (slot: RankDimension, itemId: string, itemName: string) => void;
   showPickActions: boolean;
   showAreaBreakdown: boolean;
 }) {
@@ -263,7 +265,7 @@ function SlotTable({
                   {isEnchantItem(entry.item) && entry.item.rarityLabel ? (
                     <span className="ml-1 text-gray-400">({entry.item.rarityLabel})</span>
                   ) : null}
-                  {showAreaBreakdown && entry.areaName ? (
+                  {slot !== 'area' && showAreaBreakdown && entry.areaName ? (
                     <div className="mt-1">
                       <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
                         釣り場: {entry.areaName}
@@ -338,6 +340,22 @@ export function RankingView({
   const otherSlots = SLOT_ORDER.filter((slot) => slot !== focusSlot);
   const isVisible = alwaysOpen || isExpanded;
   const focusTheme = SLOT_THEME[focusSlot];
+  const defaultDescription =
+    focusSlot === 'area'
+      ? '同じ装備のまま、釣り場だけを変えたときの順位です。'
+      : includeAreaBreakdown
+        ? `${SLOT_LABELS[focusSlot]} を変えたとき、どれが一番伸びるかを釣り場ごとに並べています。`
+        : `${SLOT_LABELS[focusSlot]} を変えたとき、どれが一番伸びるかを強い順に並べています。`;
+  const defaultHelperText =
+    focusSlot === 'area'
+      ? 'いまの装備のまま、釣り場だけを変えた順位です。'
+      : showPickActions
+        ? includeAreaBreakdown
+          ? '同じ候補でも、釣り場ごとに別行で並びます。気になる候補はそのまま比較に追加できます。'
+          : '上にあるほど強い候補です。気になる候補はそのまま比較に追加できます。'
+        : includeAreaBreakdown
+          ? '同じ候補でも、釣り場ごとに別行で順位を追えます。'
+          : '上にあるほど強い候補です。';
 
   return (
     <div className={`rounded-xl border bg-white p-5 shadow-sm ${focusTheme.panelClassName}`}>
@@ -346,12 +364,7 @@ export function RankingView({
           <h2 className="text-base font-semibold text-gray-800">
             {title ?? `${SLOT_LABELS[focusSlot]} 順位表`}
           </h2>
-          <p className="mt-0.5 text-xs text-gray-500">
-            {description ??
-              (includeAreaBreakdown
-                ? `${SLOT_LABELS[focusSlot]} を変えたとき、どれが一番伸びるかを釣り場ごとに並べています。`
-                : `${SLOT_LABELS[focusSlot]} を変えたとき、どれが一番伸びるかを強い順に並べています。`)}
-          </p>
+          <p className="mt-0.5 text-xs text-gray-500">{description ?? defaultDescription}</p>
         </div>
         {!alwaysOpen ? (
           <button
@@ -366,14 +379,7 @@ export function RankingView({
       {isVisible && (
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-            {helperText ??
-              (showPickActions
-                ? includeAreaBreakdown
-                  ? '同じ候補でも、釣り場ごとに別行で並びます。気になる候補はそのまま比較に追加できます。'
-                  : '上にあるほど強い候補です。気になる候補はそのまま比較に追加できます。'
-                : includeAreaBreakdown
-                  ? '同じ候補でも、釣り場ごとに別行で順位を追えます。'
-                  : '上にあるほど強い候補です。')}
+            {helperText ?? defaultHelperText}
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -388,7 +394,9 @@ export function RankingView({
                     ? baseParams.loadout.lineId
                     : focusSlot === 'bobber'
                       ? baseParams.loadout.bobberId
-                      : baseParams.loadout.enchantId
+                      : focusSlot === 'enchant'
+                        ? baseParams.loadout.enchantId
+                        : baseParams.areaId
               }
               onPickItem={onPickItem}
               showPickActions={showPickActions}

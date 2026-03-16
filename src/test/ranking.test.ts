@@ -48,6 +48,12 @@ describe('rankSlot', () => {
     expect(entries).toHaveLength(ENCHANTS.length);
   });
 
+  it('returns one entry per fishing area when ranking areas directly', () => {
+    const entries = rankSlot(baseParams, 'area');
+    expect(entries).toHaveLength(FISHING_AREAS.length);
+    expect(entries.every((entry) => entry.slot === 'area')).toBe(true);
+  });
+
   it('returns entries sorted by expectedValuePerHour descending', () => {
     const entries = rankSlot(baseParams, 'rod');
     for (let i = 1; i < entries.length; i++) {
@@ -103,8 +109,17 @@ describe('rankAllSlots', () => {
       weatherType: 'clear',
     });
     expect(Object.keys(ranked)).toEqual(
-      expect.arrayContaining(['rod', 'line', 'bobber', 'enchant']),
+      expect.arrayContaining(['rod', 'line', 'bobber', 'enchant', 'area']),
     );
+  });
+
+  it('includes area rankings alongside equipment slots', () => {
+    const ranked = rankAllSlots({
+      ...getDefaultParams('coconut-bay'),
+      timeOfDay: 'day',
+      weatherType: 'clear',
+    });
+    expect(ranked.area).toHaveLength(FISHING_AREAS.length);
   });
 
   it('each slot list is sorted descending by EV/hour', () => {
@@ -617,6 +632,18 @@ describe('optimizeSubsetBuild', () => {
     const result = optimizeSubsetBuild(baseParams, ['rod', 'enchant'], 0);
     expect(result.topBuilds).toEqual([]);
     expect(result.searchedCount).toBe(result.totalCombinationSpace);
+  });
+
+  it('adds fishing areas into subset search space when area is varied', () => {
+    expect(computeSubsetSearchSpace(['area'])).toBe(FISHING_AREAS.length);
+    expect(computeSubsetSearchSpace(['rod', 'area'])).toBe(RODS.length * FISHING_AREAS.length);
+  });
+
+  it('tracks the chosen area in subset optimizer results when area varies', () => {
+    const result = optimizeSubsetBuild(baseParams, ['area'], 3);
+    expect(result.topBuilds.length).toBeGreaterThan(0);
+    expect(result.topBuilds.every((entry) => entry.areaId && entry.areaName)).toBe(true);
+    expect(new Set(result.topBuilds.map((entry) => entry.areaId)).size).toBeGreaterThan(0);
   });
 });
 

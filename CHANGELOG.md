@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.71] - 2026-03-16
+
+### Changed
+
+- **Fishing Area is now a first-class ranking dimension**: ranking mode can treat `釣り場` like `Rod / Line / Bobber / Enchant`, so you can rank areas directly or include area alongside gear in combination searches instead of hiding area choice inside setup only.
+- **The ranking and optimizer internals now carry area identity all the way through the result rows**: subset searches, multi-slot rankings, and result tables keep `areaId` / area name attached to each candidate, which lets the UI show area-aware rankings without special-case postprocessing.
+
 ## [0.12.70] - 2026-03-16
 
 ### Changed

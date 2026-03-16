@@ -17,7 +17,7 @@ import {
   formatSignedDisplayNumber,
   formatWeightKg,
 } from '@/lib/calculator';
-import { rankSlot, SlotRankEntry } from '@/lib/ranking';
+import { EquipmentSlotRankEntry, rankSlot } from '@/lib/ranking';
 import {
   CalculatorParams,
   DerivedModelSummary,
@@ -383,8 +383,8 @@ function getSelectedLoadoutItems(
 }
 
 function getRecommendationTags(
-  entry: SlotRankEntry,
-  selectedEntry: SlotRankEntry | undefined,
+  entry: EquipmentSlotRankEntry,
+  selectedEntry: EquipmentSlotRankEntry | undefined,
   context: {
     evFocusIds: Set<string>;
     valueIds: Set<string>;
@@ -436,8 +436,8 @@ function getRecommendationTags(
 }
 
 function buildRecommendationTagMap(
-  entries: SlotRankEntry[],
-  selectedEntry: SlotRankEntry | undefined,
+  entries: EquipmentSlotRankEntry[],
+  selectedEntry: EquipmentSlotRankEntry | undefined,
 ): Map<string, string[]> {
   const map = new Map<string, string[]>();
 
@@ -563,8 +563,8 @@ function hasPositiveStatDelta(
 }
 
 function buildRecommendationHighlights(
-  entries: SlotRankEntry[],
-  selectedEntry: SlotRankEntry | undefined,
+  entries: EquipmentSlotRankEntry[],
+  selectedEntry: EquipmentSlotRankEntry | undefined,
 ): Array<{ id: string; title: string; item: EquipmentItem | EnchantItem; detail: string }> {
   if (!selectedEntry) {
     return [];
@@ -582,8 +582,8 @@ function buildRecommendationHighlights(
 
   const pushCard = (
     title: string,
-    entry: SlotRankEntry | undefined,
-    detailFactory: (candidate: SlotRankEntry) => string,
+    entry: EquipmentSlotRankEntry | undefined,
+    detailFactory: (candidate: EquipmentSlotRankEntry) => string,
   ) => {
     if (!entry || unique.has(entry.item.id)) {
       return;
@@ -650,8 +650,8 @@ function buildRecommendationHighlights(
 }
 
 function compareSourceOrder(
-  a: SlotRankEntry,
-  b: SlotRankEntry,
+  a: EquipmentSlotRankEntry,
+  b: EquipmentSlotRankEntry,
   sourceOrder: Map<string, number>,
 ): number {
   return (
@@ -661,10 +661,10 @@ function compareSourceOrder(
 }
 
 function compareEntriesByPreset(
-  a: SlotRankEntry,
-  b: SlotRankEntry,
+  a: EquipmentSlotRankEntry,
+  b: EquipmentSlotRankEntry,
   mode: PickerPresetSortMode,
-  selectedEntry: SlotRankEntry | undefined,
+  selectedEntry: EquipmentSlotRankEntry | undefined,
   sourceOrder: Map<string, number>,
 ): number {
   switch (mode) {
@@ -690,8 +690,8 @@ function compareEntriesByPreset(
 }
 
 function compareEntriesByColumn(
-  a: SlotRankEntry,
-  b: SlotRankEntry,
+  a: EquipmentSlotRankEntry,
+  b: EquipmentSlotRankEntry,
   columnSort: PickerColumnSort,
   sourceOrder: Map<string, number>,
 ): number {
@@ -713,12 +713,12 @@ function compareEntriesByColumn(
 }
 
 function sortRankEntries(
-  entries: SlotRankEntry[],
+  entries: EquipmentSlotRankEntry[],
   mode: PickerPresetSortMode,
-  selectedEntry: SlotRankEntry | undefined,
+  selectedEntry: EquipmentSlotRankEntry | undefined,
   sourceOrder: Map<string, number>,
   columnSort: PickerColumnSort | null,
-): SlotRankEntry[] {
+): EquipmentSlotRankEntry[] {
   const sorted = [...entries];
   return sorted.sort((a, b) =>
     columnSort
@@ -1687,7 +1687,10 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
   const [requiredImprovementStats, setRequiredImprovementStats] = React.useState<StatThemeKey[]>(
     [],
   );
-  const rankedEntries = React.useMemo(() => rankSlot(params, slot), [params, slot]);
+  const rankedEntries = React.useMemo<EquipmentSlotRankEntry[]>(
+    () => rankSlot(params, slot),
+    [params, slot],
+  );
   const selectedEntry = rankedEntries.find((entry) => entry.item.id === selectedId);
   const selectedItem = selectedEntry?.item ?? items.find((item) => item.id === selectedId);
   const selectedLoadoutItems = React.useMemo(

@@ -903,6 +903,7 @@ interface AreaConditionDistribution {
 }
 
 export interface OptimizerMetrics {
+  areaId: string;
   expectedValuePerCatch: number;
   expectedValuePerHour: number;
   totalFishProbability: number;
@@ -922,6 +923,7 @@ function calculateAreaConditionOptimizerMetrics(
   const pool = getScenarioStaticPool(areaId, timeOfDay, weatherType);
   if (pool.groups.length === 0) {
     return {
+      areaId,
       expectedValuePerCatch: 0,
       expectedValuePerHour: 0,
       totalFishProbability: 0,
@@ -940,6 +942,7 @@ function calculateAreaConditionOptimizerMetrics(
 
   if (totalRarityWeight <= 0) {
     return {
+      areaId,
       expectedValuePerCatch: 0,
       expectedValuePerHour: 0,
       totalFishProbability: 0,
@@ -993,6 +996,7 @@ function calculateAreaConditionOptimizerMetrics(
   const catchesPerHour = 3600 / Math.max(1, expectedAttemptTimeSec);
 
   return {
+    areaId,
     expectedValuePerCatch,
     expectedValuePerHour: expectedValuePerCatch * catchesPerHour,
     totalFishProbability,
@@ -1335,6 +1339,7 @@ export function calculateOptimizerMetrics(params: CalculatorParams): OptimizerMe
     areaCandidates.map((areaId) => [
       areaId,
       {
+        areaId,
         expectedValuePerCatch: 0,
         expectedValuePerHour: 0,
         totalFishProbability: 0,
@@ -1371,10 +1376,11 @@ export function calculateOptimizerMetrics(params: CalculatorParams): OptimizerMe
   }
 
   let bestAreaMetrics: OptimizerMetrics | null = null;
-  for (const metrics of areaMetricsMap.values()) {
+  for (const [candidateAreaId, metrics] of areaMetricsMap.entries()) {
     if (!metrics.hasFish) continue;
     if (!bestAreaMetrics || metrics.expectedValuePerHour > bestAreaMetrics.expectedValuePerHour) {
       bestAreaMetrics = {
+        areaId: candidateAreaId,
         expectedValuePerCatch: metrics.expectedValuePerCatch,
         expectedValuePerHour: metrics.expectedValuePerHour,
         totalFishProbability: metrics.totalFishProbability,
@@ -1384,6 +1390,7 @@ export function calculateOptimizerMetrics(params: CalculatorParams): OptimizerMe
 
   return (
     bestAreaMetrics ?? {
+      areaId: normalizedParams.areaId,
       expectedValuePerCatch: 0,
       expectedValuePerHour: 0,
       totalFishProbability: 0,

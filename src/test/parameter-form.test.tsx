@@ -33,6 +33,8 @@ vi.mock('@/lib/ranking', async () => {
  */
 function makeFakeBuilds(n: number): FullBuildEntry[] {
   return Array.from({ length: n }, (_, i) => ({
+    areaId: 'coconut-bay',
+    areaName: 'Coconut Bay',
     loadout: {
       rodId: RODS[0].id,
       lineId: LINES[0].id,
