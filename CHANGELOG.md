@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.75] - 2026-03-16
+
+### Changed
+
+- **Full leaderboard generation now avoids repeatedly sorting and shipping the entire 247,680-row result set while the search is still running**: the calculator keeps progress updates lightweight during the exhaustive search and sorts the full leaderboard once at completion, which materially reduces ranking wait time and UI churn.
+- **Optimizer hot paths now use lighter-weight static price data for area-condition scoring**: full ranking still evaluates the same exact combinations and formulas, but the per-combination fish price aggregation does less repeated object work, which reduces end-to-end leaderboard latency without changing ranking semantics.
+
 ## [0.12.74] - 2026-03-16
 
 ### Changed

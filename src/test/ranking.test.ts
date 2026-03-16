@@ -772,6 +772,27 @@ describe('optimizeSubsetBuildAsync', () => {
       expect(entry.loadout.bobberId).toBe(baseParams.loadout.bobberId);
     });
   }, 10000);
+
+  it('full leaderboard progress stays lightweight until completion', async () => {
+    const slots = ['rod', 'line', 'bobber', 'enchant', 'area'] as const;
+    const total = computeSubsetSearchSpace(slots);
+    const intermediateSizes: number[] = [];
+    let finalSize = 0;
+
+    const result = await optimizeSubsetBuildAsync(baseParams, slots, total, undefined, (event) => {
+      if (event.isComplete) {
+        finalSize = event.topBuilds.length;
+        return;
+      }
+      intermediateSizes.push(event.topBuilds.length);
+    });
+
+    expect(result).not.toBeNull();
+    expect(intermediateSizes.length).toBeGreaterThan(0);
+    expect(intermediateSizes.every((size) => size === 0)).toBe(true);
+    expect(finalSize).toBe(total);
+    expect(result!.topBuilds).toHaveLength(total);
+  }, 60000);
 });
 
 describe('optimizeSubsetBuild (additional)', () => {

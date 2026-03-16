@@ -30,7 +30,12 @@ import {
   EquipmentLoadout,
   FishingArea,
 } from '@/types';
-import { BEST_AREA_ID, calculateDistribution, calculateOptimizerMetrics } from '@/lib/calculator';
+import {
+  BEST_AREA_ID,
+  calculateDistribution,
+  calculateOptimizerMetrics,
+  type OptimizerMetrics,
+} from '@/lib/calculator';
 
 export type RankSlot = 'rod' | 'line' | 'bobber' | 'enchant';
 export type RankDimension = RankSlot | 'area';
@@ -99,6 +104,7 @@ const OPTIMIZER_BOBBERS = pruneDominatedEquipment(BOBBERS);
 const TOTAL_COMBINATION_SPACE =
   OPTIMIZER_RODS.length * OPTIMIZER_LINES.length * OPTIMIZER_BOBBERS.length * ENCHANTS.length;
 export const FULL_BUILD_SEARCH_SPACE = TOTAL_COMBINATION_SPACE;
+const EMPTY_BUILD_LIST: FullBuildEntry[] = [];
 
 /**
  * Compute EV/hour for every item in a single slot, holding all other slots at
@@ -340,6 +346,17 @@ function normalizeTopNResults(topNResults: number): number {
   return Math.max(0, Math.floor(topNResults));
 }
 
+type IndexedBuildEntry = { entry: FullBuildEntry; idx: number };
+
+function sortIndexedBuildEntriesDesc(entries: IndexedBuildEntry[]): FullBuildEntry[] {
+  return [...entries]
+    .sort((a, b) => {
+      const diff = b.entry.expectedValuePerHour - a.entry.expectedValuePerHour;
+      return diff !== 0 ? diff : a.idx - b.idx;
+    })
+    .map((item) => item.entry);
+}
+
 // ── Full-build optimizer ──────────────────────────────────────────────────────
 
 /** One entry in the full-build optimizer results. */
@@ -388,8 +405,9 @@ function createFullBuildEntry(
   areaId: string,
   loadout: EquipmentLoadout,
   items: FullBuildEntry['items'],
+  metrics?: OptimizerMetrics,
 ): FullBuildEntry {
-  const result = calculateOptimizerMetrics({ ...baseParams, areaId, loadout });
+  const result = metrics ?? calculateOptimizerMetrics({ ...baseParams, areaId, loadout });
   return {
     areaId: result.areaId,
     areaName:
@@ -405,16 +423,17 @@ function createFullBuildEntry(
 }
 
 function emitProgressEvent(
-  heap: TopNHeap,
+  builds: FullBuildEntry[],
   searchedCount: number,
+  totalCombinationSpace: number,
   onProgress?: (event: OptimizerProgressEvent) => void,
   isComplete = false,
 ): void {
   if (!onProgress) return;
   onProgress({
-    topBuilds: heap.toSortedDesc(),
+    topBuilds: builds,
     searchedCount,
-    totalCombinationSpace: TOTAL_COMBINATION_SPACE,
+    totalCombinationSpace,
     isComplete,
   });
 }
@@ -433,7 +452,10 @@ export function optimizeFullBuild(
   baseParams: CalculatorParams,
   topNResults = 10,
 ): FullBuildOptimizerResult {
-  const heap = new TopNHeap(normalizeTopNResults(topNResults));
+  const normalizedTopN = normalizeTopNResults(topNResults);
+  const allResultsMode = normalizedTopN >= TOTAL_COMBINATION_SPACE;
+  const heap = allResultsMode ? null : new TopNHeap(normalizedTopN);
+  const allEntries = allResultsMode ? ([] as IndexedBuildEntry[]) : null;
   let searchedCount = 0;
 
   for (const rod of OPTIMIZER_RODS) {
@@ -446,15 +468,17 @@ export function optimizeFullBuild(
             bobberId: bobber.id,
             enchantId: enchant.id,
           };
-          heap.consider(
-            createFullBuildEntry(baseParams, baseParams.areaId, loadout, {
-              rod,
-              line,
-              bobber,
-              enchant,
-            }),
-            searchedCount,
-          );
+          const entry = createFullBuildEntry(baseParams, baseParams.areaId, loadout, {
+            rod,
+            line,
+            bobber,
+            enchant,
+          });
+          if (allEntries) {
+            allEntries.push({ entry, idx: searchedCount });
+          } else {
+            heap!.consider(entry, searchedCount);
+          }
           searchedCount++;
         }
       }
@@ -462,7 +486,7 @@ export function optimizeFullBuild(
   }
 
   return {
-    topBuilds: heap.toSortedDesc(),
+    topBuilds: allEntries ? sortIndexedBuildEntriesDesc(allEntries) : heap!.toSortedDesc(),
     searchedCount,
     totalCombinationSpace: TOTAL_COMBINATION_SPACE,
   };
@@ -489,7 +513,14 @@ export async function optimizeFullBuildAsync(
 ): Promise<FullBuildOptimizerResult | null> {
   if (signal?.aborted) return null;
 
-  const heap = new TopNHeap(normalizeTopNResults(topNResults));
+  const normalizedTopN = normalizeTopNResults(topNResults);
+  const allResultsMode = normalizedTopN >= TOTAL_COMBINATION_SPACE;
+  const heap = allResultsMode ? null : new TopNHeap(normalizedTopN);
+  const allEntries = allResultsMode ? ([] as IndexedBuildEntry[]) : null;
+  const progressStride = allResultsMode
+    ? Math.max(4096, Math.floor(TOTAL_COMBINATION_SPACE / 60))
+    : 0;
+  let nextProgressAt = progressStride;
   let searchedCount = 0;
 
   for (const rod of OPTIMIZER_RODS) {
@@ -502,29 +533,39 @@ export async function optimizeFullBuildAsync(
             bobberId: bobber.id,
             enchantId: enchant.id,
           };
-          heap.consider(
-            createFullBuildEntry(baseParams, baseParams.areaId, loadout, {
-              rod,
-              line,
-              bobber,
-              enchant,
-            }),
-            searchedCount,
-          );
+          const entry = createFullBuildEntry(baseParams, baseParams.areaId, loadout, {
+            rod,
+            line,
+            bobber,
+            enchant,
+          });
+          if (allEntries) {
+            allEntries.push({ entry, idx: searchedCount });
+          } else {
+            heap!.consider(entry, searchedCount);
+          }
           searchedCount++;
         }
       }
 
-      emitProgressEvent(heap, searchedCount, onProgress);
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
-      if (signal?.aborted) return null;
+      if (!allResultsMode || searchedCount >= nextProgressAt) {
+        emitProgressEvent(
+          allResultsMode ? EMPTY_BUILD_LIST : heap!.toSortedDesc(),
+          searchedCount,
+          TOTAL_COMBINATION_SPACE,
+          onProgress,
+        );
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        if (signal?.aborted) return null;
+        nextProgressAt += progressStride;
+      }
     }
   }
 
   if (signal?.aborted) return null;
 
-  const finalBuilds = heap.toSortedDesc();
-  emitProgressEvent(heap, searchedCount, onProgress, true);
+  const finalBuilds = allEntries ? sortIndexedBuildEntriesDesc(allEntries) : heap!.toSortedDesc();
+  emitProgressEvent(finalBuilds, searchedCount, TOTAL_COMBINATION_SPACE, onProgress, true);
 
   return {
     topBuilds: finalBuilds,
@@ -614,7 +655,11 @@ export function optimizeSubsetBuild(
   varyingSlots: readonly RankDimension[],
   topNResults = 10,
 ): SubsetBuildOptimizerResult {
-  const heap = new TopNHeap(normalizeTopNResults(topNResults));
+  const normalizedTopN = normalizeTopNResults(topNResults);
+  const totalSpace = computeSubsetSearchSpace(varyingSlots);
+  const allResultsMode = normalizedTopN >= totalSpace;
+  const heap = allResultsMode ? null : new TopNHeap(normalizedTopN);
+  const allEntries = allResultsMode ? ([] as IndexedBuildEntry[]) : null;
   let searchedCount = 0;
 
   const full = isFullBuildSearch(varyingSlots);
@@ -642,8 +687,6 @@ export function optimizeSubsetBuild(
       ? [AUTO_AREA_PLACEHOLDER]
       : [AREA_MAP[baseParams.areaId]!];
 
-  const totalSpace = computeSubsetSearchSpace(varyingSlots);
-
   for (const area of areaCandidates) {
     for (const rod of rodCandidates) {
       for (const line of lineCandidates) {
@@ -655,10 +698,17 @@ export function optimizeSubsetBuild(
               bobberId: bobber.id,
               enchantId: enchant.id,
             };
-            heap.consider(
-              createFullBuildEntry(baseParams, area.id, loadout, { rod, line, bobber, enchant }),
-              searchedCount,
-            );
+            const entry = createFullBuildEntry(baseParams, area.id, loadout, {
+              rod,
+              line,
+              bobber,
+              enchant,
+            });
+            if (allEntries) {
+              allEntries.push({ entry, idx: searchedCount });
+            } else {
+              heap!.consider(entry, searchedCount);
+            }
             searchedCount++;
           }
         }
@@ -667,7 +717,7 @@ export function optimizeSubsetBuild(
   }
 
   return {
-    topBuilds: heap.toSortedDesc(),
+    topBuilds: allEntries ? sortIndexedBuildEntriesDesc(allEntries) : heap!.toSortedDesc(),
     searchedCount,
     totalCombinationSpace: totalSpace,
     varyingSlots,
@@ -691,7 +741,13 @@ export async function optimizeSubsetBuildAsync(
 ): Promise<SubsetBuildOptimizerResult | null> {
   if (signal?.aborted) return null;
 
-  const heap = new TopNHeap(normalizeTopNResults(topNResults));
+  const normalizedTopN = normalizeTopNResults(topNResults);
+  const totalSpace = computeSubsetSearchSpace(varyingSlots);
+  const allResultsMode = normalizedTopN >= totalSpace;
+  const heap = allResultsMode ? null : new TopNHeap(normalizedTopN);
+  const allEntries = allResultsMode ? ([] as IndexedBuildEntry[]) : null;
+  const progressStride = allResultsMode ? Math.max(4096, Math.floor(totalSpace / 60)) : 0;
+  let nextProgressAt = progressStride;
   let searchedCount = 0;
 
   const full = isFullBuildSearch(varyingSlots);
@@ -719,8 +775,6 @@ export async function optimizeSubsetBuildAsync(
       ? [AUTO_AREA_PLACEHOLDER]
       : [AREA_MAP[baseParams.areaId]!];
 
-  const totalSpace = computeSubsetSearchSpace(varyingSlots);
-
   for (const area of areaCandidates) {
     for (const rod of rodCandidates) {
       for (const line of lineCandidates) {
@@ -732,31 +786,41 @@ export async function optimizeSubsetBuildAsync(
               bobberId: bobber.id,
               enchantId: enchant.id,
             };
-            heap.consider(
-              createFullBuildEntry(baseParams, area.id, loadout, { rod, line, bobber, enchant }),
-              searchedCount,
-            );
+            const entry = createFullBuildEntry(baseParams, area.id, loadout, {
+              rod,
+              line,
+              bobber,
+              enchant,
+            });
+            if (allEntries) {
+              allEntries.push({ entry, idx: searchedCount });
+            } else {
+              heap!.consider(entry, searchedCount);
+            }
             searchedCount++;
           }
         }
-        if (onProgress) {
-          onProgress({
-            topBuilds: heap.toSortedDesc(),
-            searchedCount,
-            totalCombinationSpace: totalSpace,
-            isComplete: false,
-            varyingSlots,
-          });
+        if (!allResultsMode || searchedCount >= nextProgressAt) {
+          if (onProgress) {
+            onProgress({
+              topBuilds: allResultsMode ? EMPTY_BUILD_LIST : heap!.toSortedDesc(),
+              searchedCount,
+              totalCombinationSpace: totalSpace,
+              isComplete: false,
+              varyingSlots,
+            });
+          }
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          if (signal?.aborted) return null;
+          nextProgressAt += progressStride;
         }
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-        if (signal?.aborted) return null;
       }
     }
   }
 
   if (signal?.aborted) return null;
 
-  const finalBuilds = heap.toSortedDesc();
+  const finalBuilds = allEntries ? sortIndexedBuildEntriesDesc(allEntries) : heap!.toSortedDesc();
   if (onProgress) {
     onProgress({
       topBuilds: finalBuilds,

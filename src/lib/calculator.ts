@@ -480,9 +480,17 @@ function getAreaCandidateIds(areaId: string): string[] {
 interface ScenarioStaticPool {
   groups: Array<{
     rarity: CalculatorRarity;
-    fish: FishEntry[];
+    fishCount: number;
+    optimizerFish: Array<{
+      midPrice: number;
+      hasWeightPriceCurve: boolean;
+      priceFloor: number;
+      priceSpan: number;
+      minWeightKg: number;
+      maxWeightKg: number;
+      inverseWeightSpan: number;
+    }>;
   }>;
-  availableRarities: CalculatorRarity[];
 }
 
 const SCENARIO_STATIC_POOL_CACHE = new Map<string, ScenarioStaticPool>();
@@ -506,12 +514,42 @@ function getScenarioStaticPool(
 
   const groups = CALCULATOR_RARITIES.flatMap((rarity) => {
     const fish = fishByRarity.get(rarity);
-    return fish ? [{ rarity, fish }] : [];
+    return fish
+      ? [
+          {
+            rarity,
+            fishCount: fish.length,
+            optimizerFish: fish.map((entry) => {
+              const hasWeightPriceCurve =
+                entry.priceFloor !== undefined &&
+                entry.priceCeiling !== undefined &&
+                entry.minWeightKg !== undefined &&
+                entry.maxWeightKg !== undefined &&
+                entry.maxWeightKg > entry.minWeightKg;
+
+              return {
+                midPrice: getMidPrice(entry) ?? 0,
+                hasWeightPriceCurve,
+                priceFloor: entry.priceFloor ?? 0,
+                priceSpan:
+                  entry.priceFloor !== undefined && entry.priceCeiling !== undefined
+                    ? entry.priceCeiling - entry.priceFloor
+                    : 0,
+                minWeightKg: entry.minWeightKg ?? 0,
+                maxWeightKg: entry.maxWeightKg ?? 0,
+                inverseWeightSpan:
+                  entry.minWeightKg !== undefined &&
+                  entry.maxWeightKg !== undefined &&
+                  entry.maxWeightKg > entry.minWeightKg
+                    ? 1 / (entry.maxWeightKg - entry.minWeightKg)
+                    : 0,
+              };
+            }),
+          },
+        ]
+      : [];
   });
-  const pool = {
-    groups,
-    availableRarities: groups.map((group) => group.rarity),
-  };
+  const pool = { groups };
   SCENARIO_STATIC_POOL_CACHE.set(cacheKey, pool);
   return pool;
 }
@@ -857,37 +895,6 @@ function getModeledPrice(fish: FishEntry, model: DerivedModelSummary): number | 
   return basePrice * model.directValueMultiplier;
 }
 
-function getOptimizerBasePrice(
-  fish: FishEntry,
-  weightPercentile: number,
-  maxWeightKg: number,
-): number {
-  const midPrice = getMidPrice(fish);
-  if (midPrice === undefined) return 0;
-
-  if (
-    fish.priceFloor === undefined ||
-    fish.priceCeiling === undefined ||
-    fish.minWeightKg === undefined ||
-    fish.maxWeightKg === undefined ||
-    fish.maxWeightKg <= fish.minWeightKg
-  ) {
-    return midPrice;
-  }
-
-  const effectiveMaxWeight = Math.max(
-    fish.minWeightKg,
-    Math.min(fish.maxWeightKg, maxWeightKg || fish.maxWeightKg),
-  );
-  const capPercentile = clamp(
-    (effectiveMaxWeight - fish.minWeightKg) / (fish.maxWeightKg - fish.minWeightKg),
-    0,
-    1,
-  );
-  const effectivePercentile = Math.min(weightPercentile, capPercentile);
-  return fish.priceFloor + (fish.priceCeiling - fish.priceFloor) * effectivePercentile;
-}
-
 interface AreaConditionDistribution {
   areaId: string;
   timeOfDay: Exclude<TimeOfDay, 'any'>;
@@ -931,14 +938,23 @@ function calculateAreaConditionOptimizerMetrics(
     };
   }
 
-  const effectiveRarityWeights = applyLuckScaling(
-    buildBaseRarityWeights(pool.availableRarities, customRarityWeights),
-    model.effectiveLuckMultiplier,
-  );
-  const totalRarityWeight = Object.values(effectiveRarityWeights).reduce(
-    (sum, weight) => sum + (weight ?? 0),
-    0,
-  );
+  const groupWeights = new Array<number>(pool.groups.length);
+  let totalRarityWeight = 0;
+
+  for (let index = 0; index < pool.groups.length; index++) {
+    const group = pool.groups[index];
+    const baseWeight = Math.max(
+      0,
+      customRarityWeights?.[group.rarity] ?? DEFAULT_RARITY_WEIGHTS[group.rarity] ?? 0,
+    );
+    const sensitivity = RARITY_LUCK_SENSITIVITY[group.rarity] ?? 0;
+    const weight = Math.max(
+      0,
+      baseWeight * (1 + sensitivity * (model.effectiveLuckMultiplier - 1)),
+    );
+    groupWeights[index] = weight;
+    totalRarityWeight += weight;
+  }
 
   if (totalRarityWeight <= 0) {
     return {
@@ -960,8 +976,9 @@ function calculateAreaConditionOptimizerMetrics(
   let expectedMinigameTimeSec = 0;
   let totalFishProbability = 0;
 
-  for (const group of pool.groups) {
-    const tierWeight = effectiveRarityWeights[group.rarity] ?? 0;
+  for (let index = 0; index < pool.groups.length; index++) {
+    const group = pool.groups[index];
+    const tierWeight = groupWeights[index] ?? 0;
     if (tierWeight <= 0) continue;
 
     const tierEncounterProbability = tierWeight / totalRarityWeight;
@@ -973,15 +990,26 @@ function calculateAreaConditionOptimizerMetrics(
       tierEncounterProbability * (model.effectiveMinigameTimeSec ?? 0) * rarityMinigameFactor;
     totalFishProbability += tierEncounterProbability * successRate;
 
-    const perFishEncounterProbability = tierEncounterProbability / group.fish.length;
+    const perFishEncounterProbability = tierEncounterProbability / group.fishCount;
     let totalBasePrice = 0;
 
-    for (const fish of group.fish) {
-      totalBasePrice += getOptimizerBasePrice(
-        fish,
-        model.weightPercentile,
-        model.totalStats.maxWeightKg,
+    for (const fish of group.optimizerFish) {
+      if (!fish.hasWeightPriceCurve) {
+        totalBasePrice += fish.midPrice;
+        continue;
+      }
+
+      const effectiveMaxWeight = Math.max(
+        fish.minWeightKg,
+        Math.min(fish.maxWeightKg, model.totalStats.maxWeightKg || fish.maxWeightKg),
       );
+      const capPercentile = clamp(
+        (effectiveMaxWeight - fish.minWeightKg) * fish.inverseWeightSpan,
+        0,
+        1,
+      );
+      const effectivePercentile = Math.min(model.weightPercentile, capPercentile);
+      totalBasePrice += fish.priceFloor + fish.priceSpan * effectivePercentile;
     }
 
     expectedValuePerCatch +=
