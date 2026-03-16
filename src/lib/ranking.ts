@@ -22,8 +22,9 @@
  */
 
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
+import { AREA_MAP, FISHING_AREAS } from '@/data/fish';
 import { CalculatorParams, EnchantItem, EquipmentItem, EquipmentLoadout } from '@/types';
-import { calculateDistribution, calculateOptimizerMetrics } from '@/lib/calculator';
+import { BEST_AREA_ID, calculateDistribution, calculateOptimizerMetrics } from '@/lib/calculator';
 
 export type RankSlot = 'rod' | 'line' | 'bobber' | 'enchant';
 
@@ -33,6 +34,9 @@ export interface SlotRankEntry {
   expectedValuePerHour: number;
   expectedValuePerCatch: number;
   totalFishProbability: number;
+  rankingKey: string;
+  areaId?: string;
+  areaName?: string;
 }
 
 const SLOT_DATA: Record<RankSlot, (EquipmentItem | EnchantItem)[]> = {
@@ -95,7 +99,55 @@ export function rankSlot(baseParams: CalculatorParams, slot: RankSlot): SlotRank
       expectedValuePerHour: result.expectedValuePerHour,
       expectedValuePerCatch: result.expectedValuePerCatch,
       totalFishProbability: result.totalFishProbability,
+      rankingKey: item.id,
     });
+  }
+
+  return entries.sort((a, b) => b.expectedValuePerHour - a.expectedValuePerHour);
+}
+
+function getRankingAreaIds(areaId: string): string[] {
+  if (areaId === BEST_AREA_ID) {
+    return FISHING_AREAS.map((area) => area.id);
+  }
+  return [areaId];
+}
+
+/**
+ * Compute EV/hour for every item in a single slot and, when the base params use
+ * auto area selection, expand the ranking so the same item can appear once per
+ * fishing area.
+ */
+export function rankSlotWithAreaBreakdown(
+  baseParams: CalculatorParams,
+  slot: RankSlot,
+): SlotRankEntry[] {
+  const items = SLOT_DATA[slot];
+  const areaIds = getRankingAreaIds(baseParams.areaId);
+  const entries: SlotRankEntry[] = [];
+
+  for (const item of items) {
+    for (const areaId of areaIds) {
+      const params: CalculatorParams = {
+        ...baseParams,
+        areaId,
+        loadout: {
+          ...baseParams.loadout,
+          [`${slot}Id`]: item.id,
+        },
+      };
+      const result = calculateDistribution(params);
+      entries.push({
+        item,
+        slot,
+        expectedValuePerHour: result.expectedValuePerHour,
+        expectedValuePerCatch: result.expectedValuePerCatch,
+        totalFishProbability: result.totalFishProbability,
+        rankingKey: `${item.id}:${areaId}`,
+        areaId,
+        areaName: AREA_MAP[areaId]?.nameEn ?? areaId,
+      });
+    }
   }
 
   return entries.sort((a, b) => b.expectedValuePerHour - a.expectedValuePerHour);
@@ -111,6 +163,21 @@ export function rankAllSlots(baseParams: CalculatorParams): Record<RankSlot, Slo
     line: rankSlot(baseParams, 'line'),
     bobber: rankSlot(baseParams, 'bobber'),
     enchant: rankSlot(baseParams, 'enchant'),
+  };
+}
+
+/**
+ * Rank all four slots simultaneously, expanding each item into one row per
+ * fishing area when auto-area mode is enabled.
+ */
+export function rankAllSlotsWithAreaBreakdown(
+  baseParams: CalculatorParams,
+): Record<RankSlot, SlotRankEntry[]> {
+  return {
+    rod: rankSlotWithAreaBreakdown(baseParams, 'rod'),
+    line: rankSlotWithAreaBreakdown(baseParams, 'line'),
+    bobber: rankSlotWithAreaBreakdown(baseParams, 'bobber'),
+    enchant: rankSlotWithAreaBreakdown(baseParams, 'enchant'),
   };
 }
 

@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.67] - 2026-03-16
+
+### Changed
+
+- **Single-slot rankings now expand by fishing area when you leave Fishing Area on auto**: the same Rod / Line / Bobber / Enchant can appear multiple times in ranking mode, once per fishing area, so you can see whether a loadout is 5th in one area but 10th in another without fixing the area first.
+
 ## [0.12.66] - 2026-03-16
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "vrchat-fish-guide",
-  "version": "0.12.66",
+  "version": "0.12.67",
   "private": true,
   "description": "Unofficial community guide and probability calculator for the VRChat world Fish!",
   "homepage": "https://metyatech.github.io/vrchat-fish-guide/",
@@ -26,7 +26,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit && npm run test:a11y",
-    "test:unit": "vitest run src/test/calculator.test.ts src/test/distributions.test.ts src/test/next-config.test.ts src/test/metadata-routes.test.ts src/test/url-state.test.ts src/test/ranking.test.ts src/test/parameter-form.test.tsx src/test/ui-quality.test.tsx src/test/site-version.test.tsx src/test/source-audit.test.ts",
+    "test:unit": "vitest run src/test/calculator.test.ts src/test/distributions.test.ts src/test/next-config.test.ts src/test/metadata-routes.test.ts src/test/url-state.test.ts src/test/ranking.test.ts src/test/ranking-view.test.tsx src/test/parameter-form.test.tsx src/test/ui-quality.test.tsx src/test/site-version.test.tsx src/test/source-audit.test.ts",
     "test:a11y": "vitest run src/test/accessibility.test.tsx",
     "test:e2e": "playwright install chromium && npm run build && node scripts/run-e2e.mjs",
     "sources:refresh": "tsx scripts/source-audit.ts --write",

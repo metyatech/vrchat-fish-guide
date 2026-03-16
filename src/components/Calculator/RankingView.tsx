@@ -2,7 +2,12 @@
 
 import React, { useMemo, useState } from 'react';
 import { CalculatorParams, EquipmentItem, EnchantItem } from '@/types';
-import { rankAllSlots, RankSlot, SlotRankEntry } from '@/lib/ranking';
+import {
+  rankAllSlots,
+  rankAllSlotsWithAreaBreakdown,
+  RankSlot,
+  SlotRankEntry,
+} from '@/lib/ranking';
 import { formatCurrency } from '@/lib/calculator';
 import { SLOT_THEME } from '@/components/Calculator/slotTheme';
 
@@ -23,6 +28,8 @@ interface RankingViewProps {
   showPickActions?: boolean;
   /** Optional explanation above the table */
   helperText?: string;
+  /** Show one row per fishing area when the base params use auto-area selection. */
+  includeAreaBreakdown?: boolean;
 }
 
 const SLOT_LABELS: Record<RankSlot, string> = {
@@ -50,6 +57,7 @@ function SlotTable({
   activeItemId,
   onPickItem,
   showPickActions,
+  showAreaBreakdown,
 }: {
   slot: RankSlot;
   entries: SlotRankEntry[];
@@ -57,6 +65,7 @@ function SlotTable({
   activeItemId: string;
   onPickItem?: (slot: RankSlot, itemId: string, itemName: string) => void;
   showPickActions: boolean;
+  showAreaBreakdown: boolean;
 }) {
   const [displayOrder, setDisplayOrder] = useState<'desc' | 'asc'>('desc');
   const [rangeStart, setRangeStart] = useState(1);
@@ -82,7 +91,7 @@ function SlotTable({
   const hasMore = normalizedEnd < totalEntries;
   const best = entries[0]?.expectedValuePerHour ?? 0;
   const rankById = useMemo(
-    () => new Map(entries.map((entry, index) => [entry.item.id, index + 1])),
+    () => new Map(entries.map((entry, index) => [entry.rankingKey, index + 1])),
     [entries],
   );
   const rangeLabel =
@@ -217,14 +226,14 @@ function SlotTable({
         </thead>
         <tbody>
           {displayedEntries.map((entry) => {
-            const rank = rankById.get(entry.item.id) ?? 1;
+            const rank = rankById.get(entry.rankingKey) ?? 1;
             const isBest = rank === 1;
             const isActive = entry.item.id === activeItemId;
             const deltaVsTop = best > 0 ? ((entry.expectedValuePerHour - best) / best) * 100 : 0;
 
             return (
               <tr
-                key={entry.item.id}
+                key={entry.rankingKey}
                 className={`border-b border-gray-50 transition-colors ${
                   isActive ? 'bg-ocean-50/70' : isBest ? 'bg-green-50/40' : 'hover:bg-gray-50/60'
                 }`}
@@ -249,6 +258,13 @@ function SlotTable({
                   )}
                   {isEnchantItem(entry.item) && entry.item.rarityLabel ? (
                     <span className="ml-1 text-gray-400">({entry.item.rarityLabel})</span>
+                  ) : null}
+                  {showAreaBreakdown && entry.areaName ? (
+                    <div className="mt-1">
+                      <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                        釣り場: {entry.areaName}
+                      </span>
+                    </div>
                   ) : null}
                 </td>
                 <td className="py-1.5 text-right align-top">
@@ -303,11 +319,16 @@ export function RankingView({
   onPickItem,
   showPickActions = true,
   helperText,
+  includeAreaBreakdown = false,
 }: RankingViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [showOtherSlots, setShowOtherSlots] = useState(false);
 
-  const ranked = useMemo(() => rankAllSlots(baseParams), [baseParams]);
+  const ranked = useMemo(
+    () =>
+      includeAreaBreakdown ? rankAllSlotsWithAreaBreakdown(baseParams) : rankAllSlots(baseParams),
+    [baseParams, includeAreaBreakdown],
+  );
   const otherSlots = SLOT_ORDER.filter((slot) => slot !== focusSlot);
   const isVisible = alwaysOpen || isExpanded;
   const focusTheme = SLOT_THEME[focusSlot];
@@ -320,8 +341,9 @@ export function RankingView({
             {SLOT_LABELS[focusSlot]} の候補一覧
           </h2>
           <p className="mt-0.5 text-xs text-gray-500">
-            いまの装備のまま <strong>{SLOT_LABELS[focusSlot]}</strong>{' '}
-            だけを変えたときに、伸びやすい順で並べています。表示順の切り替え、順位範囲の指定、「もっと見る」で気になる帯域だけを追えます。
+            {includeAreaBreakdown
+              ? `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えた順位を、釣り場ごとに別行で並べています。`
+              : `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えたときに、伸びやすい順で並べています。`}
           </p>
         </div>
         {!alwaysOpen ? (
@@ -340,8 +362,12 @@ export function RankingView({
             <strong>見方:</strong>{' '}
             {helperText ??
               (showPickActions
-                ? '上にあるほど、今の条件では伸びやすい候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで見たい帯だけを確認できます。1つ押すと、その候補が比較一覧に追加されます。'
-                : '上にあるほど、今の条件で強い候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで、見たい順位帯だけをそのまま追えます。')}
+                ? includeAreaBreakdown
+                  ? '同じ装備でも釣り場ごとに別行で並びます。上位/下位のショートカット、開始/終了順位、表示順の切り替えで、どの釣り場で伸びるかまでそのまま比べられます。1つ押すと、その候補が比較一覧に追加されます。'
+                  : '上にあるほど、今の条件では伸びやすい候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで見たい帯だけを確認できます。1つ押すと、その候補が比較一覧に追加されます。'
+                : includeAreaBreakdown
+                  ? '同じ装備でも釣り場ごとに別行で並びます。どの釣り場で何位かを、そのまま追えるランキングです。'
+                  : '上にあるほど、今の条件で強い候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで、見たい順位帯だけをそのまま追えます。')}
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -360,6 +386,7 @@ export function RankingView({
               }
               onPickItem={onPickItem}
               showPickActions={showPickActions}
+              showAreaBreakdown={includeAreaBreakdown}
             />
           </div>
 
@@ -395,6 +422,7 @@ export function RankingView({
                       }
                       onPickItem={onPickItem}
                       showPickActions={showPickActions}
+                      showAreaBreakdown={includeAreaBreakdown}
                     />
                   ))}
                 </div>

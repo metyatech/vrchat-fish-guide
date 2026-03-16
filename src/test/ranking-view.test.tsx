@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { RankingView } from '@/components/Calculator/RankingView';
 import { getDefaultParams } from '@/lib/calculator';
-import { rankSlot } from '@/lib/ranking';
+import { rankSlot, rankSlotWithAreaBreakdown } from '@/lib/ranking';
 
 describe('RankingView rank window controls', () => {
   it('supports load more, arbitrary rank windows, and reverse order for slot suggestions', () => {
@@ -50,5 +50,29 @@ describe('RankingView rank window controls', () => {
     expect(rows[1]).toHaveTextContent(
       `${entries.length}. ${entries[entries.length - 1].item.nameEn}`,
     );
+  });
+
+  it('can show one ranking row per area when auto area is enabled', () => {
+    const params = {
+      ...getDefaultParams(),
+      timeOfDay: 'day' as const,
+      weatherType: 'clear' as const,
+    };
+    const entries = rankSlotWithAreaBreakdown(params, 'rod');
+
+    render(
+      <RankingView
+        baseParams={params}
+        focusSlot="rod"
+        alwaysOpen
+        topN={5}
+        includeAreaBreakdown={true}
+      />,
+    );
+
+    const table = screen.getByRole('table');
+    const rows = within(table).getAllByRole('row');
+    expect(rows[1]).toHaveTextContent(`1. ${entries[0].item.nameEn}`);
+    expect(rows[1]).toHaveTextContent(`釣り場: ${entries[0].areaName}`);
   });
 });

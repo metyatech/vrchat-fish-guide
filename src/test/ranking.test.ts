@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
+import { FISHING_AREAS } from '@/data/fish';
 import {
   calculateDistribution,
   calculateOptimizerMetrics,
@@ -12,7 +13,9 @@ import {
   optimizeSubsetBuild,
   optimizeSubsetBuildAsync,
   rankAllSlots,
+  rankAllSlotsWithAreaBreakdown,
   rankSlot,
+  rankSlotWithAreaBreakdown,
   OptimizerProgressEvent,
   RankSlot,
   SubsetOptimizerProgressEvent,
@@ -76,6 +79,20 @@ describe('rankSlot', () => {
     const ids = entries.map((e) => e.item.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it('can expand ranking into one row per area when auto area is selected', () => {
+    const entries = rankSlotWithAreaBreakdown(
+      {
+        ...getDefaultParams(),
+        timeOfDay: 'day',
+        weatherType: 'clear',
+      },
+      'rod',
+    );
+    expect(entries).toHaveLength(RODS.length * FISHING_AREAS.length);
+    expect(entries.every((entry) => entry.areaId && entry.areaName)).toBe(true);
+    expect(new Set(entries.map((entry) => entry.rankingKey)).size).toBe(entries.length);
+  });
 });
 
 describe('rankAllSlots', () => {
@@ -112,6 +129,18 @@ describe('rankAllSlots', () => {
       weatherType: 'clear',
     });
     expect(ranked.rod.length).toBeGreaterThan(0);
+  });
+
+  it('can return per-area ranking rows when the base params use auto area', () => {
+    const ranked = rankAllSlotsWithAreaBreakdown({
+      ...getDefaultParams(),
+      timeOfDay: 'day',
+      weatherType: 'clear',
+    });
+    expect(ranked.rod.length).toBe(RODS.length * FISHING_AREAS.length);
+    expect(ranked.line.length).toBe(LINES.length * FISHING_AREAS.length);
+    expect(ranked.bobber.length).toBe(BOBBERS.length * FISHING_AREAS.length);
+    expect(ranked.enchant.length).toBe(ENCHANTS.length * FISHING_AREAS.length);
   });
 });
 
