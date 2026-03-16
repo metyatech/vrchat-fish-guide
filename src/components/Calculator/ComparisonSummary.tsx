@@ -57,20 +57,22 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div
-                    className={`truncate text-sm font-semibold ${
+                    className={`flex flex-wrap items-center gap-1.5 text-sm font-semibold ${
                       isActive ? 'text-ocean-700' : 'text-gray-800'
                     }`}
                   >
-                    {isActive && (
-                      <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-ocean-500 align-middle" />
+                    {i === 0 && (
+                      <span
+                        className="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600"
+                        data-testid="comparison-baseline-badge"
+                      >
+                        基準
+                      </span>
                     )}
-                    {build.name}
-                  </div>
-                  <div className="mt-1 text-[11px] text-gray-500">
-                    期待値/時間のベストは
-                    <span className="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
-                      緑
-                    </span>
+                    {isActive && (
+                      <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-ocean-500 align-middle" />
+                    )}
+                    <span className="truncate">{build.name}</span>
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
@@ -154,14 +156,22 @@ export function ComparisonSummary({ builds, results, activeId, onSelect }: Compa
                   <td className="py-2.5">
                     <button
                       onClick={() => onSelect(build.id)}
-                      className={`w-full break-words text-left font-medium transition-colors ${
+                      className={`flex min-w-0 flex-wrap items-center gap-1.5 text-left font-medium transition-colors ${
                         isActive ? 'text-ocean-700' : 'text-gray-700 hover:text-ocean-600'
                       }`}
                     >
-                      {isActive && (
-                        <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-ocean-500 align-middle" />
+                      {i === 0 && (
+                        <span
+                          className="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600"
+                          data-testid="comparison-baseline-badge"
+                        >
+                          基準
+                        </span>
                       )}
-                      {build.name}
+                      {isActive && (
+                        <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-ocean-500 align-middle" />
+                      )}
+                      <span className="min-w-0 break-words">{build.name}</span>
                     </button>
                   </td>
                   <td className={`py-2.5 text-right ${isTopEvHour ? 'rounded-lg' : ''}`}>

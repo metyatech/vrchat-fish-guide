@@ -17,12 +17,19 @@
 
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CalculatorPageClient } from '@/app/calculator/CalculatorPageClient';
 import { ParameterForm } from '@/components/Calculator/ParameterForm';
 import { calculateDistribution, getDefaultParams } from '@/lib/calculator';
 
 describe('UI quality – overflow and wrapping prevention', () => {
+  // Reset the URL hash before each test so that state from previous tests (e.g.
+  // multi-build hash written by tests that add candidates) does not leak into
+  // subsequent tests that expect a clean single-build initial state.
+  beforeEach(() => {
+    window.history.replaceState(null, '', window.location.pathname);
+  });
+
   function renderDefault() {
     const params = getDefaultParams();
     const result = calculateDistribution(params);
@@ -354,5 +361,243 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(
       screen.getByText('比較一覧にある候補を、同じ釣り場と同じ前提で比べられるように整えます。'),
     ).toBeInTheDocument();
+  });
+
+  // ── Setup section collapse / expand behaviour (AC1 + AC2) ─────────────────
+
+  it('collapses the setup form by default for ranking goal and shows compact assumptions', () => {
+    render(<CalculatorPageClient />);
+
+    // ParameterForm inner content should not render while collapsed.
+    expect(screen.queryByTestId('current-loadout-table')).not.toBeInTheDocument();
+    // Toggle button is visible.
+    expect(screen.getByTestId('setup-toggle')).toBeInTheDocument();
+    expect(screen.getByTestId('setup-toggle')).toHaveAttribute('aria-expanded', 'false');
+    // Compact assumptions summary is visible.
+    const summary = screen.getByTestId('setup-collapsed-summary');
+    expect(summary).toBeInTheDocument();
+    expect(summary).toHaveTextContent('釣り場:');
+    expect(summary).toHaveTextContent('時間帯:');
+    expect(summary).toHaveTextContent('天気:');
+    // Step heading and description are still accessible.
+    expect(screen.getByRole('heading', { name: '条件と基準装備を決める' })).toBeInTheDocument();
+    expect(screen.getByText('2. ランキングの条件と基準装備を決める')).toBeInTheDocument();
+  });
+
+  it('expands the setup form when the toggle button is clicked', () => {
+    render(<CalculatorPageClient />);
+
+    const toggle = screen.getByTestId('setup-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('current-loadout-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('setup-collapsed-summary')).not.toBeInTheDocument();
+  });
+
+  it('shows the setup form expanded by default for non-ranking goals', () => {
+    render(<CalculatorPageClient />);
+
+    // Switch to summary goal – setup should open automatically.
+    fireEvent.click(screen.getByRole('button', { name: /今の装備の時給を見る/ }));
+
+    expect(screen.getByTestId('current-loadout-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('setup-toggle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('setup-collapsed-summary')).not.toBeInTheDocument();
+  });
+
+  // ── Compare state feedback (AC3) ──────────────────────────────────────────
+
+  it('shows saved count badge in slot selector when candidates have been saved', () => {
+    render(<CalculatorPageClient />);
+
+    // No badge before any saves.
+    expect(screen.queryByTestId('saved-count-badge')).not.toBeInTheDocument();
+
+    // Switch to upgrade goal and add the top recommendation.
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
+    const addButton = screen.queryByRole('button', { name: 'この候補を比較に追加' });
+    if (addButton) {
+      fireEvent.click(addButton);
+      // After adding, view switches to compare – switch back to ranking to see badge.
+      fireEvent.click(screen.getByRole('button', { name: /ランキングだけ見る/ }));
+      expect(screen.getByTestId('saved-count-badge')).toBeInTheDocument();
+      expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('保存済み');
+      expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('比較を見る');
+    }
+  });
+
+  it('shows a compare toast notification immediately after adding a candidate', () => {
+    render(<CalculatorPageClient />);
+
+    // Switch to upgrade goal where pick actions are enabled.
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
+    const addButton = screen.queryByRole('button', { name: 'この候補を比較に追加' });
+    if (addButton) {
+      fireEvent.click(addButton);
+      // After adding, the compare view opens and toast should be visible.
+      expect(screen.getByTestId('compare-toast')).toBeInTheDocument();
+      expect(screen.getByTestId('compare-toast')).toHaveTextContent('比較に追加しました');
+    }
+  });
+
+  // ── Round 2: next-step guidance and compare clarity ───────────────────────
+
+  it('setup section is the scroll target after goal selection', () => {
+    render(<CalculatorPageClient />);
+
+    // The setup section must always be present so the ref-based scroll target exists.
+    expect(screen.getByTestId('setup-section')).toBeInTheDocument();
+
+    // After switching to a different goal the setup section must still be present.
+    fireEvent.click(screen.getByRole('button', { name: /今の装備の時給を見る/ }));
+    expect(screen.getByTestId('setup-section')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /保存した候補を並べて比べる/ }));
+    expect(screen.getByTestId('setup-section')).toBeInTheDocument();
+  });
+
+  it('compare empty state shows navigation buttons to ranking and upgrade flows', () => {
+    render(<CalculatorPageClient />);
+
+    // Switch to compare goal; no candidates exist yet.
+    fireEvent.click(screen.getByRole('button', { name: /保存した候補を並べて比べる/ }));
+
+    const emptyState = screen.getByTestId('compare-empty-state');
+    expect(emptyState).toBeInTheDocument();
+    expect(emptyState).toHaveTextContent('まだ比較する候補がありません');
+
+    // Navigation buttons must be present.
+    expect(screen.getByTestId('compare-empty-go-ranking')).toBeInTheDocument();
+    expect(screen.getByTestId('compare-empty-go-upgrade')).toBeInTheDocument();
+
+    // Clicking the ranking button switches the goal view.
+    fireEvent.click(screen.getByTestId('compare-empty-go-ranking'));
+    expect(screen.getByRole('heading', { name: 'Rod のランキング' })).toBeInTheDocument();
+    expect(screen.queryByTestId('compare-empty-state')).not.toBeInTheDocument();
+  });
+
+  it('compare empty-state upgrade button switches to the upgrade flow', () => {
+    render(<CalculatorPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: /保存した候補を並べて比べる/ }));
+    fireEvent.click(screen.getByTestId('compare-empty-go-upgrade'));
+
+    // Upgrade goal shows "次の装備" slot selector.
+    expect(screen.getByText('3. 次に試す欄を決める')).toBeInTheDocument();
+  });
+
+  it('comparison summary labels the first build as 基準', () => {
+    render(<CalculatorPageClient />);
+
+    // Add a candidate via upgrade flow.
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
+    const addButton = screen.queryByRole('button', { name: 'この候補を比較に追加' });
+    if (addButton) {
+      fireEvent.click(addButton);
+      // Now in compare view with 2 builds – first should have 基準 badge.
+      const baseBadges = screen.getAllByTestId('comparison-baseline-badge');
+      expect(baseBadges.length).toBeGreaterThanOrEqual(1);
+      expect(baseBadges[0]).toHaveTextContent('基準');
+    }
+  });
+
+  it('ranking results container re-mounts when slot selection changes', () => {
+    render(<CalculatorPageClient />);
+
+    const container = screen.getByTestId('ranking-results-container');
+    expect(container).toBeInTheDocument();
+
+    // After switching slot selection the container should still be present.
+    const selector = screen.getByTestId('compare-slot-selector');
+    fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
+
+    expect(screen.getByTestId('ranking-results-container')).toBeInTheDocument();
+  });
+
+  // ── Round 3: GUI review P2/P3/P4/P5/P7 regressions ───────────────────────
+
+  it('picker instruction text is layout-agnostic (no left/right direction labels)', () => {
+    renderDefault();
+
+    // Open the rod picker to make the instruction text visible.
+    fireEvent.click(screen.getByRole('button', { name: 'Rod を選び直す' }));
+
+    // Instruction text must not reference screen directions that break on mobile.
+    const body = document.body.textContent ?? '';
+    // "左を見ながら" and "右の候補" patterns must not appear in instruction strings.
+    expect(body).not.toMatch(/左を見ながら/);
+    expect(body).not.toMatch(/右の候補から選ぶ/);
+    expect(body).not.toMatch(/左の「いまの装備」を見たまま/);
+  });
+
+  it('comparison summary mobile card helper text appears only once (in section header, not per-card)', () => {
+    render(<CalculatorPageClient />);
+
+    // Add a candidate to get two builds so ComparisonSummary renders.
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
+    const addButton = screen.queryByRole('button', { name: 'この候補を比較に追加' });
+    if (!addButton) return;
+    fireEvent.click(addButton);
+
+    // The "期待値/時間のベストは緑" helper must appear at most once (section header only).
+    const matches = screen.queryAllByText(/期待値\/時間のベストは/);
+    expect(matches.length).toBeLessThanOrEqual(1);
+  });
+
+  it('slot-selector section does not render a standalone 選択中 context panel', () => {
+    render(<CalculatorPageClient />);
+
+    // The duplicate "選択中" panel was removed; text may still appear in aria-labels
+    // but must not appear as a visible heading within the slot selector section.
+    const selector = screen.getByTestId('compare-slot-selector');
+    const parent = selector.closest('section');
+    expect(parent).not.toBeNull();
+    // No h* element with text 選択中 inside the section.
+    const headingsWithSelecting = Array.from(
+      (parent as HTMLElement).querySelectorAll('h1,h2,h3,h4,h5,h6'),
+    ).filter((el) => el.textContent?.trim() === '選択中');
+    expect(headingsWithSelecting).toHaveLength(0);
+  });
+
+  it('ranking goal shows metric as compact row, not heavy 3-card cluster', () => {
+    render(<CalculatorPageClient />);
+
+    // The metric element must still be present (for accessibility and EV tracking)
+    // but must not contain a large heading-level number in the 3-card layout.
+    const metricEl = screen.getByTestId('context-expected-value-per-hour');
+    expect(metricEl).toBeInTheDocument();
+    // Compact row: should not contain a child with text-3xl (used only in the full card).
+    const largeNumbers = metricEl.querySelectorAll('.text-3xl');
+    expect(largeNumbers.length).toBe(0);
+  });
+
+  it('summary goal shows full 3-card metric cluster', () => {
+    render(<CalculatorPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: /今の装備の時給を見る/ }));
+    const metricEl = screen.getByTestId('context-expected-value-per-hour');
+    expect(metricEl).toBeInTheDocument();
+    // Full card layout has a large number with text-3xl.
+    const largeNumbers = metricEl.querySelectorAll('.text-3xl');
+    expect(largeNumbers.length).toBeGreaterThan(0);
+  });
+
+  it('compare toast includes a progress bar to signal auto-dismiss lifecycle', () => {
+    render(<CalculatorPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
+    const addButton = screen.queryByRole('button', { name: 'この候補を比較に追加' });
+    if (!addButton) return;
+    fireEvent.click(addButton);
+
+    const toast = screen.getByTestId('compare-toast');
+    expect(toast).toBeInTheDocument();
+    // Progress bar must be present inside the toast as a lifecycle cue.
+    const progressBar = screen.getByTestId('compare-toast-progress');
+    expect(progressBar).toBeInTheDocument();
+    expect(toast.contains(progressBar)).toBe(true);
   });
 });

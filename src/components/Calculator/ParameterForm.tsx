@@ -1083,7 +1083,7 @@ function CurrentLoadoutTable({
                 </span>
               </div>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                左を見ながら、右の候補を比べて選べます。
+                今の装備と候補を見比べながら選べます。
               </p>
               <StatAbbreviationLegend className="mt-3" />
             </div>
@@ -1215,7 +1215,7 @@ function CurrentLoadoutTable({
                         }`}
                       >
                         {isActive
-                          ? '右の候補から選ぶと、この行だけが更新されます'
+                          ? '候補から選ぶと、この行だけが更新されます'
                           : 'この行をクリックして変更'}
                       </div>
                       {isActive ? (
@@ -1975,7 +1975,7 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
               {LOADOUT_SLOT_LABELS[slot]} の候補
             </h3>
             <p className="mt-0.5 text-sm leading-relaxed text-slate-600">
-              左の「いまの装備」を見たまま、この候補と比べて選べます。
+              今の装備と並べて確認しながら選べます。
             </p>
           </div>
           <button
@@ -2814,7 +2814,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">いまの装備</h2>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            行をクリックすると、その部位を右の候補一覧と比べながら選び直せます。
+            行をクリックすると、その部位の候補一覧と見比べながら選び直せます。
           </p>
         </div>
 

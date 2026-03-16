@@ -44,6 +44,13 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByText('1. 何をしたいか決める')).toBeVisible();
   await expect(page.getByRole('heading', { name: '何を見たい？' })).toBeVisible();
   await expect(page.getByText('2. ランキングの条件と基準装備を決める')).toBeVisible();
+
+  // Setup section is collapsed by default for ranking goal (result-first UX).
+  await expect(page.getByTestId('setup-collapsed-summary')).toBeVisible();
+  await expect(page.getByTestId('current-loadout-table')).not.toBeVisible();
+  // Expand setup to interact with ParameterForm.
+  await page.getByTestId('setup-toggle').click();
+
   await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: '3. ランキング対象を決める' })).toBeVisible();
   await expect(page.getByText('4. ランキングを見る')).toBeVisible();
@@ -162,6 +169,8 @@ test('current loadout table has no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  // Expand setup section before interacting with loadout table.
+  await page.getByTestId('setup-toggle').click();
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('active-slot-indicator')).toHaveCount(0);
   await expect(page.getByTestId('current-loadout-card')).toHaveCSS('overflow', 'visible');
@@ -230,6 +239,7 @@ test('desktop widths switch Step 1 into a side-by-side comparison workspace', as
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toContainText('Rod の候補');
@@ -272,6 +282,7 @@ test('1920-width desktop keeps the picker in the side workspace', async ({ page 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
 
   const workspaceShell = page.getByTestId('slot-picker-workspace-shell');
@@ -313,7 +324,8 @@ test('calculator avoids horizontal scrolling on a narrow viewport', async ({ pag
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/calculator/');
 
-  await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
+  // Collapsed state: compact assumptions summary visible, no horizontal overflow.
+  await expect(page.getByTestId('setup-collapsed-summary')).toBeVisible();
 
   const pageOverflow = await page.evaluate(() => {
     const target = document.documentElement;
@@ -334,6 +346,7 @@ test('current loadout workspace visual appearance matches snapshot', async ({ pa
   await page.setViewportSize({ width: 1720, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('active-slot-indicator')).toContainText('Rod を編集中');
   const workspaceBoard = page.getByTestId('current-loadout-workspace-board');
@@ -360,6 +373,7 @@ test('clicking outside the picker panel closes it', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   await expect(page.getByTestId('slot-picker-panel')).toContainText('Rod の候補');
 
@@ -372,6 +386,7 @@ test('scrolled picker panel keeps the header sealed', async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByLabel('Enchant を選び直す').click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toContainText('Enchant の候補');
@@ -428,6 +443,7 @@ test('equipment picker search filters items by name, location, and special effec
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
   await expect(pickerPanel).toContainText('Rod の候補');
@@ -470,6 +486,7 @@ test('candidate picker supports recommendation-tag filters and stat-improvement 
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
@@ -492,6 +509,7 @@ test('candidate picker supports advanced price and stat range filters', async ({
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
@@ -519,6 +537,7 @@ test('candidate picker shows active filter chips and supports multiple locations
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const pickerPanel = page.getByTestId('slot-picker-panel');
 
@@ -545,6 +564,7 @@ test('mobile widths keep a compact current-loadout summary above the stacked pic
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
 
   const mobileSummary = page.getByTestId('mobile-current-loadout-summary');
@@ -559,6 +579,7 @@ test('candidate rows show per-stat deltas against the current equipment', async 
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/calculator/');
 
+  await page.getByTestId('setup-toggle').click();
   await page.getByRole('button', { name: 'Rod を選び直す' }).click();
   const sunleafRow = page.getByTestId('picker-option-row').filter({ hasText: 'Sunleaf Rod' });
 
