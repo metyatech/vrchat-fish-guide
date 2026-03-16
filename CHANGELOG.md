@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.66] - 2026-03-16
+
+### Changed
+
+- **The calculator now reduces Step 1 GUI noise in the places the review flagged first**: comparison cards no longer repeat the same green-highlight explanation, the picker instructions no longer talk about `left/right` on layouts where that is false, and the selected-slot flow no longer inserts an extra standalone `選択中` panel before the ranking itself.
+- **Ranking and upgrade goals now keep active conditions visible without overwhelming the ranking results**: the setup summary chips use stronger active-state styling when collapsed, while the heavy three-card metrics collapse into a lighter inline summary so the ranking remains the main thing on screen.
+- **The compare-added toast now signals that it will disappear on its own**: the transient confirmation includes a visible progress bar instead of appearing and vanishing with no timing cue.
+
 ## [0.12.65] - 2026-03-14
 
 ### Changed
