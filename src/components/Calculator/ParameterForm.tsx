@@ -2435,9 +2435,6 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
         data-testid="picker-column-header"
         className="border-b border-slate-200 bg-white px-4 shadow-[0_1px_0_rgba(226,232,240,1)]"
       >
-        <div className="px-2 pt-2 text-[11px] font-medium text-slate-500">
-          候補の値と、いまの装備との差を同じ列で見比べられます。
-        </div>
         <StatAbbreviationLegend className="px-2 pb-1 pt-1" />
         <div
           className={`grid ${PICKER_GRID_COLUMNS} items-center bg-white px-0 pb-2 pt-1 text-[11px] font-bold uppercase tracking-[0.14em]`}
@@ -2563,11 +2560,6 @@ function LoadoutPickerPanel<T extends EquipmentItem | EnchantItem>({
                 </div>
                 <div className="mt-0.5 break-words text-xs leading-5 text-gray-600">
                   {formatItemDetail(selectedItem)}
-                </div>
-                <div className="mt-2">
-                  <span className="inline-flex items-center rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                    このまま使う
-                  </span>
                 </div>
               </div>
               <div className="px-1 py-3 text-center">
@@ -2814,7 +2806,7 @@ export function ParameterForm({ params, model, onChange }: ParameterFormProps) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">いまの装備</h2>
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            行をクリックすると、その部位の候補一覧と見比べながら選び直せます。
+            変えたい行をクリックすると、その部位の候補が開きます。
           </p>
         </div>
 

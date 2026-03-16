@@ -349,9 +349,9 @@ export function RankingView({
         {!alwaysOpen ? (
           <button
             onClick={() => setIsExpanded((value) => !value)}
-            className="ml-4 shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-ocean-300 hover:text-ocean-700"
+            className="ml-4 shrink-0 rounded-lg border border-ocean-200 bg-white px-3 py-1.5 text-sm font-medium text-ocean-700 transition-colors hover:border-ocean-300 hover:bg-ocean-50"
           >
-            {isExpanded ? '閉じる ▲' : '表示 ▼'}
+            {isExpanded ? '候補を閉じる' : '候補を見る'}
           </button>
         ) : null}
       </div>
@@ -359,15 +359,14 @@ export function RankingView({
       {isVisible && (
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-800">
-            <strong>見方:</strong>{' '}
             {helperText ??
               (showPickActions
                 ? includeAreaBreakdown
-                  ? '同じ装備でも釣り場ごとに別行で並びます。上位/下位のショートカット、開始/終了順位、表示順の切り替えで、どの釣り場で伸びるかまでそのまま比べられます。1つ押すと、その候補が比較一覧に追加されます。'
-                  : '上にあるほど、今の条件では伸びやすい候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで見たい帯だけを確認できます。1つ押すと、その候補が比較一覧に追加されます。'
+                  ? '同じ候補でも、釣り場ごとに別行で並びます。気になる候補はそのまま比較に追加できます。'
+                  : '上にあるほど強い候補です。気になる候補はそのまま比較に追加できます。'
                 : includeAreaBreakdown
-                  ? '同じ装備でも釣り場ごとに別行で並びます。どの釣り場で何位かを、そのまま追えるランキングです。'
-                  : '上にあるほど、今の条件で強い候補です。上位/下位のショートカット、開始/終了順位、表示順の切り替えで、見たい順位帯だけをそのまま追えます。')}
+                  ? '同じ候補でも、釣り場ごとに別行で順位を追えます。'
+                  : '上にあるほど強い候補です。')}
           </div>
 
           <div className="grid grid-cols-1 gap-4">

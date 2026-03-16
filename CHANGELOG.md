@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.68] - 2026-03-16
+
+### Changed
+
+- **The Step 1 picker and ranking panels now read more cleanly after a focused GUI review**: the current-loadout section uses shorter task language, the sticky current-item row no longer repeats a second emerald action badge, and the ranking help callout is now a compact one-line guide instead of a dense multi-sentence block.
+- **Collapsed ranking controls now follow more familiar disclosure wording**: optional ranking panels use `候補を見る` / `候補を閉じる` instead of the older `表示 ▼` / `閉じる ▲` pattern.
+
 ## [0.12.67] - 2026-03-16
 
 ### Changed

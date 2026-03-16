@@ -854,8 +854,8 @@ export function CalculatorPageClient() {
                     helperText={
                       isRankingGoal
                         ? activeBuild.params.areaId === BEST_AREA_ID
-                          ? 'この欄だけを入れ替えた順位を、釣り場ごとに別行で見ます。まず上位を見て、必要なら下位や特定順位帯まで追いかけられます。'
-                          : 'この欄だけを入れ替えた順位です。まず上位を見て、必要なら下位や特定順位帯まで追いかけられます。'
+                          ? 'この欄だけを入れ替えた順位を、釣り場ごとに見ます。'
+                          : 'この欄だけを入れ替えた順位です。'
                         : undefined
                     }
                   />
