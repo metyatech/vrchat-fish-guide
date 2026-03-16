@@ -4,6 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.70] - 2026-03-16
+
+### Changed
+
+- **Ranking now behaves like a leaderboard first and a constraint editor second**: the ranking goal reads as "see which slot is strongest", the ranking flow now orders itself as slot selection → ranking → optional condition changes, and the supporting copy stops leading with fixed-slot constraints.
+- **Ranking copy now reads in player terms instead of configuration terms**: the ranking card, helper text, and README consistently describe "show the strongest candidates for this slot" before mentioning what stays fixed, so the mode is easier to understand at a glance.
+
 ## [0.12.69] - 2026-03-16
 
 ### Changed

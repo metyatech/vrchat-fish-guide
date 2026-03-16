@@ -46,7 +46,7 @@ const SLOT_LABELS: Record<RankSlot, string> = {
 const ALL_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
 
 const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
-  ranking: '変えたい欄だけを入れ替え、残りを固定したまま順位を見ます。',
+  ranking: '見たい欄を選ぶと、その候補が強い順に並びます。',
   upgrade: '変えたいスロットを選び、気になる候補だけを比較へ送ります。',
   compare: '追加した候補を並べて、どれが一番伸びるかを選びます。',
   summary: 'いまの条件でどれだけ稼げるかを、主要指標から先に確認します。',
@@ -55,8 +55,9 @@ const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
 
 const SETUP_SECTION_COPY: Record<CalculatorGoal, { title: string; description: string }> = {
   ranking: {
-    title: '2. ランキングの条件と基準装備を決める',
-    description: 'どの条件で順位を見るかを、装備・釣り場・時間帯・天気から決めます。',
+    title: '4. 必要なら条件を変える',
+    description:
+      '釣り場・時間帯・天気・基準装備を変えたいときだけ開いてください。変えなくても順位は見られます。',
   },
   upgrade: {
     title: '2. 今の装備と比較条件を決める',
@@ -391,10 +392,10 @@ export function CalculatorPageClient() {
   const showSelectionTools = isRankingGoal || isUpgradeGoal;
   const selectionHelperText = isSingleSlotSelection
     ? isRankingGoal
-      ? `${SLOT_LABELS[primarySlot]} だけを入れ替えます。${fixedSlotsLabel} は今の装備のまま固定です。もう1つ押すと、その組み合わせの順位に切り替わります。`
+      ? `${SLOT_LABELS[primarySlot]} の候補を強い順に表示中。（固定: ${fixedSlotsLabel}）もう1つ押すと、その組み合わせの順位に切り替わります。`
       : `${SLOT_LABELS[primarySlot]} だけを変えた候補を見ます。もう1つ押すと組み合わせ検索に切り替わります。`
     : isRankingGoal
-      ? `${selectedSlotsLabel} だけを入れ替えます。${fixedSlotsLabel} は今の装備のまま固定です。`
+      ? `${selectedSlotsLabel} の組み合わせを最適化中。（固定: ${fixedSlotsLabel}）`
       : `${selectedSlotsLabel} を変え、残りのスロットは現在の装備で固定します。`;
 
   const hasComparisons = builds.length > 1;
@@ -415,15 +416,18 @@ export function CalculatorPageClient() {
         : RESULT_SECTION_COPY.compare;
   const goalContextLoadoutLabel = goalView === 'compare' ? '表示中の候補' : '基準装備';
   const currentValueCardTitle = goalView === 'summary' ? 'いまの時給' : 'この条件の目安';
-  const selectionSectionTitle = isRankingGoal
-    ? '3. どの欄を入れ替えて順位を見るか決める'
-    : '3. 次に試す欄を決める';
+  const selectionSectionTitle = isRankingGoal ? '2. 順位を見る欄を選ぶ' : '3. 次に試す欄を決める';
   const selectionSectionDescription = isRankingGoal
-    ? '選んだ欄だけ変わります。選んでいない欄は今の装備のまま固定です。'
+    ? '選んだ欄の候補を強い順に並べます。（ほかの欄はいまの装備で固定）'
     : '1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。';
-  const rankingResultsStepLabel = isRankingGoal ? '4. 条件つきの順位を見る' : '4. 候補を見る';
-  const goalContextEyebrow = showSelectionTools ? 'この条件で見ています' : '3. 結果を見る';
+  const rankingResultsStepLabel = isRankingGoal ? '3. 順位を見る' : '4. 候補を見る';
+  const goalContextEyebrow = isRankingGoal
+    ? 'この順位の前提'
+    : showSelectionTools
+      ? 'この条件で見ています'
+      : '3. 結果を見る';
   const setupSectionCopy = SETUP_SECTION_COPY[goalView];
+  const setupSectionHeading = isRankingGoal ? '必要なら条件を変える' : '条件と基準装備を決める';
 
   // ── Share URL ──────────────────────────────────────────────────────────────
 
@@ -603,62 +607,64 @@ export function CalculatorPageClient() {
       <div className="space-y-6">
         <GoalModePicker value={goalView} onChange={handleGoalChange} />
 
-        <section
-          ref={nextSectionRef}
-          className="rounded-[30px] border border-white/80 bg-white/84 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm"
-          data-testid="setup-section"
-        >
-          {/* Header – always visible regardless of collapse state */}
-          <div className="flex items-start justify-between gap-3 p-5">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
-                {setupSectionCopy.title}
+        {!isRankingGoal ? (
+          <section
+            ref={nextSectionRef}
+            className="rounded-[30px] border border-white/80 bg-white/84 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm"
+            data-testid="setup-section"
+          >
+            {/* Header – always visible regardless of collapse state */}
+            <div className="flex items-start justify-between gap-3 p-5">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
+                  {setupSectionCopy.title}
+                </div>
+                <h2 className="mt-2 text-lg font-semibold text-gray-900">{setupSectionHeading}</h2>
+                <p className="mt-1 text-sm text-gray-500">{setupSectionCopy.description}</p>
               </div>
-              <h2 className="mt-2 text-lg font-semibold text-gray-900">条件と基準装備を決める</h2>
-              <p className="mt-1 text-sm text-gray-500">{setupSectionCopy.description}</p>
+              {showSelectionTools && (
+                <button
+                  type="button"
+                  data-testid="setup-toggle"
+                  aria-expanded={setupOpen}
+                  onClick={handleSetupToggle}
+                  className="mt-1 shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
+                >
+                  {setupOpen ? '▲ 折りたたむ' : '▼ 条件を変える'}
+                </button>
+              )}
             </div>
-            {showSelectionTools && (
-              <button
-                type="button"
-                data-testid="setup-toggle"
-                aria-expanded={setupOpen}
-                onClick={handleSetupToggle}
-                className="mt-1 shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
+
+            {/* Compact assumptions summary – visible when collapsed for ranking/upgrade */}
+            {showSelectionTools && !setupOpen && (
+              <div
+                data-testid="setup-collapsed-summary"
+                className="flex flex-wrap gap-2 border-t border-slate-100 px-5 pb-4 pt-3"
               >
-                {setupOpen ? '▲ 折りたたむ' : '▼ 前提を変える'}
-              </button>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                  釣り場: {areaContextText}
+                </span>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                  時間帯: {formatSelectedTimeLabel(activeBuild.params.timeOfDay)}
+                </span>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                  天気: {formatSelectedWeatherLabel(activeBuild.params.weatherType)}
+                </span>
+              </div>
             )}
-          </div>
 
-          {/* Compact assumptions summary – visible when collapsed for ranking/upgrade */}
-          {showSelectionTools && !setupOpen && (
-            <div
-              data-testid="setup-collapsed-summary"
-              className="flex flex-wrap gap-2 border-t border-slate-100 px-5 pb-4 pt-3"
-            >
-              <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                釣り場: {areaContextText}
-              </span>
-              <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                時間帯: {formatSelectedTimeLabel(activeBuild.params.timeOfDay)}
-              </span>
-              <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
-                天気: {formatSelectedWeatherLabel(activeBuild.params.weatherType)}
-              </span>
-            </div>
-          )}
-
-          {/* ParameterForm – visible when not a ranking/upgrade goal, or when explicitly expanded */}
-          {(!showSelectionTools || setupOpen) && (
-            <div className="border-t border-slate-100">
-              <ParameterForm
-                params={activeBuild.params}
-                model={activeResult.model}
-                onChange={handleParamsChange}
-              />
-            </div>
-          )}
-        </section>
+            {/* ParameterForm – visible when not a ranking/upgrade goal, or when explicitly expanded */}
+            {(!showSelectionTools || setupOpen) && (
+              <div className="border-t border-slate-100">
+                <ParameterForm
+                  params={activeBuild.params}
+                  model={activeResult.model}
+                  onChange={handleParamsChange}
+                />
+              </div>
+            )}
+          </section>
+        ) : null}
 
         {showSelectionTools ? (
           <>
@@ -752,7 +758,7 @@ export function CalculatorPageClient() {
               </div>
             </section>
 
-            {goalContextSection}
+            {!isRankingGoal ? goalContextSection : null}
 
             <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
               <div>
@@ -876,7 +882,65 @@ export function CalculatorPageClient() {
                 )}
               </div>
             </section>
+
+            {isRankingGoal ? goalContextSection : null}
           </>
+        ) : null}
+
+        {isRankingGoal ? (
+          <section
+            ref={nextSectionRef}
+            className="rounded-[30px] border border-white/80 bg-white/84 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm"
+            data-testid="setup-section"
+          >
+            <div className="flex items-start justify-between gap-3 p-5">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
+                  {setupSectionCopy.title}
+                </div>
+                <h2 className="mt-2 text-lg font-semibold text-gray-900">{setupSectionHeading}</h2>
+                <p className="mt-1 text-sm text-gray-500">{setupSectionCopy.description}</p>
+              </div>
+              {showSelectionTools && (
+                <button
+                  type="button"
+                  data-testid="setup-toggle"
+                  aria-expanded={setupOpen}
+                  onClick={handleSetupToggle}
+                  className="mt-1 shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50"
+                >
+                  {setupOpen ? '▲ 折りたたむ' : '▼ 条件を変える'}
+                </button>
+              )}
+            </div>
+
+            {showSelectionTools && !setupOpen && (
+              <div
+                data-testid="setup-collapsed-summary"
+                className="flex flex-wrap gap-2 border-t border-slate-100 px-5 pb-4 pt-3"
+              >
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                  釣り場: {areaContextText}
+                </span>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                  時間帯: {formatSelectedTimeLabel(activeBuild.params.timeOfDay)}
+                </span>
+                <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                  天気: {formatSelectedWeatherLabel(activeBuild.params.weatherType)}
+                </span>
+              </div>
+            )}
+
+            {(!showSelectionTools || setupOpen) && (
+              <div className="border-t border-slate-100">
+                <ParameterForm
+                  params={activeBuild.params}
+                  model={activeResult.model}
+                  onChange={handleParamsChange}
+                />
+              </div>
+            )}
+          </section>
         ) : null}
 
         {!showSelectionTools ? goalContextSection : null}

@@ -344,13 +344,13 @@ export function RankingView({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-gray-800">
-            {title ?? `${SLOT_LABELS[focusSlot]} の候補一覧`}
+            {title ?? `${SLOT_LABELS[focusSlot]} 順位表`}
           </h2>
           <p className="mt-0.5 text-xs text-gray-500">
             {description ??
               (includeAreaBreakdown
-                ? `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えた順位を、釣り場ごとに別行で並べています。`
-                : `いまの装備のまま ${SLOT_LABELS[focusSlot]} だけを変えたときに、伸びやすい順で並べています。`)}
+                ? `${SLOT_LABELS[focusSlot]} を変えたとき、どれが一番伸びるかを釣り場ごとに並べています。`
+                : `${SLOT_LABELS[focusSlot]} を変えたとき、どれが一番伸びるかを強い順に並べています。`)}
           </p>
         </div>
         {!alwaysOpen ? (

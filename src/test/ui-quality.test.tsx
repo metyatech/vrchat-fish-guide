@@ -237,7 +237,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const context = screen.getByTestId('current-goal-context');
-    expect(context).toHaveTextContent('いまは「条件を固定して順位を見る」を表示中');
+    expect(context).toHaveTextContent('いまは「スロット別に強い装備を順位で見る」を表示中');
     expect(context).toHaveTextContent(/基準装備:/);
     expect(context).toHaveTextContent(/釣り場:/);
     expect(context).toHaveTextContent(/時間帯:/);
@@ -281,9 +281,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
       screen.getByRole('heading', { name: 'Rod + Line を入れ替えた順位' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Rod + Line だけを入れ替えます。Bobber / Enchant は今の装備のまま固定です。',
-      ),
+      screen.getByText('Rod + Line の組み合わせを最適化中。（固定: Bobber / Enchant）'),
     ).toBeInTheDocument();
     expect(
       within(selector)
@@ -310,28 +308,27 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const goalHeading = screen.getByRole('heading', { name: '何を見たい？' });
-    const setupHeading = screen.getByRole('heading', { name: '条件と基準装備を決める' });
-    const selectionHeading = screen.getByRole('heading', {
-      name: '3. どの欄を入れ替えて順位を見るか決める',
-    });
+    const selectionHeading = screen.getByRole('heading', { name: '2. 順位を見る欄を選ぶ' });
     const context = screen.getByTestId('current-goal-context');
     const rankingHeading = screen.getByRole('heading', { name: 'Rod を入れ替えた順位' });
+    const setupHeading = screen.getByRole('heading', { name: '必要なら条件を変える' });
 
     expect(
-      goalHeading.compareDocumentPosition(setupHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      goalHeading.compareDocumentPosition(selectionHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      setupHeading.compareDocumentPosition(selectionHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      selectionHeading.compareDocumentPosition(rankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      selectionHeading.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING,
+      rankingHeading.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      context.compareDocumentPosition(rankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      context.compareDocumentPosition(setupHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getByText('1. 何をしたいか決める')).toBeInTheDocument();
-    expect(screen.getByText('2. ランキングの条件と基準装備を決める')).toBeInTheDocument();
-    expect(screen.getByText('4. 条件つきの順位を見る')).toBeInTheDocument();
+    expect(screen.getByText('2. 順位を見る欄を選ぶ')).toBeInTheDocument();
+    expect(screen.getByText('3. 順位を見る')).toBeInTheDocument();
+    expect(screen.getByText('4. 必要なら条件を変える')).toBeInTheDocument();
   });
 
   it('shows only the sections needed for the selected goal', () => {
@@ -357,9 +354,11 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('updates the setup guidance after changing the goal', () => {
     render(<CalculatorPageClient />);
 
-    expect(screen.getByText('2. ランキングの条件と基準装備を決める')).toBeInTheDocument();
+    expect(screen.getByText('4. 必要なら条件を変える')).toBeInTheDocument();
     expect(
-      screen.getByText('どの条件で順位を見るかを、装備・釣り場・時間帯・天気から決めます。'),
+      screen.getByText(
+        '釣り場・時間帯・天気・基準装備を変えたいときだけ開いてください。変えなくても順位は見られます。',
+      ),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /保存した候補を並べて比べる/ }));
@@ -386,8 +385,8 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(summary).toHaveTextContent('時間帯:');
     expect(summary).toHaveTextContent('天気:');
     // Step heading and description are still accessible.
-    expect(screen.getByRole('heading', { name: '条件と基準装備を決める' })).toBeInTheDocument();
-    expect(screen.getByText('2. ランキングの条件と基準装備を決める')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '必要なら条件を変える' })).toBeInTheDocument();
+    expect(screen.getByText('4. 必要なら条件を変える')).toBeInTheDocument();
   });
 
   it('expands the setup form when the toggle button is clicked', () => {
@@ -428,7 +427,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     if (addButton) {
       fireEvent.click(addButton);
       // After adding, view switches to compare – switch back to ranking to see badge.
-      fireEvent.click(screen.getByRole('button', { name: /条件を固定して順位を見る/ }));
+      fireEvent.click(screen.getByRole('button', { name: /スロット別に強い装備を順位で見る/ }));
       expect(screen.getByTestId('saved-count-badge')).toBeInTheDocument();
       expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('保存済み');
       expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('比較を見る');

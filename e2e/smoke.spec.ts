@@ -43,7 +43,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
   await expect(page.getByText('1. 何をしたいか決める')).toBeVisible();
   await expect(page.getByRole('heading', { name: '何を見たい？' })).toBeVisible();
-  await expect(page.getByText('2. ランキングの条件と基準装備を決める')).toBeVisible();
+  await expect(page.getByText('4. 必要なら条件を変える')).toBeVisible();
 
   // Setup section is collapsed by default for ranking goal (result-first UX).
   await expect(page.getByTestId('setup-collapsed-summary')).toBeVisible();
@@ -52,13 +52,11 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByTestId('setup-toggle').click();
 
   await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: '3. どの欄を入れ替えて順位を見るか決める' }),
-  ).toBeVisible();
-  await expect(page.getByText('4. 条件つきの順位を見る')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '2. 順位を見る欄を選ぶ' })).toBeVisible();
+  await expect(page.getByText('3. 順位を見る')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Rod を入れ替えた順位' })).toBeVisible();
   await expect(page.getByTestId('current-goal-context')).toContainText(
-    'いまは「条件を固定して順位を見る」を表示中',
+    'いまは「スロット別に強い装備を順位で見る」を表示中',
   );
   await expect(page.getByRole('heading', { name: '保存した候補を比べる' })).toHaveCount(0);
   await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
@@ -73,20 +71,18 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute('data-state', 'idle');
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toHaveCount(0);
   const selectionBox = await page
-    .getByRole('heading', { name: '3. どの欄を入れ替えて順位を見るか決める' })
+    .getByRole('heading', { name: '2. 順位を見る欄を選ぶ' })
     .boundingBox();
   const goalBox = await page.getByRole('heading', { name: '何を見たい？' }).boundingBox();
-  const setupBox = await page
-    .getByRole('heading', { name: '条件と基準装備を決める' })
-    .boundingBox();
+  const setupBox = await page.getByRole('heading', { name: '必要なら条件を変える' }).boundingBox();
   const contextBox = await page.getByTestId('current-goal-context').boundingBox();
   const rankingBox = await page
     .getByRole('heading', { name: 'Rod を入れ替えた順位' })
     .boundingBox();
-  expect(goalBox?.y).toBeLessThan(setupBox?.y ?? Number.POSITIVE_INFINITY);
-  expect(setupBox?.y).toBeLessThan(selectionBox?.y ?? Number.POSITIVE_INFINITY);
-  expect(selectionBox?.y).toBeLessThan(contextBox?.y ?? Number.POSITIVE_INFINITY);
-  expect(contextBox?.y).toBeLessThan(rankingBox?.y ?? Number.POSITIVE_INFINITY);
+  expect(goalBox?.y).toBeLessThan(selectionBox?.y ?? Number.POSITIVE_INFINITY);
+  expect(selectionBox?.y).toBeLessThan(rankingBox?.y ?? Number.POSITIVE_INFINITY);
+  expect(rankingBox?.y).toBeLessThan(contextBox?.y ?? Number.POSITIVE_INFINITY);
+  expect(contextBox?.y).toBeLessThan(setupBox?.y ?? Number.POSITIVE_INFINITY);
   const totalStatsSection = page.getByTestId('total-stats-section');
   await expect(
     totalStatsSection.locator('[data-total-stat="luck"] span.rounded-full').first(),
