@@ -43,7 +43,7 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await expect(page.getByRole('heading', { name: '📊 装備込みの期待値比較' })).toBeVisible();
   await expect(page.getByText('1. 何をしたいか決める')).toBeVisible();
   await expect(page.getByRole('heading', { name: '何を見たい？' })).toBeVisible();
-  await expect(page.getByText('4. 必要なら条件を変える')).toBeVisible();
+  await expect(page.getByText('3. 必要なら計算の前提を変える')).toBeVisible();
 
   // Setup section is collapsed by default for ranking goal (result-first UX).
   await expect(page.getByTestId('setup-collapsed-summary')).toBeVisible();
@@ -52,47 +52,30 @@ test('calculator updates summary cards and fish list when loadout and filters ch
   await page.getByTestId('setup-toggle').click();
 
   await expect(page.getByRole('heading', { name: 'いまの装備', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: '2. 順位を見る欄を選ぶ' })).toBeVisible();
-  await expect(page.getByText('3. 順位を見る')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '全部の欄を入れ替えた順位' })).toBeVisible();
+  await expect(page.getByText('2. ランキングを見る')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'まず全体ランキングを見る', exact: true }),
+  ).toBeVisible();
   await expect(page.getByTestId('current-goal-context')).toContainText(
-    'いまは「スロット別に強い装備を順位で見る」を表示中',
+    'いまは「まず全体ランキングを見る」を表示中',
   );
   await expect(page.getByRole('heading', { name: '保存した候補を比べる' })).toHaveCount(0);
   await expect(page.getByTestId('total-stats-section')).toContainText('装備の合計');
   await expect(page.getByTestId('current-loadout-table')).toBeVisible();
   await expect(page.getByTestId('slot-picker-panel')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /詳細設定/ })).toBeVisible();
-  await expect(page.getByTestId('compare-slot-button-rod')).toBeVisible();
-  await expect(page.getByTestId('compare-slot-button-rod')).toHaveAttribute(
-    'data-state',
-    'selected',
-  );
-  await expect(page.getByTestId('compare-slot-button-line')).toHaveAttribute(
-    'data-state',
-    'selected',
-  );
-  await expect(page.getByTestId('compare-slot-button-bobber')).toHaveAttribute(
-    'data-state',
-    'selected',
-  );
-  await expect(page.getByTestId('compare-slot-button-enchant')).toHaveAttribute(
-    'data-state',
-    'selected',
-  );
-  await expect(page.getByTestId('compare-slot-button-area')).toHaveAttribute(
-    'data-state',
-    'selected',
-  );
+  await expect(page.getByTestId('optimizer-filter-panel')).toBeVisible();
+  await expect(page.getByRole('searchbox', { name: 'ランキングを検索' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'この候補を比較に追加' })).toHaveCount(0);
   const selectionBox = await page
-    .getByRole('heading', { name: '2. 順位を見る欄を選ぶ' })
+    .getByRole('heading', { name: 'まず全体ランキングを見る', exact: true })
     .boundingBox();
   const goalBox = await page.getByRole('heading', { name: '何を見たい？' }).boundingBox();
-  const setupBox = await page.getByRole('heading', { name: '必要なら条件を変える' }).boundingBox();
+  const setupBox = await page.getByRole('heading', { name: '計算の前提を変える' }).boundingBox();
   const contextBox = await page.getByTestId('current-goal-context').boundingBox();
   const rankingBox = await page
-    .getByRole('heading', { name: '全部の欄を入れ替えた順位' })
+    .getByTestId('ranking-results-container')
+    .getByRole('heading', { name: 'ランキング', exact: true })
     .boundingBox();
   expect(goalBox?.y).toBeLessThan(selectionBox?.y ?? Number.POSITIVE_INFINITY);
   expect(selectionBox?.y).toBeLessThan(rankingBox?.y ?? Number.POSITIVE_INFINITY);

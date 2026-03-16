@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { BOBBERS, ENCHANTS, LINES, RODS } from '@/data/equipment';
+import { FISHING_AREAS } from '@/data/fish';
 import { CalculatorParams, EnchantItem } from '@/types';
 import {
   computeSubsetSearchSpace,
@@ -27,6 +29,22 @@ const ALL_SLOTS: RankDimension[] = ['rod', 'line', 'bobber', 'enchant', 'area'];
 const EQUIPMENT_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
 const EMPTY_BUILDS: FullBuildEntry[] = [];
 
+type CombinationFilterField = RankDimension;
+type CombinationFilterState = Record<CombinationFilterField, string[]>;
+type CombinationFilterOption = {
+  id: string;
+  label: string;
+  sublabel?: string;
+};
+
+const EMPTY_COMBINATION_FILTERS: CombinationFilterState = {
+  rod: [],
+  line: [],
+  bobber: [],
+  enchant: [],
+  area: [],
+};
+
 interface OptimizerViewProps {
   /** Base params to optimize against (area, conditions, time model, etc.) */
   baseParams: CalculatorParams;
@@ -46,6 +64,8 @@ interface OptimizerViewProps {
   title?: string;
   /** Optional description override shown below the heading */
   description?: string;
+  /** Show leaderboard-style filters above the result list. */
+  enableCombinationFilters?: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -54,6 +74,60 @@ function clamp(value: number, min: number, max: number): number {
 
 function buildKey(entry: FullBuildEntry): string {
   return `${entry.areaId}|${entry.loadout.rodId}|${entry.loadout.lineId}|${entry.loadout.bobberId}|${entry.loadout.enchantId}`;
+}
+
+function buildCombinationFilterOptions(): Record<
+  CombinationFilterField,
+  CombinationFilterOption[]
+> {
+  return {
+    rod: RODS.map((item) => ({ id: item.id, label: item.nameEn, sublabel: item.location })),
+    line: LINES.map((item) => ({ id: item.id, label: item.nameEn, sublabel: item.location })),
+    bobber: BOBBERS.map((item) => ({ id: item.id, label: item.nameEn, sublabel: item.location })),
+    enchant: ENCHANTS.map((item) => ({
+      id: item.id,
+      label: item.nameEn,
+      sublabel: item.specialEffect !== '-' ? item.specialEffect : undefined,
+    })),
+    area: FISHING_AREAS.map((area) => ({ id: area.id, label: area.nameEn })),
+  };
+}
+
+function hasActiveCombinationFilters(
+  filters: CombinationFilterState,
+  searchQuery: string,
+): boolean {
+  return (
+    searchQuery.trim().length > 0 ||
+    Object.values(filters).some((selectedValues) => selectedValues.length > 0)
+  );
+}
+
+function filterBuilds(
+  builds: FullBuildEntry[],
+  filters: CombinationFilterState,
+  searchQuery: string,
+): FullBuildEntry[] {
+  const term = searchQuery.trim().toLowerCase();
+
+  return builds.filter((entry) => {
+    if (filters.rod.length > 0 && !filters.rod.includes(entry.loadout.rodId)) return false;
+    if (filters.line.length > 0 && !filters.line.includes(entry.loadout.lineId)) return false;
+    if (filters.bobber.length > 0 && !filters.bobber.includes(entry.loadout.bobberId)) return false;
+    if (filters.enchant.length > 0 && !filters.enchant.includes(entry.loadout.enchantId))
+      return false;
+    if (filters.area.length > 0 && !filters.area.includes(entry.areaId)) return false;
+
+    if (!term) return true;
+
+    return (
+      entry.areaName.toLowerCase().includes(term) ||
+      entry.items.rod.nameEn.toLowerCase().includes(term) ||
+      entry.items.line.nameEn.toLowerCase().includes(term) ||
+      entry.items.bobber.nameEn.toLowerCase().includes(term) ||
+      entry.items.enchant.nameEn.toLowerCase().includes(term)
+    );
+  });
 }
 
 function isEnchantItem(item: { category: string }): item is EnchantItem {
@@ -266,6 +340,7 @@ export function OptimizerView({
   helperText,
   title,
   description,
+  enableCombinationFilters = false,
 }: OptimizerViewProps) {
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [provisionalResult, setProvisionalResult] = useState<SubsetBuildOptimizerResult | null>(
@@ -275,6 +350,8 @@ export function OptimizerView({
   const [displayOrder, setDisplayOrder] = useState<'desc' | 'asc'>('desc');
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState(INITIAL_WINDOW_SIZE);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<CombinationFilterState>(EMPTY_COMBINATION_FILTERS);
 
   const paramsKey = JSON.stringify(baseParams);
   const orderedVaryingSlots = useMemo(
@@ -288,6 +365,8 @@ export function OptimizerView({
     EQUIPMENT_SLOTS.every((slot) => orderedVaryingSlots.includes(slot));
   const showAreaColumn = orderedVaryingSlots.includes('area');
   const totalCombinations = computeSubsetSearchSpace(orderedVaryingSlots);
+  const filterOptions = useMemo(buildCombinationFilterOptions, []);
+  const filtersKey = JSON.stringify({ searchQuery, filters });
 
   useEffect(() => {
     if (!isVisible) {
@@ -332,29 +411,33 @@ export function OptimizerView({
   }, [isVisible, paramsKey, slotsKey, totalCombinations]);
 
   const allBuilds = provisionalResult?.topBuilds ?? EMPTY_BUILDS;
-  const totalResults = allBuilds.length;
+  const filteredBuilds = useMemo(
+    () => (enableCombinationFilters ? filterBuilds(allBuilds, filters, searchQuery) : allBuilds),
+    [allBuilds, enableCombinationFilters, filters, searchQuery],
+  );
+  const totalResults = filteredBuilds.length;
   const normalizedStart =
     totalResults > 0 ? clamp(Math.min(rangeStart, rangeEnd), 1, totalResults) : 1;
   const normalizedEnd =
     totalResults > 0 ? clamp(Math.max(rangeStart, rangeEnd), normalizedStart, totalResults) : 0;
-  const bestValuePerHour = allBuilds[0]?.expectedValuePerHour ?? 0;
+  const bestValuePerHour = filteredBuilds[0]?.expectedValuePerHour ?? 0;
   const searchedSoFar = provisionalResult?.searchedCount ?? 0;
   const progressPct =
     isLoading && totalCombinations > 0 ? (searchedSoFar / totalCombinations) * 100 : 0;
   const hasMore = normalizedEnd < totalResults;
   const rankByKey = useMemo(
-    () => new Map(allBuilds.map((entry, index) => [buildKey(entry), index + 1])),
-    [allBuilds],
+    () => new Map(filteredBuilds.map((entry, index) => [buildKey(entry), index + 1])),
+    [filteredBuilds],
   );
   const visibleBuilds = useMemo(() => {
     if (totalResults === 0) return [] as Array<{ entry: FullBuildEntry; rank: number }>;
-    const rankWindow = allBuilds.slice(normalizedStart - 1, normalizedEnd);
+    const rankWindow = filteredBuilds.slice(normalizedStart - 1, normalizedEnd);
     const orderedWindow = displayOrder === 'desc' ? rankWindow : [...rankWindow].reverse();
     return orderedWindow.map((entry) => ({
       entry,
       rank: rankByKey.get(buildKey(entry)) ?? 1,
     }));
-  }, [allBuilds, displayOrder, normalizedEnd, normalizedStart, rankByKey, totalResults]);
+  }, [displayOrder, filteredBuilds, normalizedEnd, normalizedStart, rankByKey, totalResults]);
   const varyingLabel = isFullBuild
     ? 'Rod / Line / Bobber / Enchant'
     : orderedVaryingSlots.map((slot) => SLOT_LABELS[slot]).join(' + ');
@@ -363,8 +446,29 @@ export function OptimizerView({
     : `${varyingLabel} の組み合わせを厳密に調べて（${totalCombinations.toLocaleString()} 通り）、伸びやすい順に並べます。固定スロットはいまの装備のままです。`;
   const rangeLabel =
     totalResults > 0
-      ? `第${normalizedStart}〜${normalizedEnd}位 / 全${totalResults.toLocaleString()}件`
+      ? `${hasActiveCombinationFilters(filters, searchQuery) ? '絞り込み後 ' : ''}第${normalizedStart}〜${normalizedEnd}位 / 全${totalResults.toLocaleString()}件`
       : `結果待ち / 全${totalCombinations.toLocaleString()}通り`;
+
+  useEffect(() => {
+    if (!isVisible) return;
+    setDisplayOrder('desc');
+    setRangeStart(1);
+    setRangeEnd(INITIAL_WINDOW_SIZE);
+  }, [filtersKey, isVisible]);
+
+  const toggleFilterValue = (field: CombinationFilterField, value: string) => {
+    setFilters((current) => ({
+      ...current,
+      [field]: current[field].includes(value)
+        ? current[field].filter((entry) => entry !== value)
+        : [...current[field], value].sort((a, b) => a.localeCompare(b, 'en')),
+    }));
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilters(EMPTY_COMBINATION_FILTERS);
+  };
 
   const handleRangeChange = (
     setter: React.Dispatch<React.SetStateAction<number>>,
@@ -413,7 +517,7 @@ export function OptimizerView({
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] text-gray-500">変えるスロット:</span>
+        <span className="text-[11px] text-gray-500">順位に含める欄:</span>
         {ALL_SLOTS.map((slot) => {
           const isVarying = orderedVaryingSlots.includes(slot);
           return (
@@ -430,6 +534,124 @@ export function OptimizerView({
           );
         })}
       </div>
+
+      {enableCombinationFilters ? (
+        <div
+          className="mt-4 rounded-2xl border border-white/85 bg-white/80 p-4 shadow-sm"
+          data-testid="optimizer-filter-panel"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">ランキングの絞り込み</h3>
+              <p className="mt-1 text-xs text-gray-500">
+                いま見えている順位表だけを後から絞ります。同じ欄の複数選択は「または」、欄が違う条件は「かつ」です。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={!hasActiveCombinationFilters(filters, searchQuery)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              フィルターをリセット
+            </button>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="sr-only">ランキングを検索</span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              aria-label="ランキングを検索"
+              placeholder="装備名・釣り場で検索..."
+              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 shadow-sm outline-none transition focus:border-ocean-300 focus:ring-2 focus:ring-ocean-200/60"
+            />
+          </label>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {orderedVaryingSlots.map((field) => {
+              const selectedCount = filters[field].length;
+              const options = filterOptions[field];
+
+              return (
+                <details
+                  key={field}
+                  className="group rounded-xl border border-slate-200 bg-slate-50/70 p-3"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-slate-800">
+                    <span>{SLOT_LABELS[field]} で絞る</span>
+                    <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                      {selectedCount > 0 ? `${selectedCount}件` : 'すべて'}
+                    </span>
+                  </summary>
+                  <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+                    {options.map((option) => {
+                      const checked = filters[field].includes(option.id);
+
+                      return (
+                        <label
+                          key={`${field}-${option.id}`}
+                          className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                            checked
+                              ? 'border-ocean-300 bg-ocean-50 text-ocean-900'
+                              : 'border-white bg-white text-slate-700 hover:border-slate-200'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleFilterValue(field, option.id)}
+                            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-ocean-600 focus:ring-ocean-300"
+                          />
+                          <span className="min-w-0">
+                            <span className="block font-medium">{option.label}</span>
+                            {option.sublabel ? (
+                              <span className="block text-xs text-slate-500">
+                                {option.sublabel}
+                              </span>
+                            ) : null}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+
+          {hasActiveCombinationFilters(filters, searchQuery) ? (
+            <div className="mt-4 flex flex-wrap gap-2" data-testid="ranking-active-filter-chips">
+              {searchQuery.trim() ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="rounded-full border border-ocean-200 bg-ocean-50 px-3 py-1 text-xs font-semibold text-ocean-800"
+                >
+                  検索: {searchQuery.trim()} ×
+                </button>
+              ) : null}
+              {orderedVaryingSlots.flatMap((field) =>
+                filters[field].map((value) => {
+                  const label =
+                    filterOptions[field].find((option) => option.id === value)?.label ?? value;
+                  return (
+                    <button
+                      key={`${field}-chip-${value}`}
+                      type="button"
+                      onClick={() => toggleFilterValue(field, value)}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                    >
+                      {SLOT_LABELS[field]}: {label} ×
+                    </button>
+                  );
+                }),
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div
         id="optimizer-results"

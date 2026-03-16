@@ -237,95 +237,53 @@ describe('UI quality – overflow and wrapping prevention', () => {
     render(<CalculatorPageClient />);
 
     const context = screen.getByTestId('current-goal-context');
-    expect(context).toHaveTextContent('いまは「スロット別に強い装備を順位で見る」を表示中');
+    expect(context).toHaveTextContent('いまは「まず全体ランキングを見る」を表示中');
     expect(context).toHaveTextContent(/基準装備:/);
     expect(context).toHaveTextContent(/釣り場:/);
     expect(context).toHaveTextContent(/時間帯:/);
     expect(context).toHaveTextContent(/天気:/);
-    expect(context).toHaveTextContent(/変える欄:/);
-    expect(context).toHaveTextContent(/固定したまま:/);
+    expect(context).not.toHaveTextContent(/変える欄:/);
+    expect(context).not.toHaveTextContent(/固定したまま:/);
     expect(screen.queryByText('いま見ている結果')).not.toBeInTheDocument();
   });
 
-  it('uses only the four slot toggles as the optimizer entry point', () => {
+  it('ranking opens as a leaderboard with filters instead of slot toggles', () => {
     render(<CalculatorPageClient />);
 
-    const selector = screen.getByTestId('compare-slot-selector');
-    const rodButton = within(selector).getByTestId('compare-slot-button-rod');
-    const lineButton = within(selector).getByTestId('compare-slot-button-line');
-    const bobberButton = within(selector).getByTestId('compare-slot-button-bobber');
-    const enchantButton = within(selector).getByTestId('compare-slot-button-enchant');
-    const areaButton = within(selector).getByTestId('compare-slot-button-area');
-
-    expect(rodButton).toHaveAttribute('aria-pressed', 'true');
-    expect(rodButton).toHaveAttribute('data-state', 'selected');
-    expect(rodButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
-    expect(lineButton).toHaveAttribute('aria-pressed', 'true');
-    expect(lineButton).toHaveAttribute('data-state', 'selected');
-    expect(lineButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
-    expect(bobberButton).toHaveAttribute('aria-pressed', 'true');
-    expect(bobberButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
-    expect(enchantButton).toHaveAttribute('aria-pressed', 'true');
-    expect(enchantButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
-    expect(areaButton).toHaveAttribute('aria-pressed', 'true');
-    expect(areaButton.querySelector('[data-slot-indicator="selected"]')).not.toBeNull();
+    expect(screen.queryByTestId('compare-slot-selector')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'まず全体ランキングを見る' })).toBeInTheDocument();
+    expect(screen.getByTestId('optimizer-filter-panel')).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'ランキングを検索' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: '全部まとめて入れ替える' }),
-    ).not.toBeInTheDocument();
+      screen.getByText('何も固定しない全体ランキングです。必要な条件だけフィルターで絞ります。'),
+    ).toBeInTheDocument();
   });
 
-  it('switches between single-slot ranking and multi-slot optimizer from the same selector', () => {
+  it('ranking filters show active chips instead of changing slot mode', () => {
     render(<CalculatorPageClient />);
 
-    const selector = screen.getByTestId('compare-slot-selector');
-    fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
-    fireEvent.click(within(selector).getByTestId('compare-slot-button-bobber'));
-    fireEvent.click(within(selector).getByTestId('compare-slot-button-enchant'));
-    fireEvent.click(within(selector).getByTestId('compare-slot-button-area'));
+    const rodFilter = screen.getByText('Rod で絞る').closest('details');
+    expect(rodFilter).not.toBeNull();
+    fireEvent.click(within(rodFilter as HTMLElement).getByText('Rod で絞る'));
+    fireEvent.click(screen.getByLabelText(/Sunleaf Rod/));
 
-    expect(screen.getByRole('heading', { name: 'Rod を入れ替えた順位' })).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Rod の候補を強い順に表示中。（固定: Line / Bobber / Enchant / 釣り場）もう1つ押すと、その組み合わせの順位に切り替わります。',
-      ),
-    ).toBeInTheDocument();
-    expect(
-      within(selector)
-        .getByTestId('compare-slot-button-line')
-        .querySelector('[data-slot-indicator="idle"]'),
-    ).not.toBeNull();
-    expect(
-      within(selector)
-        .getByTestId('compare-slot-button-rod')
-        .querySelector('[data-slot-indicator="selected"]'),
-    ).not.toBeNull();
-
-    fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
-
-    expect(
-      screen.getByRole('heading', { name: 'Rod + Line を入れ替えた順位' }),
-    ).toBeInTheDocument();
-    expect(
-      within(selector)
-        .getByTestId('compare-slot-button-line')
-        .querySelector('[data-slot-indicator="selected"]'),
-    ).not.toBeNull();
+    const chips = screen.getByTestId('ranking-active-filter-chips');
+    expect(chips).toHaveTextContent('Rod: Sunleaf Rod');
+    expect(screen.getByTestId('ranking-results-container')).toHaveTextContent(
+      /結果待ち|絞り込み後/,
+    );
   });
 
   it('keeps the ranking flow in a top-to-bottom order', () => {
     render(<CalculatorPageClient />);
 
     const goalHeading = screen.getByRole('heading', { name: '何を見たい？' });
-    const selectionHeading = screen.getByRole('heading', { name: '2. 順位を見る欄を選ぶ' });
+    const rankingHeading = screen.getByRole('heading', { name: 'まず全体ランキングを見る' });
     const context = screen.getByTestId('current-goal-context');
-    const rankingHeading = screen.getByRole('heading', { name: '全部の欄を入れ替えた順位' });
-    const setupHeading = screen.getByRole('heading', { name: '必要なら条件を変える' });
+    const setupHeading = screen.getByRole('heading', { name: '計算の前提を変える' });
 
     expect(
-      goalHeading.compareDocumentPosition(selectionHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      selectionHeading.compareDocumentPosition(rankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+      goalHeading.compareDocumentPosition(rankingHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       rankingHeading.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -334,15 +292,14 @@ describe('UI quality – overflow and wrapping prevention', () => {
       context.compareDocumentPosition(setupHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getByText('1. 何をしたいか決める')).toBeInTheDocument();
-    expect(screen.getByText('2. 順位を見る欄を選ぶ')).toBeInTheDocument();
-    expect(screen.getByText('3. 順位を見る')).toBeInTheDocument();
-    expect(screen.getByText('4. 必要なら条件を変える')).toBeInTheDocument();
+    expect(screen.getByText('2. ランキングを見る')).toBeInTheDocument();
+    expect(screen.getByText('3. 必要なら計算の前提を変える')).toBeInTheDocument();
   });
 
   it('shows only the sections needed for the selected goal', () => {
     render(<CalculatorPageClient />);
 
-    expect(screen.getByTestId('compare-slot-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('optimizer-filter-panel')).toBeInTheDocument();
     expect(screen.queryByText('この候補を比較に追加')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '保存した候補を比べる' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: '魚種別詳細' })).not.toBeInTheDocument();
@@ -362,10 +319,10 @@ describe('UI quality – overflow and wrapping prevention', () => {
   it('updates the setup guidance after changing the goal', () => {
     render(<CalculatorPageClient />);
 
-    expect(screen.getByText('4. 必要なら条件を変える')).toBeInTheDocument();
+    expect(screen.getByText('3. 必要なら計算の前提を変える')).toBeInTheDocument();
     expect(
       screen.getByText(
-        '釣り場・時間帯・天気・基準装備を変えたいときだけ開いてください。変えなくても順位は見られます。',
+        '時間帯・天気・基準装備を変えたいときだけ開いてください。ここを変えるとランキングそのものを作り直します。',
       ),
     ).toBeInTheDocument();
 
@@ -393,8 +350,8 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(summary).toHaveTextContent('時間帯:');
     expect(summary).toHaveTextContent('天気:');
     // Step heading and description are still accessible.
-    expect(screen.getByRole('heading', { name: '必要なら条件を変える' })).toBeInTheDocument();
-    expect(screen.getByText('4. 必要なら条件を変える')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '計算の前提を変える' })).toBeInTheDocument();
+    expect(screen.getByText('3. 必要なら計算の前提を変える')).toBeInTheDocument();
   });
 
   it('expands the setup form when the toggle button is clicked', () => {
@@ -435,7 +392,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
     if (addButton) {
       fireEvent.click(addButton);
       // After adding, view switches to compare – switch back to ranking to see badge.
-      fireEvent.click(screen.getByRole('button', { name: /スロット別に強い装備を順位で見る/ }));
+      fireEvent.click(screen.getByRole('button', { name: /まず全体ランキングを見る/ }));
       expect(screen.getByTestId('saved-count-badge')).toBeInTheDocument();
       expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('保存済み');
       expect(screen.getByTestId('saved-count-badge')).toHaveTextContent('比較を見る');
@@ -488,7 +445,7 @@ describe('UI quality – overflow and wrapping prevention', () => {
 
     // Clicking the ranking button switches the goal view.
     fireEvent.click(screen.getByTestId('compare-empty-go-ranking'));
-    expect(screen.getByRole('heading', { name: '全部の欄を入れ替えた順位' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'まず全体ランキングを見る' })).toBeInTheDocument();
     expect(screen.queryByTestId('compare-empty-state')).not.toBeInTheDocument();
   });
 
@@ -517,15 +474,16 @@ describe('UI quality – overflow and wrapping prevention', () => {
     }
   });
 
-  it('ranking results container re-mounts when slot selection changes', () => {
+  it('ranking results container stays mounted while filters change', () => {
     render(<CalculatorPageClient />);
 
     const container = screen.getByTestId('ranking-results-container');
     expect(container).toBeInTheDocument();
 
-    // After switching slot selection the container should still be present.
-    const selector = screen.getByTestId('compare-slot-selector');
-    fireEvent.click(within(selector).getByTestId('compare-slot-button-line'));
+    const rodFilter = screen.getByText('Rod で絞る').closest('details');
+    expect(rodFilter).not.toBeNull();
+    fireEvent.click(within(rodFilter as HTMLElement).getByText('Rod で絞る'));
+    fireEvent.click(screen.getByLabelText(/Sunleaf Rod/));
 
     expect(screen.getByTestId('ranking-results-container')).toBeInTheDocument();
   });
@@ -560,8 +518,10 @@ describe('UI quality – overflow and wrapping prevention', () => {
     expect(matches.length).toBeLessThanOrEqual(1);
   });
 
-  it('slot-selector section does not render a standalone 選択中 context panel', () => {
+  it('upgrade slot-selector section does not render a standalone 選択中 context panel', () => {
     render(<CalculatorPageClient />);
+
+    fireEvent.click(screen.getByRole('button', { name: /今の装備から次を探す/ }));
 
     // The duplicate "選択中" panel was removed; text may still appear in aria-labels
     // but must not appear as a visible heading within the slot selector section.

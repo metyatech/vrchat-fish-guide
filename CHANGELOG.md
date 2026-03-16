@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.12.73] - 2026-03-16
+
+### Changed
+
+- **Ranking now starts as a true leaderboard instead of a slot-selection wizard**: the ranking goal opens directly into the full `Rod / Line / Bobber / Enchant / 釣り場` leaderboard, and you narrow it afterward with OR/AND filters instead of first deciding which dimensions count as ranking inputs.
+- **Ranking filters now behave like a normal filter bar rather than a hidden ranking mode switcher**: the ranking table adds slot/area checkboxes, search, active filter chips, and a saved-candidates shortcut while keeping the optional setup controls later in the flow.
+- **Enchant filter options now show the actual special effect text instead of relying on a non-existent derived summary field**: the filter UI is now type-correct and matches the equipment data model.
+
 ## [0.12.72] - 2026-03-16
 
 ### Changed

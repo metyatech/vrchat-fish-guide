@@ -48,7 +48,7 @@ const EQUIPMENT_SLOTS: RankSlot[] = ['rod', 'line', 'bobber', 'enchant'];
 const RANKING_SLOTS: RankDimension[] = ['rod', 'line', 'bobber', 'enchant', 'area'];
 
 const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
-  ranking: '見たい欄を選ぶと、その候補が強い順に並びます。',
+  ranking: 'まず全体ランキングを見て、必要なら気になる装備や釣り場だけ絞り込みます。',
   upgrade: '変えたいスロットを選び、気になる候補だけを比較へ送ります。',
   compare: '追加した候補を並べて、どれが一番伸びるかを選びます。',
   summary: 'いまの条件でどれだけ稼げるかを、主要指標から先に確認します。',
@@ -57,9 +57,9 @@ const GOAL_HELPER_COPY: Record<CalculatorGoal, string> = {
 
 const SETUP_SECTION_COPY: Record<CalculatorGoal, { title: string; description: string }> = {
   ranking: {
-    title: '4. 必要なら条件を変える',
+    title: '3. 必要なら計算の前提を変える',
     description:
-      '釣り場・時間帯・天気・基準装備を変えたいときだけ開いてください。変えなくても順位は見られます。',
+      '時間帯・天気・基準装備を変えたいときだけ開いてください。ここを変えるとランキングそのものを作り直します。',
   },
   upgrade: {
     title: '2. 今の装備と比較条件を決める',
@@ -407,7 +407,9 @@ export function CalculatorPageClient() {
   const fixedSlotsLabel =
     fixedSlots.length > 0 ? fixedSlots.map((slot) => SLOT_LABELS[slot]).join(' / ') : 'なし';
   const isUpgradeGoal = goalView === 'upgrade';
-  const showSelectionTools = isRankingGoal || isUpgradeGoal;
+  const showSelectionTools = isUpgradeGoal;
+  const showCompactGoalMetrics = isRankingGoal || isUpgradeGoal;
+  const showSetupToggle = isRankingGoal || isUpgradeGoal;
   const selectionHelperText = isSingleSlotSelection
     ? isRankingGoal
       ? `${SLOT_LABELS[primarySlot]} の候補を強い順に表示中。（固定: ${fixedSlotsLabel}）もう1つ押すと、その組み合わせの順位に切り替わります。`
@@ -436,18 +438,17 @@ export function CalculatorPageClient() {
         : RESULT_SECTION_COPY.compare;
   const goalContextLoadoutLabel = goalView === 'compare' ? '表示中の候補' : '基準装備';
   const currentValueCardTitle = goalView === 'summary' ? 'いまの時給' : 'この条件の目安';
-  const selectionSectionTitle = isRankingGoal ? '2. 順位を見る欄を選ぶ' : '3. 次に試す欄を決める';
-  const selectionSectionDescription = isRankingGoal
-    ? '初期状態では全部選択です。固定したい欄だけ外すと、その条件の順位に変わります。'
-    : '1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。';
-  const rankingResultsStepLabel = isRankingGoal ? '3. 順位を見る' : '4. 候補を見る';
+  const selectionSectionTitle = '3. 次に試す欄を決める';
+  const selectionSectionDescription =
+    '1つ選ぶと個別ランキング、2つ以上選ぶと組み合わせ最適化になります。';
+  const rankingResultsStepLabel = isRankingGoal ? '2. ランキングを見る' : '4. 候補を見る';
   const goalContextEyebrow = isRankingGoal
-    ? 'この順位の前提'
+    ? 'このランキングの前提'
     : showSelectionTools
       ? 'この条件で見ています'
       : '3. 結果を見る';
   const setupSectionCopy = SETUP_SECTION_COPY[goalView];
-  const setupSectionHeading = isRankingGoal ? '必要なら条件を変える' : '条件と基準装備を決める';
+  const setupSectionHeading = isRankingGoal ? '計算の前提を変える' : '条件と基準装備を決める';
 
   // ── Share URL ──────────────────────────────────────────────────────────────
 
@@ -513,7 +514,7 @@ export function CalculatorPageClient() {
         <span className="rounded-full border border-ocean-200 bg-white px-3 py-1 font-semibold">
           天気: {formatSelectedWeatherLabel(activeResult.params.weatherType)}
         </span>
-        {showSelectionTools ? (
+        {isUpgradeGoal ? (
           <>
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 font-semibold text-emerald-900">
               変える欄: {selectedSlotsLabel}
@@ -525,7 +526,7 @@ export function CalculatorPageClient() {
         ) : null}
       </div>
 
-      {showSelectionTools ? (
+      {showCompactGoalMetrics ? (
         /* Ranking/upgrade: compact single-line metric row so results stay primary focus */
         <div
           data-testid="context-expected-value-per-hour"
@@ -642,7 +643,7 @@ export function CalculatorPageClient() {
                 <h2 className="mt-2 text-lg font-semibold text-gray-900">{setupSectionHeading}</h2>
                 <p className="mt-1 text-sm text-gray-500">{setupSectionCopy.description}</p>
               </div>
-              {showSelectionTools && (
+              {showSetupToggle && (
                 <button
                   type="button"
                   data-testid="setup-toggle"
@@ -656,7 +657,7 @@ export function CalculatorPageClient() {
             </div>
 
             {/* Compact assumptions summary – visible when collapsed for ranking/upgrade */}
-            {showSelectionTools && !setupOpen && (
+            {showSetupToggle && !setupOpen && (
               <div
                 data-testid="setup-collapsed-summary"
                 className="flex flex-wrap gap-2 border-t border-slate-100 px-5 pb-4 pt-3"
@@ -674,7 +675,7 @@ export function CalculatorPageClient() {
             )}
 
             {/* ParameterForm – visible when not a ranking/upgrade goal, or when explicitly expanded */}
-            {(!showSelectionTools || setupOpen) && (
+            {(!showSetupToggle || setupOpen) && (
               <div className="border-t border-slate-100">
                 <ParameterForm
                   params={activeBuild.params}
@@ -686,7 +687,7 @@ export function CalculatorPageClient() {
           </section>
         ) : null}
 
-        {showSelectionTools ? (
+        {isUpgradeGoal ? (
           <>
             <section className="rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -778,7 +779,7 @@ export function CalculatorPageClient() {
               </div>
             </section>
 
-            {!isRankingGoal ? goalContextSection : null}
+            {goalContextSection}
 
             <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
               <div>
@@ -908,8 +909,52 @@ export function CalculatorPageClient() {
                 )}
               </div>
             </section>
+          </>
+        ) : null}
 
-            {isRankingGoal ? goalContextSection : null}
+        {isRankingGoal ? (
+          <>
+            <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.16em] text-ocean-700">
+                    2. ランキングを見る
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900">まず全体ランキングを見る</h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    最初は何も固定しない順位です。気になる装備や釣り場だけ、上のフィルターで後から絞れます。
+                  </p>
+                </div>
+                {hasComparisons ? (
+                  <button
+                    type="button"
+                    data-testid="saved-count-badge"
+                    onClick={() => setGoalView('compare')}
+                    className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+                  >
+                    保存済み {builds.length - 1}件 → 比較を見る
+                  </button>
+                ) : null}
+              </div>
+
+              <div data-testid="ranking-results-container">
+                <OptimizerView
+                  key="ranking-leaderboard"
+                  baseParams={activeBuild.params}
+                  varyingSlots={RANKING_SLOTS}
+                  initialExpanded={true}
+                  alwaysOpen={true}
+                  onPickBuild={undefined}
+                  showPickActions={false}
+                  enableCombinationFilters={true}
+                  title="ランキング"
+                  description="何も固定しない全体ランキングです。必要な条件だけフィルターで絞ります。"
+                  helperText="同じ欄の複数選択は「または」、欄が違う条件は「かつ」で絞り込まれます。"
+                />
+              </div>
+            </section>
+
+            {goalContextSection}
           </>
         ) : null}
 
@@ -927,7 +972,7 @@ export function CalculatorPageClient() {
                 <h2 className="mt-2 text-lg font-semibold text-gray-900">{setupSectionHeading}</h2>
                 <p className="mt-1 text-sm text-gray-500">{setupSectionCopy.description}</p>
               </div>
-              {showSelectionTools && (
+              {showSetupToggle && (
                 <button
                   type="button"
                   data-testid="setup-toggle"
@@ -940,7 +985,7 @@ export function CalculatorPageClient() {
               )}
             </div>
 
-            {showSelectionTools && !setupOpen && (
+            {showSetupToggle && !setupOpen && (
               <div
                 data-testid="setup-collapsed-summary"
                 className="flex flex-wrap gap-2 border-t border-slate-100 px-5 pb-4 pt-3"
@@ -957,7 +1002,7 @@ export function CalculatorPageClient() {
               </div>
             )}
 
-            {(!showSelectionTools || setupOpen) && (
+            {(!showSetupToggle || setupOpen) && (
               <div className="border-t border-slate-100">
                 <ParameterForm
                   params={activeBuild.params}
@@ -969,7 +1014,7 @@ export function CalculatorPageClient() {
           </section>
         ) : null}
 
-        {!showSelectionTools ? goalContextSection : null}
+        {!isRankingGoal && !showSelectionTools ? goalContextSection : null}
 
         {showCompareTools ? (
           <section className="space-y-4 rounded-[30px] border border-white/80 bg-white/82 p-6 shadow-[0_24px_72px_rgba(15,23,42,0.10)] backdrop-blur-sm">

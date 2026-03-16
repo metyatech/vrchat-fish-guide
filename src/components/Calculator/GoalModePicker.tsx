@@ -13,10 +13,9 @@ type GoalModeCopy = {
 
 export const CALCULATOR_GOAL_COPY: Record<CalculatorGoal, GoalModeCopy> = {
   ranking: {
-    badge: 'スロット順位',
-    title: 'スロット別に強い装備を順位で見る',
-    description:
-      '見たい欄を選ぶと、その候補が強い順に並びます。ほかの欄は今の装備のまま固定されます。',
+    badge: 'ランキング',
+    title: 'まず全体ランキングを見る',
+    description: 'まず全体ランキングを見て、気になる装備や釣り場だけ後から絞り込みます。',
     accentClassName:
       'border-amber-300 bg-[linear-gradient(145deg,rgba(255,251,235,0.98),rgba(254,243,199,0.94))] text-amber-950',
     ringClassName: 'ring-amber-200',
