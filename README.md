@@ -294,7 +294,6 @@ GitHub Pages と同じ base path 付き出力をローカルで確認したい�
 
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
-- [SECURITY.md](./SECURITY.md)
 - [CHANGELOG.md](./CHANGELOG.md)
 - [LICENSE](./LICENSE)
 - [AGENTS.md](./AGENTS.md)
