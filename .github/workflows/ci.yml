@@ -11,29 +11,42 @@ env:
 
 jobs:
   verify:
-    name: Verify
+    name: Full verify (Node 24)
     runs-on: ubuntu-latest
-
     timeout-minutes: 10
-    strategy:
-      matrix:
-        node-version: ['20.19.0', '22.12.0', '24.0.0']
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.0.0'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Run full verify
+        run: npm run verify
 
+  compatibility:
+    name: Test and build (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node-version: ['20.19.0', '22.12.0']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Run full verify
-        run: npm run verify
+      - name: Run tests
+        run: npm test
+      - name: Build
+        run: npm run build
